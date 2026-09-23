@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Boshqaruv paneli — Direksiya sayti</title>
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<!-- ─────────────── Kirish ekrani ─────────────── -->
+<section class="login" id="login-screen" hidden>
+  <form class="login__card" id="login-form" autocomplete="on">
+    <h1 class="login__title">Boshqaruv paneli</h1>
+    <p class="login__sub">Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi</p>
+
+    <div class="a-alert a-alert--warning" id="login-setup" hidden>
+      <strong>Foydalanuvchi yaratilmagan</strong>
+      <p>Serverda quyidagi buyruqni bajaring:</p>
+      <code>npm run admin:password -- &lt;foydalanuvchi&gt; &lt;parol&gt; admin</code>
+    </div>
+
+    <div class="a-alert a-alert--error" id="login-error" hidden></div>
+
+    <label class="a-field">
+      <span class="a-field__label">Foydalanuvchi nomi</span>
+      <input type="text" name="username" id="login-username" autocomplete="username" required>
+    </label>
+    <label class="a-field">
+      <span class="a-field__label">Parol</span>
+      <input type="password" name="password" id="login-password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="a-btn a-btn--primary a-btn--block" id="login-submit">Kirish</button>
+    <p class="login__note">
+      Bu bo'lim faqat vakolatli xodimlar uchun. Seans 8 soatdan keyin avtomatik tugaydi.
+    </p>
+  </form>
+</section>
+
+<!-- ─────────────── Asosiy interfeys ─────────────── -->
+<div class="shell" id="app-shell" hidden>
+  <aside class="sidebar">
+    <div class="sidebar__head">
+      <span class="sidebar__logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="32" height="32"><rect width="64" height="64" rx="12" fill="#0b2e4f"/><path d="M10 44 L24 22 L33 36 L38 28 L54 44 Z" fill="#fff"/></svg>
+      </span>
+      <div>
+        <p class="sidebar__title">Boshqaruv paneli</p>
+        <p class="sidebar__user" id="current-user"></p>
+      </div>
+    </div>
+
+    <nav class="sidebar__nav" aria-label="Bo'limlar">
+      <button type="button" class="sidebar__link is-active" data-view="lots">Hududlar va lotlar<span class="sidebar__count" data-count="lots"></span></button>
+      <button type="button" class="sidebar__link" data-view="masterplans">Master-rejalar<span class="sidebar__count" data-count="masterplans"></span></button>
+      <button type="button" class="sidebar__link" data-view="news">Yangiliklar<span class="sidebar__count" data-count="news"></span></button>
+      <hr>
+      <button type="button" class="sidebar__link" data-view="site">Sayt sozlamalari</button>
+      <button type="button" class="sidebar__link" data-view="pages">Sahifa matnlari</button>
+      <hr>
+      <button type="button" class="sidebar__link" data-view="inbox">Murojaatlar<span class="sidebar__count" data-count="inbox"></span></button>
+      <button type="button" class="sidebar__link" data-view="files">Fayllar</button>
+      <button type="button" class="sidebar__link" data-view="build">Saytni qurish</button>
+    </nav>
+
+    <div class="sidebar__foot">
+      <a class="a-btn a-btn--ghost a-btn--sm" href="/" target="_blank" rel="noopener">Saytni ochish ↗</a>
+      <button type="button" class="a-btn a-btn--ghost a-btn--sm" id="logout">Chiqish</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main-view">
+    <p class="a-loading">Yuklanmoqda…</p>
+  </main>
+</div>
+
+<div class="toast-stack" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module" src="/admin/app.js"></script>
+<noscript>
+  <p style="padding:2rem;font-family:system-ui">Boshqaruv panelida ishlash uchun JavaScript yoqilgan bo'lishi kerak.</p>
+</noscript>
+</body>
+</html>

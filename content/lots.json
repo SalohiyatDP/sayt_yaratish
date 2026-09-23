@@ -1,0 +1,62 @@
+{
+  "_note": "Hududlar va lotlar katalogi. Dastlab ro'yxat BO'SH — saytda 'Ma'lumot hozircha joylashtirilmagan' holati ko'rsatiladi. Har bir yozuvni faqat rasmiy hujjatlar asosida to'ldiring. _template maydonini nusxalab yangi lot yarating; _template o'zi saytda ko'rsatilmaydi.",
+
+  "_template": {
+    "id": "lot-0001",
+    "slug": "hudud-nomi-lot-1",
+    "lotNumber": null,
+    "name": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "district": "chortoq",
+    "areaType": "mountain",
+    "location": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "coordinates": null,
+    "boundary": null,
+    "boundarySource": "",
+    "cadastreNumber": "",
+    "areaHa": null,
+    "areaSotix": null,
+    "tourismDirections": [],
+    "status": "study",
+    "shortDescription": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "description": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "media": [],
+    "masterplanId": null,
+    "plannedObjects": [],
+    "services": [],
+    "access": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "infrastructure": [],
+    "requirements": [],
+    "restrictions": [],
+    "auction": {
+      "status": "not-announced",
+      "announcementDate": "",
+      "startDate": "",
+      "endDate": "",
+      "startPrice": null,
+      "currency": "UZS",
+      "rightType": null,
+      "rightTypeText": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "lotUrl": null,
+      "verified": false
+    },
+    "documents": [],
+    "updatedAt": "",
+    "published": false,
+    "demo": false
+  },
+
+  "_fieldGuide": {
+    "coordinates": "{ \"lat\": 41.0000, \"lng\": 71.0000 } — FAQAT haqiqiy geodezik koordinatalar. Taxminiy nuqta qo'yish man etiladi.",
+    "boundary": "[[lat,lng],[lat,lng], ...] — kadastr chegarasi konturi. Berilgan konturni o'zgartirmang, soddalashtirmang.",
+    "areaHa": "Maydon gektarda (son). areaSotix — zarur bo'lsa sotixda.",
+    "status": "taxonomies.json → lotStatuses dagi id: study | masterplan | auction-prep | auction | auction-closed",
+    "media": "[{ \"kind\": \"photo|render|scheme\", \"src\": \"/assets/uploads/...\", \"caption\": {..}, \"alt\": {..}, \"date\": \"\", \"author\": \"\" }] — kind=render bo'lsa sayt uni avtomatik 'Loyiha konsepsiyasi' deb belgilaydi.",
+    "auction.rightType": "taxonomies.json → rightTypes dagi id. rightTypeText — lotning rasmiy hujjatidagi ANIQ ibora. Umumiy 'yer sotiladi' iborasi ishlatilmaydi.",
+    "auction.lotUrl": "E-auksion'dagi AYNAN shu lotning rasmiy sahifasi. Havola bo'lmasa null qoldiring — sayt tugmani faolsiz qilib, sababini ochiq yozadi. Platformaning umumiy manzilini bu maydonga yozish man etiladi.",
+    "auction.verified": "true — faqat aukcion ma'lumotlari (sana, boshlang'ich narx, huquq turi) rasmiy e'lon bilan tasdiqlangan bo'lsa. false bo'lsa sayt bu bloklarni ko'rsatmaydi.",
+    "published": "false bo'lsa lot faqat boshqaruv panelida ko'rinadi, ommaviy saytda chiqmaydi.",
+    "demo": "true — namunaviy ma'lumot. Saytda har doim 'DEMO' belgisi bilan ko'rsatiladi va faqat demo rejimida chiqadi."
+  },
+
+  "items": []
+}

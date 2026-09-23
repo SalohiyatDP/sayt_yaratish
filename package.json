@@ -1,0 +1,23 @@
+{
+  "name": "namangan-trh-direksiya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Namangan viloyati hokimligi huzuridagi \"Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi\" davlat muassasasining rasmiy veb-sayti",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "node src/build.mjs",
+    "build:demo": "node src/build.mjs --demo",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "start": "node server/server.mjs",
+    "dev": "node server/server.mjs --dev",
+    "serve": "node server/server.mjs --public-only",
+    "check": "node src/check.mjs",
+    "admin:password": "node server/tools/hash-password.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "license": "UNLICENSED"
+}

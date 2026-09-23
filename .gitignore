@@ -10,8 +10,8 @@ server/data/admin-users.json
 # Kontentning avtomatik zaxira nusxalari (serverda saqlanadi)
 server/data/backups/
 
-# Murojaatlar qutisi (shaxsiy ma'lumotlar saqlanadi — hech qachon repozitoriyga tushmasligi kerak)
-/content/inbox/
+# Murojaatlar qutisi (shaxsiy ma'lumotlar saqlanadi — hech qachon repozitoriyaga tushmasligi kerak)
+/content/inbox/*
 !/content/inbox/.gitkeep
 
 # Boshqaruv paneli orqali yuklangan fayllar (og'ir media)
