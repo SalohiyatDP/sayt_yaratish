@@ -160,6 +160,29 @@ export const api = {
   deleteInbox: (id) => request(`/api/admin/inbox/${id}`, { method: 'DELETE' }),
   resendInbox: (id) => request(`/api/admin/inbox/${id}/resend`, { method: 'POST' }),
 
+  users: () => request('/api/admin/users'),
+  saveUser: (payload) =>
+    request('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  deleteUser: (username) => request(`/api/admin/users/${encodeURIComponent(username)}`, { method: 'DELETE' }),
+  changePassword: (currentPassword, newPassword) =>
+    request('/api/admin/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  backups: () => request('/api/admin/backups'),
+  restoreBackup: (file) =>
+    request('/api/admin/backups/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file }),
+    }),
+
   telegram: () => request('/api/admin/telegram'),
   telegramChats: () => request('/api/admin/telegram/chats'),
   telegramSave: (payload) =>

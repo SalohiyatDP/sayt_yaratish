@@ -149,17 +149,49 @@ function loadOrCreateSecret() {
   return secret;
 }
 
+const USERS_FILE = path.join(DATA_DIR, 'admin-users.json');
+
 function loadUsers() {
-  const file = path.join(DATA_DIR, 'admin-users.json');
-  if (!fs.existsSync(file)) return [];
+  if (!fs.existsSync(USERS_FILE)) return [];
   try {
-    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
     return Array.isArray(data.users) ? data.users : [];
   } catch (error) {
     console.error('admin-users.json o\'qilmadi:', error.message);
     return [];
   }
 }
+
+/** Foydalanuvchilar ro'yxatini saqlaydi (fayl faqat egasi uchun o'qiladi). */
+async function saveUsers(users) {
+  await fsp.mkdir(DATA_DIR, { recursive: true });
+  await fsp.writeFile(USERS_FILE, `${JSON.stringify({ users }, null, 2)}\n`, { mode: 0o600 });
+}
+
+const SCRYPT = { N: 16384, r: 8, p: 3, keylen: 64 };
+
+/** Yangi foydalanuvchi yozuvini yasaydi (parol scrypt bilan xeshlanadi). */
+function buildUser({ username, password, role, name }) {
+  const salt = crypto.randomBytes(16);
+  return {
+    username: String(username).toLowerCase(),
+    name: name || username,
+    role,
+    salt: salt.toString('base64'),
+    hash: crypto.scryptSync(password, salt, SCRYPT.keylen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p }).toString('base64'),
+    N: SCRYPT.N,
+    p: SCRYPT.p,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/** Maxfiy maydonlarsiz ko'rinish — brauzerga faqat shu yuboriladi. */
+const publicUser = (user) => ({
+  username: user.username,
+  name: user.name || user.username,
+  role: user.role || 'editor',
+  updatedAt: user.updatedAt || null,
+});
 
 /* ─────────────────────────── Yordamchilar ─────────────────────────── */
 
@@ -706,6 +738,160 @@ async function handleAdminApi(req, res, url) {
     await patchInboxRecord(record.id, { telegram: status });
     logLine(`Telegram: ${record.id} qayta yuborildi (${session.sub}) — ${status.delivered ? 'muvaffaqiyatli' : status.error}`);
     return sendJson(res, status.delivered ? 200 : 502, { ok: status.delivered, telegram: status });
+  }
+
+  /* ── Foydalanuvchilar ── */
+
+  if (route === 'users' && req.method === 'GET') {
+    return sendJson(res, 200, { ok: true, users: loadUsers().map(publicUser), me: session.sub });
+  }
+
+  if (route === 'users' && req.method === 'POST') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    let payload;
+    try {
+      payload = await readJsonBody(req, 8 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+
+    const username = sanitizeText(payload.username, 80).toLowerCase();
+    const password = String(payload.password || '');
+    const role = ['admin', 'editor', 'viewer'].includes(payload.role) ? payload.role : 'editor';
+    const name = sanitizeText(payload.name, 120) || username;
+
+    if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+      return sendJson(res, 422, { ok: false, error: 'username_format' });
+    }
+
+    const users = loadUsers();
+    const index = users.findIndex((user) => String(user.username).toLowerCase() === username);
+
+    // Mavjud foydalanuvchida parol bo'sh qoldirilsa — faqat rol va ism yangilanadi
+    if (index === -1 || password !== '') {
+      if (password.length < 12) return sendJson(res, 422, { ok: false, error: 'password_short' });
+    }
+
+    // Oxirgi adminni boshqa rolga o'tkazib qo'yishdan saqlanamiz
+    if (index !== -1 && users[index].role === 'admin' && role !== 'admin') {
+      const admins = users.filter((user) => user.role === 'admin').length;
+      if (admins <= 1) return sendJson(res, 409, { ok: false, error: 'last_admin' });
+    }
+
+    if (index === -1) {
+      users.push(buildUser({ username, password, role, name }));
+    } else if (password !== '') {
+      users[index] = { ...users[index], ...buildUser({ username, password, role, name }) };
+    } else {
+      users[index] = { ...users[index], role, name, updatedAt: new Date().toISOString() };
+    }
+
+    await saveUsers(users);
+    logLine(`Foydalanuvchi ${index === -1 ? 'yaratildi' : 'yangilandi'}: ${username} (${role}) — ${session.sub}`);
+    return sendJson(res, 200, { ok: true, users: users.map(publicUser) });
+  }
+
+  const userMatch = /^users\/([\w.-]+)$/.exec(route);
+  if (userMatch && req.method === 'DELETE') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    const target = decodeURIComponent(userMatch[1]).toLowerCase();
+
+    if (target === String(session.sub).toLowerCase()) {
+      return sendJson(res, 409, { ok: false, error: 'cannot_delete_self' });
+    }
+
+    const users = loadUsers();
+    const remaining = users.filter((user) => String(user.username).toLowerCase() !== target);
+    if (remaining.length === users.length) return sendJson(res, 404, { ok: false, error: 'not_found' });
+    if (remaining.filter((user) => user.role === 'admin').length === 0) {
+      return sendJson(res, 409, { ok: false, error: 'last_admin' });
+    }
+
+    await saveUsers(remaining);
+    logLine(`Foydalanuvchi o'chirildi: ${target} (${session.sub})`);
+    return sendJson(res, 200, { ok: true, users: remaining.map(publicUser) });
+  }
+
+  // O'z parolini o'zgartirish — har qanday rol uchun
+  if (route === 'password' && req.method === 'POST') {
+    let payload;
+    try {
+      payload = await readJsonBody(req, 8 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+    const current = String(payload.currentPassword || '');
+    const next = String(payload.newPassword || '');
+    if (next.length < 12) return sendJson(res, 422, { ok: false, error: 'password_short' });
+
+    const users = loadUsers();
+    const index = users.findIndex((user) => String(user.username).toLowerCase() === String(session.sub).toLowerCase());
+    if (index === -1) return sendJson(res, 404, { ok: false, error: 'not_found' });
+    if (!verifyPassword(current, users[index])) {
+      return sendJson(res, 401, { ok: false, error: 'wrong_password' });
+    }
+
+    users[index] = {
+      ...users[index],
+      ...buildUser({ username: users[index].username, password: next, role: users[index].role, name: users[index].name }),
+    };
+    await saveUsers(users);
+    logLine(`Parol o'zgartirildi: ${session.sub}`);
+    return sendJson(res, 200, { ok: true });
+  }
+
+  /* ── Zaxira nusxalar ── */
+
+  if (route === 'backups' && req.method === 'GET') {
+    const files = (await fsp.readdir(BACKUP_DIR).catch(() => [])).filter((file) => file.endsWith('.json'));
+    const items = [];
+    for (const file of files) {
+      const stat = await fsp.stat(path.join(BACKUP_DIR, file)).catch(() => null);
+      const match = /^([a-z]+)-(.+)\.json$/.exec(file);
+      items.push({
+        file,
+        content: match ? match[1] : null,
+        savedAt: stat?.mtime ?? null,
+        sizeBytes: stat?.size ?? null,
+      });
+    }
+    items.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+    return sendJson(res, 200, { ok: true, items });
+  }
+
+  if (route === 'backups/restore' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    let payload;
+    try {
+      payload = await readJsonBody(req, 8 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+    const file = safeFileName(payload.file || '');
+    const match = /^([a-z]+)-.+\.json$/.exec(file);
+    if (!match || !EDITABLE_FILES.has(match[1])) {
+      return sendJson(res, 422, { ok: false, error: 'invalid_file' });
+    }
+    const source = path.join(BACKUP_DIR, file);
+    if (!fs.existsSync(source)) return sendJson(res, 404, { ok: false, error: 'not_found' });
+
+    const name = match[1];
+    const target = path.join(CONTENT_DIR, `${name}.json`);
+
+    // Tiklashdan oldin joriy holatni ham zaxiraga olamiz
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const current = await fsp.readFile(target, 'utf8').catch(() => null);
+    if (current != null) await fsp.writeFile(path.join(BACKUP_DIR, `${name}-${stamp}.json`), current);
+
+    const restored = await fsp.readFile(source, 'utf8');
+    try {
+      JSON.parse(restored);
+    } catch (error) {
+      return sendJson(res, 422, { ok: false, error: 'invalid_json' });
+    }
+    await fsp.writeFile(target, restored, 'utf8');
+    logLine(`Zaxiradan tiklandi: ${file} → ${name}.json (${session.sub})`);
+    return sendJson(res, 200, { ok: true, name });
   }
 
   /* ── Telegram sozlamalari ── */

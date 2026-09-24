@@ -123,23 +123,72 @@ O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar 
 - **E-auksion** — platforma nomi, umumiy manzili va rasmiy izoh.
 - **Statistik ko'rsatkichlar** — «rasmiy tasdiqlangan» katagi belgilanmaguncha va manba
   ko'rsatilmaguncha bosh sahifada **chiqmaydi**. Taxminiy raqam kiritish man etiladi.
+- **Rahbariyat** — ism-familiya, lavozim, telefon, pochta, qabul vaqtlari.
+  «Direksiya haqida» sahifasida ko'rinadi. Faqat kadrlar bo'limi tasdiqlagan
+  ma'lumotlarni kiriting.
+- **Tuzilma** — muassasa bo'limlari va ularning vazifasi.
+- **Me'yoriy hujjatlar** — tashqi havola (masalan `lex.uz`) yoki yuklangan PDF.
+- **Bosh sahifa tasviri** — katta fotosurat. **Faqat Namangan viloyatining
+  haqiqiy fotosuratidan foydalaning.** Tasvir qo'yilmasa, bosh ekranda abstrakt
+  geometrik bezak ishlatiladi — u hech qanday joyni tasvirlamaydi.
 - **Texnik sozlamalar**:
   - *Murojaatlarni qabul qilish manzili* — bu serverda `/api/contact`.
     Bo'sh bo'lsa shakl faolsiz bo'lib, sababi saytda ochiq yoziladi.
   - *Saytning to'liq manzili* — `sitemap.xml` va `canonical` havolalar uchun.
   - *Logotip* — faylni shu yerdan yuklash mumkin.
 
+Bo'sh qoldirilgan ro'yxatlar (rahbariyat, tuzilma, hujjatlar) saytda umuman
+ko'rsatilmaydi — o'rniga «Ma'lumot hozircha joylashtirilmagan» chiqadi.
+
 ---
 
 ## 7. Sahifa matnlari
 
-Bosh sahifa, «Direksiya haqida», «Investorlarga» va boshqa bo'limlarning matnlari
-JSON ko'rinishida tahrirlanadi.
+Bosh sahifa, «Direksiya haqida», «Investorlarga» va boshqa bo'limlarning
+matnlari. Yuqorida beshta yorliq bor:
 
-- Har bir matn to'rt tilda: `"uz-cyrl"`, `"uz"`, `"ru"`, `"en"`.
-- **Kalitlarni (chap tomondagi nomlarni) o'zgartirmang** — faqat qo'shtirnoq ichidagi
-  matnlarni yozing.
-- Maydon tagida JSON to'g'riligi ko'rsatiladi. Xato bo'lsa saqlash amalga oshmaydi.
+| Yorliq | Nima tahrirlanadi |
+|---|---|
+| **Bosh sahifa** | Katta sarlavha, qisqa izoh, bo'lim sarlavhalari |
+| **Direksiya haqida** | Kirish matni, maqsad, faoliyat yo'nalishlari, yondashuv tamoyillari |
+| **Investorlarga** | 5 qadamli yo'riqnoma, ogohlantirish, ko'p so'raladigan savollar |
+| **Boshqa bo'limlar** | Hududlar, master-rejalar, yangiliklar va bog'lanish sahifalari sarlavhalari |
+| **Qulaylik** | Qulaylik sahifasi va yechimlar ro'yxati |
+
+Barcha yorliqlar **birga saqlanadi** — «Saqlash» tugmasi bir marta bosilsa
+kifoya.
+
+Ro'yxatlarda (faoliyat yo'nalishlari, qadamlar, savollar) `↑` va `↓` tugmalari
+bilan tartibni o'zgartirish, `✕` bilan o'chirish mumkin.
+
+**Investor qadamlaridagi «Bo'limga havola»** maydoni ixtiyoriy: biror bo'lim
+tanlansa, qadam ostida shu bo'limga o'tish havolasi chiqadi.
+
+> «Ogohlantirish» matnida soliq imtiyozlari, ijara muddatlari yoki kafolatlangan
+> daromad haqida tasdiqlanmagan va'da yozish man etiladi.
+
+---
+
+## 7a. Ma'lumotnomalar
+
+Tumanlar, hudud turlari, turizm yo'nalishlari, lot holatlari, master-reja
+holatlari, huquq turlari va ish bosqichlari ro'yxatlari. Bular lotlarda,
+master-rejalarda va saytdagi filtrlarda tanlanadi.
+
+**Muhim qoidalar:**
+
+- **Identifikator (id)** mavjud yozuvlarda **o'zgartirilmaydi** — lotlar unga
+  bog'langan. Maydon kulrang va faol emas.
+- Yangi yozuv qo'shganda id ni o'zingiz kiritasiz: faqat lotin harflari,
+  raqam va chiziqcha.
+- **Nomlarni** to'rt tilda erkin tahrirlash mumkin — bu xavfsiz amal.
+- **«tizimli»** deb belgilangan yozuvlar saytning ishlash mantig'ida
+  ishlatiladi (masalan lot holatlari) — ularni o'chirmaslik tavsiya etiladi.
+- Yozuvni o'chirishdan oldin u biror lotda ishlatilmayotganiga ishonch hosil
+  qiling. Ishlatilgan bo'lsa, saytda «Ko'rsatilmagan» deb chiqadi.
+
+Saqlashda ikki xato tekshiriladi: **id to'ldirilmagan** va **id takrorlangan**.
+Xato bo'lsa saqlanmaydi va nimani tuzatish kerakligi aytiladi.
 
 ---
 
@@ -167,6 +216,56 @@ sayt qayta qurilganini tekshiring.
 
 ---
 
+## 9a. Telegram
+
+Murojaatlar Telegram guruhiga kelishi uchun shu bo'limda sozlanadi.
+
+- **Joriy holat** jadvalida bot, chat, murojaat shaklining holati ko'rinadi.
+- **Bot tokeni** va **chat_id** ni faqat `admin` roli kiritadi.
+- **«chat_id ni aniqlash»** tugmasi bot ko'rgan chatlar ro'yxatini chiqaradi —
+  keraklisini bosasiz, qiymat o'zi qo'yiladi.
+- **«Sinov xabarini yuborish»** bilan ulanishni tekshirasiz.
+- **«Telegramga yuborishni vaqtincha to'xtatish»** — murojaatlar qabul
+  qilinishda va qutida saqlanishda davom etadi, lekin botga yuborilmaydi.
+
+To'liq yo'riqnoma (bot yaratish, guruh tanlash): [`docs/TELEGRAM.md`](TELEGRAM.md)
+
+> Telegramga shaxsiy ma'lumotlar (ism, telefon, pochta) yuboriladi. Guruh
+> **yopiq** bo'lishi va unda faqat vakolatli xodimlar bo'lishi kerak.
+
+---
+
+## 9b. Foydalanuvchilar
+
+Faqat `admin` roli uchun.
+
+- Jadvalda barcha foydalanuvchilar, rollari va oxirgi o'zgartirish sanasi.
+- **«Rolni saqlash»** — rolni o'zgartirish.
+- **«Parolni tiklash»** — foydalanuvchi parolini unutganda. Yangi parolni
+  xavfsiz yo'l bilan (og'zaki yoki xavfsiz kanal orqali) yetkazing.
+- **«O'chirish»** — o'zingizni va yagona administratorni o'chirish mumkin emas.
+- Pastda yangi foydalanuvchi yaratish shakli. Parol kamida 12 belgi.
+
+| Rol | Imkoniyatlari |
+|---|---|
+| `admin` | Hammasi: kontent, foydalanuvchilar, Telegram, murojaatlarni o'chirish |
+| `editor` | Kontentni tahrirlash, fayl yuklash, saytni qurish |
+| `viewer` | Faqat ko'rish |
+
+Parollar serverda `scrypt` algoritmi bilan xeshlanadi — hech qayerda ochiq
+saqlanmaydi va panelda ko'rsatilmaydi.
+
+**Mening parolim** bo'limida har qanday rol o'z parolini o'zgartira oladi
+(joriy parolni kiritish talab qilinadi).
+
+Administrator paroli butunlay yo'qolsa, serverda buyruq orqali tiklanadi:
+
+```bash
+node server/tools/hash-password.mjs <nom> '<yangi-parol>' admin
+```
+
+---
+
 ## 10. Saytni qurish
 
 - «Saytni qurish» — odatiy rejim, faqat tasdiqlangan kontent bilan.
@@ -175,6 +274,17 @@ sayt qayta qurilganini tekshiring.
   bo'limda qizil ogohlantirish ko'rinadi.
 - Qurish jurnali va ogohlantirishlar ro'yxati shu yerda ko'rsatiladi. Ogohlantirishlarga
   e'tibor bering — ular yetishmayotgan ma'lumotni ko'rsatadi.
+
+### Zaxira nusxalar
+
+Shu bo'limning pastida **«Zaxira nusxalar»** jadvali bor.
+
+Kontentni har saqlaganingizda avvalgi holat avtomatik zaxiraga olinadi (har
+bo'lim uchun oxirgi 20 versiya). Xato o'zgartirish kiritilgan bo'lsa,
+**«Tiklash»** tugmasi bilan qaytarish mumkin.
+
+Tiklashda joriy holat ham zaxiraga olinadi — ya'ni bu amalni ham ortga
+qaytarish mumkin. Tiklangandan keyin **saytni qayta qurish** kerak.
 
 ---
 
@@ -195,4 +305,13 @@ Fayl turi yoki hajmini tekshiring (25 MB gacha). SVG dan tashqari boshqa vektor
 formatlari qabul qilinmaydi.
 
 **Xato saqlab qo'ydim.**
-Serverda zaxira nusxalar bor: `server/data/backups/`. Tizim administratoriga murojaat qiling.
+«Saytni qurish» bo'limidagi **«Zaxira nusxalar»** jadvalidan avvalgi holatni
+tiklang. Har saqlashdan oldin avtomatik zaxira olinadi (oxirgi 20 versiya).
+
+**Ma'lumotnomada id maydoni faol emas.**
+Bu ataylab: mavjud identifikatorni o'zgartirish unga bog'langan lotlarni
+buzadi. Nomni erkin o'zgartirishingiz mumkin.
+
+**Parolni unutdim.**
+Administrator «Foydalanuvchilar» bo'limidan tiklab beradi. Administratorning
+o'zi unutgan bo'lsa, serverda buyruq orqali tiklanadi.

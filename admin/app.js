@@ -1,7 +1,7 @@
 /**
  * Boshqaruv panelining asosiy skripti: kirish, bo'limlar va saqlash.
  */
-import { qs, qsa, el, api, toast, pick, slugify, clone, todayIso, formatBytes, formatDateTime, confirmAction, emptyI18n } from './lib.js';
+import { qs, qsa, el, api, toast, pick, slugify, clone, todayIso, formatBytes, formatDateTime, confirmAction, emptyI18n, escapeHtml } from './lib.js';
 import {
   getPath, setPath, textField, numberField, dateField, checkboxField, selectField,
   multiSelectField, i18nField, i18nListField, coordinatesField, jsonField,
@@ -192,10 +192,13 @@ async function render() {
       news: () => renderCollection('news', NEWS_VIEW),
       site: renderSiteView,
       pages: renderPagesView,
+      taxonomies: renderTaxonomiesView,
       inbox: renderInboxView,
       telegram: renderTelegramView,
       files: renderFilesView,
       build: renderBuildView,
+      users: renderUsersView,
+      account: renderAccountView,
     };
     await (views[state.view] || views.lots)();
   } catch (error) {
@@ -830,6 +833,28 @@ async function renderSiteView() {
       statsField(site),
     ]),
 
+    group('Rahbariyat', [
+      el('p', { class: 'group__note', text: '«Direksiya haqida» sahifasida ko\'rinadi. Faqat kadrlar bo\'limi tasdiqlagan ma\'lumotlarni kiriting. Ro\'yxat bo\'sh bo\'lsa, saytda bo\'lim o\'rniga «Ma\'lumot hozircha joylashtirilmagan» chiqadi.' }),
+      leadershipField(site),
+    ]),
+
+    group('Tuzilma', [
+      el('p', { class: 'group__note', text: 'Muassasa bo\'limlari. Tasdiqlangan shtat jadvali asosida to\'ldiriladi.' }),
+      structureField(site),
+    ]),
+
+    group('Me\'yoriy hujjatlar', [
+      el('p', { class: 'group__note', text: 'Havola (tashqi manzil, masalan lex.uz) yoki yuklangan fayl ko\'rsatish mumkin.' }),
+      siteDocumentsField(site),
+    ]),
+
+    group('Bosh sahifa tasviri', [
+      el('div', { class: 'a-alert a-alert--warning' }, [
+        el('p', { text: 'FAQAT Namangan viloyatining haqiqiy fotosuratidan foydalaning. Boshqa hududlarning tasvirini Namangan deb ko\'rsatish man etiladi. Tasvir qo\'yilmasa, bosh ekranda abstrakt geometrik bezak ishlatiladi — u hech qanday joyni tasvirlamaydi.' }),
+      ]),
+      heroImageField(site),
+    ]),
+
     group('Texnik sozlamalar', [
       textField(site, {
         path: 'features.contactFormEndpoint',
@@ -856,6 +881,186 @@ async function renderSiteView() {
   form.addEventListener('change', () => { state.dirty = true; });
 
   setMain(el('div', { class: 'page-bar' }, [el('h1', { text: 'Sayt sozlamalari' })]), form);
+}
+
+/** Rahbariyat ro'yxati. */
+function leadershipField(site) {
+  let items = getPath(site, 'leadership.items');
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(site, 'leadership.items', items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Kiritilmagan.' }));
+    items.forEach((item, index) => {
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            i18nField(item, { path: 'name', label: 'Ism-familiya, sharifi', multiline: false }),
+            i18nField(item, { path: 'role', label: 'Lavozimi', multiline: false }),
+            el('div', { class: 'a-row' }, [
+              el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Telefon' }), el('input', { type: 'text', value: item.phone || '', onInput: (e) => { item.phone = e.target.value; } })]),
+              el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Elektron pochta' }), el('input', { type: 'email', value: item.email || '', onInput: (e) => { item.email = e.target.value; } })]),
+            ]),
+            i18nField(item, { path: 'receptionHours', label: 'Qabul vaqtlari', multiline: false }),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    list,
+    el('button', {
+      type: 'button',
+      class: 'a-btn a-btn--sm',
+      text: '+ Rahbar qo\'shish',
+      onClick: () => { items.push({ name: emptyI18n(), role: emptyI18n(), phone: '', email: '', receptionHours: emptyI18n() }); draw(); },
+    }),
+  ]);
+}
+
+/** Tuzilma ro'yxati. */
+function structureField(site) {
+  let items = getPath(site, 'structure.items');
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(site, 'structure.items', items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Kiritilmagan.' }));
+    items.forEach((item, index) => {
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            i18nField(item, { path: 'name', label: 'Bo\'lim nomi', multiline: false }),
+            i18nField(item, { path: 'description', label: 'Vazifasi (ixtiyoriy)', multiline: true, rows: 2 }),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    list,
+    el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '+ Bo\'lim qo\'shish', onClick: () => { items.push({ name: emptyI18n(), description: emptyI18n() }); draw(); } }),
+  ]);
+}
+
+/** Me'yoriy hujjatlar ro'yxati (havola yoki yuklangan fayl). */
+function siteDocumentsField(site) {
+  let items = getPath(site, 'documents.items');
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(site, 'documents.items', items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Hujjat qo\'shilmagan.' }));
+    items.forEach((item, index) => {
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            i18nField(item, { path: 'title', label: 'Hujjat nomi', multiline: false }),
+            el('div', { class: 'a-row' }, [
+              el('label', { class: 'a-field' }, [
+                el('span', { class: 'a-field__label', text: 'Tashqi havola' }),
+                el('input', { type: 'url', value: item.url || '', placeholder: 'https://lex.uz/docs/...', onInput: (e) => { item.url = e.target.value; } }),
+              ]),
+              el('label', { class: 'a-field' }, [
+                el('span', { class: 'a-field__label', text: 'Sana' }),
+                el('input', { type: 'date', value: String(item.date || '').slice(0, 10), onInput: (e) => { item.date = e.target.value; } }),
+              ]),
+            ]),
+            item.src
+              ? el('p', { class: 'a-small', html: `Yuklangan fayl: <code>${escapeHtml(item.src)}</code>` })
+              : createDropZone({
+                  folder: 'documents',
+                  accept: '.pdf,.zip',
+                  multiple: false,
+                  onUploaded: (result) => { item.src = result.src; draw(); },
+                }),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    list,
+    el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '+ Hujjat qo\'shish', onClick: () => { items.push({ title: emptyI18n(), url: '', date: '' }); draw(); } }),
+  ]);
+}
+
+/** Bosh sahifadagi katta tasvir. */
+function heroImageField(site) {
+  const host = el('div', { class: 'a-field' });
+
+  const draw = () => {
+    host.innerHTML = '';
+    const hero = getPath(site, 'media.heroImage');
+    if (hero && hero.src) {
+      host.append(
+        el('div', { class: 'media-tile', style: 'max-width:340px' }, [
+          el('img', { src: hero.src, alt: '' }),
+          el('div', { class: 'media-tile__body' }, [
+            i18nField(hero, { path: 'alt', label: 'Matnli tavsif (alt) — tasvirda nima ko\'rinadi', multiline: true, rows: 2 }),
+            el('label', { class: 'a-field' }, [
+              el('span', { class: 'a-field__label', text: 'Muallif / manba' }),
+              el('input', { type: 'text', class: 'a-input', value: hero.credit || '', onInput: (e) => { hero.credit = e.target.value; } }),
+            ]),
+            el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm a-btn--danger',
+              text: 'Olib tashlash',
+              onClick: () => { setPath(site, 'media.heroImage', null); draw(); },
+            }),
+          ]),
+        ]),
+      );
+    } else {
+      host.append(el('p', { class: 'a-muted a-small', text: 'Tasvir qo\'yilmagan — abstrakt bezak ishlatiladi.' }));
+      host.append(
+        createDropZone({
+          folder: 'brand',
+          accept: 'image/*',
+          multiple: false,
+          onUploaded: (result) => {
+            setPath(site, 'media.heroImage', { src: result.src, alt: emptyI18n(), credit: '' });
+            draw();
+          },
+        }),
+      );
+    }
+  };
+
+  draw();
+  return host;
 }
 
 function logoUpload(site) {
@@ -975,51 +1180,316 @@ function statsField(site) {
 
 /* ─────────────────────────── Sahifa matnlari ─────────────────────────── */
 
+/** Sahifa matnlari — har bir bo'lim uchun tushunarli maydonlar. */
+const PAGE_TABS = [
+  {
+    id: 'home',
+    label: 'Bosh sahifa',
+    build: (pages) => {
+      const home = (pages.home ??= {});
+      home.hero ??= {};
+      home.workflowIntro ??= {};
+      home.investorTeaser ??= {};
+      return [
+        group('Birinchi ekran', [
+          i18nField(home, { path: 'hero.title', label: 'Katta sarlavha', multiline: true, rows: 2 }),
+          i18nField(home, { path: 'hero.lead', label: 'Qisqa izoh', multiline: true, rows: 4 }),
+        ]),
+        group('Ish bosqichlari bloki', [
+          i18nField(home, { path: 'workflowIntro.title', label: 'Sarlavha', multiline: false }),
+          i18nField(home, { path: 'workflowIntro.lead', label: 'Izoh', multiline: true, rows: 3 }),
+        ]),
+        group('Tanlangan hududlar', [
+          i18nField(home, { path: 'featuredTitle', label: 'Bo\'lim sarlavhasi', multiline: false }),
+        ]),
+        group('Investorlar uchun qisqa blok', [
+          i18nField(home, { path: 'investorTeaser.title', label: 'Sarlavha', multiline: false }),
+          i18nField(home, { path: 'investorTeaser.lead', label: 'Izoh', multiline: true, rows: 3 }),
+        ]),
+      ];
+    },
+  },
+  {
+    id: 'about',
+    label: 'Direksiya haqida',
+    build: (pages) => {
+      const about = (pages.about ??= {});
+      return [
+        group('Sarlavha', [
+          i18nField(about, { path: 'title', label: 'Sahifa sarlavhasi', multiline: false }),
+          i18nField(about, { path: 'lead', label: 'Kirish matni', multiline: true, rows: 3 }),
+        ]),
+        group('Maqsad', [
+          i18nField(about, { path: 'purposeTitle', label: 'Bo\'lim sarlavhasi', multiline: false }),
+          i18nField(about, { path: 'purpose', label: 'Matn', multiline: true, rows: 6 }),
+        ]),
+        group('Faoliyat yo\'nalishlari', [
+          i18nField(about, { path: 'activitiesTitle', label: 'Bo\'lim sarlavhasi', multiline: false }),
+          titleTextListField(about, { path: 'activities', label: 'Yo\'nalishlar', itemLabel: 'yo\'nalish' }),
+        ]),
+        group('Yondashuv', [
+          i18nField(about, { path: 'approachTitle', label: 'Bo\'lim sarlavhasi', multiline: false }),
+          titleTextListField(about, { path: 'approach', label: 'Tamoyillar', itemLabel: 'tamoyil' }),
+        ]),
+      ];
+    },
+  },
+  {
+    id: 'investors',
+    label: 'Investorlarga',
+    build: (pages) => {
+      const inv = (pages.investors ??= {});
+      return [
+        group('Sarlavha', [
+          i18nField(inv, { path: 'title', label: 'Sahifa sarlavhasi', multiline: false }),
+          i18nField(inv, { path: 'lead', label: 'Kirish matni', multiline: true, rows: 3 }),
+        ]),
+        group('Qadamlar', [
+          el('p', { class: 'group__note', text: '«Bo\'limga havola» maydoni ixtiyoriy: areas, masterplans yoki contact yozsangiz, qadam ostida shu bo\'limga o\'tish havolasi chiqadi.' }),
+          stepListField(inv, { path: 'steps', label: 'Yo\'riqnoma qadamlari' }),
+        ]),
+        group('Ogohlantirish', [
+          el('div', { class: 'a-alert a-alert--warning' }, [
+            el('p', { text: 'Bu matn saytda alohida ajratib ko\'rsatiladi. Soliq imtiyozlari, ijara muddatlari yoki kafolatlangan daromad haqida tasdiqlanmagan va\'da yozish man etiladi.' }),
+          ]),
+          i18nField(inv, { path: 'disclaimerTitle', label: 'Sarlavha', multiline: false }),
+          i18nField(inv, { path: 'disclaimer', label: 'Matn', multiline: true, rows: 6 }),
+        ]),
+        group('Ko\'p so\'raladigan savollar', [
+          i18nField(inv, { path: 'faqTitle', label: 'Bo\'lim sarlavhasi', multiline: false }),
+          faqListField(inv, { path: 'faq', label: 'Savol-javoblar' }),
+        ]),
+      ];
+    },
+  },
+  {
+    id: 'sections',
+    label: 'Boshqa bo\'limlar',
+    build: (pages) => {
+      pages.areas ??= {};
+      pages.masterplans ??= {};
+      pages.news ??= {};
+      pages.contact ??= {};
+      return [
+        group('Hududlar va lotlar', [
+          i18nField(pages.areas, { path: 'title', label: 'Sarlavha', multiline: false }),
+          i18nField(pages.areas, { path: 'lead', label: 'Izoh', multiline: true, rows: 3 }),
+        ]),
+        group('Master-rejalar', [
+          i18nField(pages.masterplans, { path: 'title', label: 'Sarlavha', multiline: false }),
+          i18nField(pages.masterplans, { path: 'lead', label: 'Izoh', multiline: true, rows: 3 }),
+        ]),
+        group('Yangiliklar', [
+          i18nField(pages.news, { path: 'title', label: 'Sarlavha', multiline: false }),
+          i18nField(pages.news, { path: 'lead', label: 'Izoh', multiline: true, rows: 3 }),
+        ]),
+        group('Bog\'lanish', [
+          i18nField(pages.contact, { path: 'title', label: 'Sarlavha', multiline: false }),
+          i18nField(pages.contact, { path: 'lead', label: 'Izoh', multiline: true, rows: 3 }),
+          i18nField(pages.contact, { path: 'privacyNotice', label: 'Maxfiylik eslatmasi (shakl ostida chiqadi)', multiline: true, rows: 4 }),
+        ]),
+      ];
+    },
+  },
+  {
+    id: 'accessibility',
+    label: 'Qulaylik',
+    build: (pages) => {
+      const acc = (pages.accessibility ??= {});
+      return [
+        group('Qulaylik sahifasi', [
+          i18nField(acc, { path: 'title', label: 'Sarlavha', multiline: false }),
+          i18nField(acc, { path: 'lead', label: 'Kirish matni', multiline: true, rows: 3 }),
+          i18nListField(acc, { path: 'items', label: 'Qo\'llanilgan yechimlar ro\'yxati' }),
+        ]),
+      ];
+    },
+  },
+];
+
 async function renderPagesView() {
   const pages = await loadContent('pages');
-  const area = el('textarea', { class: 'a-input json-editor', spellcheck: 'false', value: JSON.stringify(pages, null, 2) });
-  const status = el('p', { class: 'a-field__hint' });
-  let parsed = pages;
+  let activeTab = state.pagesTab || 'home';
 
-  area.addEventListener('input', () => {
-    state.dirty = true;
-    try {
-      parsed = JSON.parse(area.value);
-      status.textContent = 'JSON to\'g\'ri.';
-      status.style.color = 'var(--a-success)';
-    } catch (error) {
-      parsed = null;
-      status.textContent = `JSON xato: ${error.message}`;
-      status.style.color = 'var(--a-danger)';
+  const tabBar = el('div', { class: 'tab-bar' });
+  const body = el('div', {});
+
+  const draw = () => {
+    tabBar.innerHTML = '';
+    for (const tab of PAGE_TABS) {
+      tabBar.append(
+        el('button', {
+          type: 'button',
+          class: `tab-bar__btn${tab.id === activeTab ? ' is-active' : ''}`,
+          text: tab.label,
+          onClick: () => {
+            activeTab = tab.id;
+            state.pagesTab = tab.id;
+            draw();
+          },
+        }),
+      );
     }
-  });
+    const tab = PAGE_TABS.find((t) => t.id === activeTab) || PAGE_TABS[0];
+    body.innerHTML = '';
+    body.append(...tab.build(pages));
+  };
+
+  draw();
+
+  const form = el('form', { class: 'editor', onSubmit: (e) => e.preventDefault() }, [
+    body,
+    el('div', { class: 'sticky-actions' }, [
+      el('button', { type: 'button', class: 'a-btn a-btn--primary', text: 'Saqlash', onClick: () => saveContent('pages') }),
+      el('span', { class: 'sticky-actions__spacer' }),
+      el('span', { class: 'a-small a-muted', text: 'pages.json — barcha bo\'limlar birga saqlanadi' }),
+    ]),
+  ]);
+  form.addEventListener('input', () => { state.dirty = true; });
+  form.addEventListener('change', () => { state.dirty = true; });
 
   setMain(
     el('div', { class: 'page-bar' }, [el('h1', { text: 'Sahifa matnlari' })]),
     el('div', { class: 'a-alert a-alert--info' }, [
-      el('strong', { text: 'Bosh sahifa, "Direksiya haqida", "Investorlarga" va boshqa bo\'limlarning matnlari' }),
-      el('p', { text: 'Bu bo\'lim matnlarni to\'g\'ridan-to\'g\'ri JSON ko\'rinishida tahrirlaydi. Har bir matn to\'rt tilda: "uz-cyrl", "uz", "ru", "en". Tuzilmani (kalitlarni) o\'zgartirmang — faqat matnlarni yozing.' }),
-      el('p', { class: 'a-small', text: 'Har bir saqlashdan oldin serverda avtomatik zaxira nusxa olinadi (oxirgi 20 ta versiya).' }),
+      el('p', { text: 'Har bir matn to\'rt tilda kiritiladi. Til tugmalari (ЎЗ / UZ / РУ / EN) yonidagi yashil nuqta — shu tilda matn borligini bildiradi.' }),
+      el('p', { class: 'a-small', text: 'Har saqlashdan oldin serverda avtomatik zaxira nusxa olinadi. Kerak bo\'lsa «Saytni qurish» bo\'limidan tiklash mumkin.' }),
     ]),
-    el('div', { class: 'group' }, [area, status]),
-    el('div', { class: 'sticky-actions' }, [
-      el('button', {
-        type: 'button',
-        class: 'a-btn a-btn--primary',
-        text: 'Saqlash',
-        onClick: async () => {
-          if (!parsed) {
-            toast('JSON xato — saqlanmadi. Avval xatolikni tuzating.', 'error');
-            return;
-          }
-          state.cache.pages = parsed;
-          await saveContent('pages');
-        },
-      }),
-      el('span', { class: 'sticky-actions__spacer' }),
-      el('span', { class: 'a-small a-muted', text: 'pages.json' }),
-    ]),
+    tabBar,
+    form,
   );
+}
+
+/** [{ title, text }] ko'rinishidagi ro'yxat (faoliyat yo'nalishlari, tamoyillar). */
+function titleTextListField(record, field) {
+  let items = getPath(record, field.path);
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(record, field.path, items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Ro\'yxat bo\'sh.' }));
+    items.forEach((item, index) => {
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            el('p', { class: 'a-small a-muted', text: `${index + 1}-${field.itemLabel || 'yozuv'}` }),
+            i18nField(item, { path: 'title', label: 'Sarlavha', multiline: false }),
+            i18nField(item, { path: 'text', label: 'Matn', multiline: true, rows: 3 }),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', title: 'Yuqoriga', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', title: 'Pastga', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    el('span', { class: 'a-field__label', text: field.label }),
+    list,
+    el('button', {
+      type: 'button',
+      class: 'a-btn a-btn--sm',
+      text: `+ ${field.itemLabel || 'Yozuv'} qo'shish`,
+      onClick: () => { items.push({ title: emptyI18n(), text: emptyI18n() }); draw(); },
+    }),
+  ]);
+}
+
+/** Investor yo'riqnomasi qadamlari — title, text va ixtiyoriy havola. */
+function stepListField(record, field) {
+  let items = getPath(record, field.path);
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(record, field.path, items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Qadam qo\'shilmagan.' }));
+    items.forEach((item, index) => {
+      const linkSelect = el('select', { class: 'a-input', onChange: (e) => { item.linkTo = e.target.value || undefined; } });
+      for (const option of [
+        { value: '', label: '— havola yo\'q —' },
+        { value: 'areas', label: 'Hududlar va lotlar' },
+        { value: 'masterplans', label: 'Master-rejalar' },
+        { value: 'investors', label: 'Investorlarga' },
+        { value: 'news', label: 'Yangiliklar' },
+        { value: 'contact', label: 'Bog\'lanish' },
+        { value: 'about', label: 'Direksiya haqida' },
+      ]) {
+        linkSelect.append(el('option', { value: option.value, text: option.label, selected: (item.linkTo || '') === option.value }));
+      }
+
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            el('p', { class: 'a-small a-muted', text: `${index + 1}-qadam` }),
+            i18nField(item, { path: 'title', label: 'Qadam sarlavhasi', multiline: false }),
+            i18nField(item, { path: 'text', label: 'Tushuntirish', multiline: true, rows: 4 }),
+            el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Bo\'limga havola' }), linkSelect]),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    el('span', { class: 'a-field__label', text: field.label }),
+    list,
+    el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '+ Qadam qo\'shish', onClick: () => { items.push({ title: emptyI18n(), text: emptyI18n() }); draw(); } }),
+  ]);
+}
+
+/** Savol-javoblar ro'yxati. */
+function faqListField(record, field) {
+  let items = getPath(record, field.path);
+  if (!Array.isArray(items)) {
+    items = [];
+    setPath(record, field.path, items);
+  }
+  const list = el('div', { class: 'list-editor' });
+
+  const draw = () => {
+    list.innerHTML = '';
+    if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Savol qo\'shilmagan.' }));
+    items.forEach((item, index) => {
+      list.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            el('p', { class: 'a-small a-muted', text: `${index + 1}-savol` }),
+            i18nField(item, { path: 'q', label: 'Savol', multiline: true, rows: 2 }),
+            i18nField(item, { path: 'a', label: 'Javob', multiline: true, rows: 5 }),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+            el('button', { type: 'button', class: 'a-btn a-btn--sm a-btn--danger', text: '✕', onClick: () => { items.splice(index, 1); draw(); } }),
+          ]),
+        ]),
+      );
+    });
+  };
+
+  draw();
+  return el('div', { class: 'a-field' }, [
+    el('span', { class: 'a-field__label', text: field.label }),
+    list,
+    el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '+ Savol qo\'shish', onClick: () => { items.push({ q: emptyI18n(), a: emptyI18n() }); draw(); } }),
+  ]);
 }
 
 /* ─────────────────────────── Murojaatlar ─────────────────────────── */
@@ -1270,11 +1740,446 @@ async function renderBuildView() {
       ]),
       logBox,
     ]),
+    await backupsGroup(),
   );
+}
+
+/** Kontentning avtomatik zaxira nusxalari — tiklash imkoniyati bilan. */
+async function backupsGroup() {
+  const CONTENT_LABELS = {
+    lots: 'Hududlar va lotlar',
+    masterplans: 'Master-rejalar',
+    news: 'Yangiliklar',
+    site: 'Sayt sozlamalari',
+    pages: 'Sahifa matnlari',
+    taxonomies: 'Ma\'lumotnomalar',
+  };
+
+  let items = [];
+  try {
+    const data = await api.backups();
+    items = data.items || [];
+  } catch (error) {
+    return el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Zaxira nusxalar' }),
+      el('p', { class: 'a-muted', text: `Ro'yxatni olish imkoni bo'lmadi: ${error.message}` }),
+    ]);
+  }
+
+  const table = el('table', { class: 'a-table' }, [
+    el('thead', {}, [
+      el('tr', {}, [el('th', { text: 'Nima' }), el('th', { text: 'Sana' }), el('th', { text: 'Hajmi' }), el('th', { text: '' })]),
+    ]),
+    el(
+      'tbody',
+      {},
+      items.length === 0
+        ? [el('tr', {}, [el('td', { colspan: '4', class: 'a-muted', text: 'Hozircha zaxira nusxa yo\'q. Kontentni birinchi marta saqlaganingizda paydo bo\'ladi.' })])]
+        : items.slice(0, 30).map((item) =>
+            el('tr', {}, [
+              el('th', { scope: 'row', text: CONTENT_LABELS[item.content] || item.content || '—' }),
+              el('td', { text: formatDateTime(item.savedAt) }),
+              el('td', { text: formatBytes(item.sizeBytes) }),
+              el('td', {}, [
+                el('button', {
+                  type: 'button',
+                  class: 'a-btn a-btn--sm',
+                  text: 'Tiklash',
+                  onClick: async () => {
+                    if (!confirmAction(
+                      `«${CONTENT_LABELS[item.content] || item.content}» bo'limi ${formatDateTime(item.savedAt)} holatiga qaytarilsinmi?\n\n` +
+                      'Joriy holat ham avtomatik zaxiraga olinadi, shuning uchun bu amalni ortga qaytarish mumkin.\n\n' +
+                      'Tiklangandan keyin saytni qayta qurish kerak.',
+                    )) return;
+                    try {
+                      await api.restoreBackup(item.file);
+                      state.cache = {};
+                      state.taxonomies = null;
+                      toast('Tiklandi. Endi saytni qayta quring.', 'success', 7000);
+                      render();
+                    } catch (error) {
+                      toast(`Tiklanmadi: ${error.data?.error || error.message}`, 'error', 7000);
+                    }
+                  },
+                }),
+              ]),
+            ]),
+          ),
+    ),
+  ]);
+
+  return el('div', { class: 'group' }, [
+    el('h2', { class: 'group__title', text: 'Zaxira nusxalar' }),
+    el('p', { class: 'group__note', text: 'Kontentni har saqlaganingizda avvalgi holat avtomatik zaxiraga olinadi (har bo\'lim uchun oxirgi 20 versiya). Xato o\'zgartirish kiritilsa, shu yerdan qaytarish mumkin.' }),
+    el('div', { class: 'a-table-wrap' }, [table]),
+  ]);
 }
 
 function row(label, value) {
   return el('tr', {}, [el('th', { text: label, scope: 'row' }), el('td', { text: value })]);
+}
+
+/* ─────────────────────────── Ma'lumotnomalar ─────────────────────────── */
+
+const TAXONOMY_GROUPS = [
+  { path: 'districts', label: 'Tumanlar', note: 'Lot va master-rejalarda tanlanadi.', extra: ['type'] },
+  { path: 'areaTypes', label: 'Hudud turlari', note: 'Tog\'li hudud, daryo bo\'yi, suv ombori atrofi.' },
+  { path: 'tourismDirections', label: 'Turizm yo\'nalishlari', note: 'Lotlarda bir nechtasini belgilash mumkin.' },
+  { path: 'lotStatuses', label: 'Lot holatlari', note: 'Saytdagi holat nishonlari. Bu ro\'yxatni o\'zgartirish saytning ishlash mantig\'iga ta\'sir qiladi — ehtiyot bo\'ling.', locked: true },
+  { path: 'masterplanStatuses', label: 'Master-reja holatlari', note: 'Konsepsiya / ishlab chiqilayotgan / tasdiqlangan. Ogohlantirish matnlari ham shu yerda.', locked: true, disclaimer: true },
+  { path: 'rightTypes.items', label: 'Huquq turlari', note: 'Aukcion bo\'limida tanlanadi. Har bir lotda aniq ibora alohida yoziladi.' },
+  { path: 'workflowStages', label: 'Ish bosqichlari', note: 'Bosh sahifadagi 5 bosqich. Tartib raqami va tavsifi bilan.', locked: true, description: true },
+];
+
+async function renderTaxonomiesView() {
+  const tax = await loadContent('taxonomies');
+  state.taxonomies = tax;
+
+  const groups = TAXONOMY_GROUPS.map((cfg) => {
+    let items = getPath(tax, cfg.path);
+    if (!Array.isArray(items)) {
+      items = [];
+      setPath(tax, cfg.path, items);
+    }
+
+    const list = el('div', { class: 'list-editor' });
+
+    const draw = () => {
+      list.innerHTML = '';
+      if (items.length === 0) list.append(el('p', { class: 'a-muted a-small', text: 'Ro\'yxat bo\'sh.' }));
+      items.forEach((item, index) => {
+        const isNew = Boolean(item.__new);
+        list.append(
+          el('div', { class: 'list-item' }, [
+            el('div', { class: 'list-item__body' }, [
+              el('div', { class: 'a-row' }, [
+                el('label', { class: 'a-field' }, [
+                  el('span', { class: 'a-field__label', text: 'Identifikator (id)' }),
+                  el('input', {
+                    type: 'text',
+                    value: item.id || '',
+                    readonly: !isNew,
+                    onInput: (e) => { if (isNew) item.id = slugify(e.target.value); },
+                    onBlur: (e) => { if (isNew) e.target.value = item.id || ''; },
+                  }),
+                  el('span', {
+                    class: 'a-field__hint',
+                    text: isNew ? 'Faqat lotin harflari va chiziqcha.' : 'O\'zgartirilmaydi — lotlarda ishlatilmoqda.',
+                  }),
+                ]),
+                item.step != null || item.number != null
+                  ? numberField(item, { path: item.number != null ? 'number' : 'step', label: 'Tartib raqami', step: '1' })
+                  : null,
+              ]),
+              i18nField(item, { path: 'name', label: 'Nomi', multiline: false }),
+              cfg.description ? i18nField(item, { path: 'description', label: 'Tavsifi', multiline: true, rows: 4 }) : null,
+              cfg.disclaimer ? i18nField(item, { path: 'disclaimer', label: 'Saytda chiqadigan ogohlantirish', multiline: true, rows: 3 }) : null,
+            ]),
+            el('div', { class: 'list-item__tools' }, [
+              el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↑', onClick: () => { if (index > 0) { [items[index - 1], items[index]] = [items[index], items[index - 1]]; draw(); } } }),
+              el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '↓', onClick: () => { if (index < items.length - 1) { [items[index + 1], items[index]] = [items[index], items[index + 1]]; draw(); } } }),
+              cfg.locked && !isNew
+                ? el('span', { class: 'a-tag', text: 'tizimli', title: 'Bu yozuv saytning ishlash mantig\'ida ishlatiladi — o\'chirish tavsiya etilmaydi.' })
+                : el('button', {
+                    type: 'button',
+                    class: 'a-btn a-btn--sm a-btn--danger',
+                    text: '✕',
+                    onClick: () => {
+                      if (!confirmAction(`"${pick(item.name) || item.id}" o'chirilsinmi?\n\nDIQQAT: bu qiymat allaqachon biror lotda ishlatilgan bo'lsa, saytda "Ko'rsatilmagan" deb chiqadi.`)) return;
+                      items.splice(index, 1);
+                      draw();
+                    },
+                  }),
+            ]),
+          ]),
+        );
+      });
+    };
+
+    draw();
+
+    return el('section', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: cfg.label }),
+      cfg.note ? el('p', { class: 'group__note', text: cfg.note }) : null,
+      list,
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--sm',
+        text: '+ Qo\'shish',
+        onClick: () => {
+          items.push({ id: '', name: emptyI18n(), __new: true });
+          draw();
+        },
+      }),
+    ]);
+  });
+
+  const form = el('form', { class: 'editor', onSubmit: (e) => e.preventDefault() }, [
+    ...groups,
+    el('div', { class: 'sticky-actions' }, [
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--primary',
+        text: 'Saqlash',
+        onClick: async () => {
+          // Avval tekshiramiz — muvaffaqiyatsiz bo'lsa yozuvlarga tegmaymiz,
+          // aks holda yangi qator "__new" belgisini yo'qotib, id maydoni
+          // qulflanib qoladi va foydalanuvchi xatoni tuzata olmaydi.
+          const problems = [];
+          for (const cfg of TAXONOMY_GROUPS) {
+            const items = getPath(tax, cfg.path) || [];
+            const seen = new Set();
+            for (const item of items) {
+              if (!item.id) problems.push(`${cfg.label}: identifikator to'ldirilmagan`);
+              else if (seen.has(item.id)) problems.push(`${cfg.label}: "${item.id}" takrorlanmoqda`);
+              else seen.add(item.id);
+            }
+          }
+          if (problems.length > 0) {
+            toast(problems.join('; '), 'error', 9000);
+            return;
+          }
+
+          // Tekshiruv o'tdi — endi texnik belgilarni tozalaymiz
+          for (const cfg of TAXONOMY_GROUPS) {
+            for (const item of getPath(tax, cfg.path) || []) delete item.__new;
+          }
+          await saveContent('taxonomies');
+          state.taxonomies = null;
+          render();
+        },
+      }),
+      el('span', { class: 'sticky-actions__spacer' }),
+      el('span', { class: 'a-small a-muted', text: 'taxonomies.json' }),
+    ]),
+  ]);
+  form.addEventListener('input', () => { state.dirty = true; });
+  form.addEventListener('change', () => { state.dirty = true; });
+
+  setMain(
+    el('div', { class: 'page-bar' }, [el('h1', { text: 'Ma\'lumotnomalar' })]),
+    el('div', { class: 'a-alert a-alert--warning' }, [
+      el('strong', { text: 'Ehtiyotkorlik bilan tahrirlang' }),
+      el('p', { text: 'Bu ro\'yxatlar lotlar, master-rejalar va saytdagi filtrlarda ishlatiladi. Identifikator (id) mavjud yozuvlarda o\'zgartirilmaydi, chunki lotlar unga bog\'langan. Nomlarni to\'rt tilda erkin tahrirlash mumkin.' }),
+      el('p', { class: 'a-small', text: '«tizimli» deb belgilangan yozuvlar saytning ishlash mantig\'ida ishlatiladi — ularni o\'chirmaslik tavsiya etiladi.' }),
+    ]),
+    form,
+  );
+}
+
+/* ─────────────────────────── Foydalanuvchilar ─────────────────────────── */
+
+const ROLE_LABELS = {
+  admin: 'Administrator — hammasi, foydalanuvchilar va o\'chirish ham',
+  editor: 'Muharrir — kontent va saytni qurish',
+  viewer: 'Kuzatuvchi — faqat ko\'rish',
+};
+
+async function renderUsersView() {
+  if (state.user?.role !== 'admin') {
+    setMain(
+      el('div', { class: 'page-bar' }, [el('h1', { text: 'Foydalanuvchilar' })]),
+      el('div', { class: 'a-alert a-alert--warning' }, [
+        el('strong', { text: 'Ruxsat yo\'q' }),
+        el('p', { text: 'Foydalanuvchilarni faqat administrator roliga ega xodim boshqaradi. O\'z parolingizni «Mening parolim» bo\'limida o\'zgartirishingiz mumkin.' }),
+      ]),
+    );
+    return;
+  }
+
+  const data = await api.users();
+  const users = data.users || [];
+
+  const rows = users.map((user) => {
+    const roleSelect = el('select', { class: 'a-input', style: 'max-width:260px' });
+    for (const [value, label] of Object.entries(ROLE_LABELS)) {
+      roleSelect.append(el('option', { value, text: label.split(' — ')[0], selected: user.role === value }));
+    }
+
+    return el('tr', {}, [
+      el('th', { scope: 'row' }, [
+        user.username,
+        user.username === data.me ? el('span', { class: 'a-tag', text: 'siz', style: 'margin-left:.4rem' }) : null,
+      ]),
+      el('td', { text: user.name || '—' }),
+      el('td', {}, [roleSelect]),
+      el('td', { text: formatDateTime(user.updatedAt) }),
+      el('td', {}, [
+        el('div', { style: 'display:flex;gap:.3rem;flex-wrap:wrap' }, [
+          el('button', {
+            type: 'button',
+            class: 'a-btn a-btn--sm',
+            text: 'Rolni saqlash',
+            onClick: async () => {
+              try {
+                await api.saveUser({ username: user.username, role: roleSelect.value, name: user.name });
+                toast('Rol yangilandi', 'success');
+                render();
+              } catch (error) {
+                toast(userError(error), 'error', 7000);
+              }
+            },
+          }),
+          el('button', {
+            type: 'button',
+            class: 'a-btn a-btn--sm',
+            text: 'Parolni tiklash',
+            onClick: async () => {
+              // eslint-disable-next-line no-alert
+              const next = window.prompt(`«${user.username}» uchun yangi parol (kamida 12 belgi):`);
+              if (!next) return;
+              try {
+                await api.saveUser({ username: user.username, password: next, role: user.role, name: user.name });
+                toast('Parol yangilandi. Foydalanuvchiga xavfsiz yo\'l bilan yetkazing.', 'success', 7000);
+              } catch (error) {
+                toast(userError(error), 'error', 7000);
+              }
+            },
+          }),
+          user.username === data.me
+            ? null
+            : el('button', {
+                type: 'button',
+                class: 'a-btn a-btn--sm a-btn--danger',
+                text: 'O\'chirish',
+                onClick: async () => {
+                  if (!confirmAction(`«${user.username}» foydalanuvchisi o'chirilsinmi?`)) return;
+                  try {
+                    await api.deleteUser(user.username);
+                    toast('O\'chirildi', 'success');
+                    render();
+                  } catch (error) {
+                    toast(userError(error), 'error', 7000);
+                  }
+                },
+              }),
+        ]),
+      ]),
+    ]);
+  });
+
+  // Yangi foydalanuvchi shakli
+  const newName = el('input', { type: 'text', class: 'a-input', placeholder: 'muharrir' });
+  const newFull = el('input', { type: 'text', class: 'a-input', placeholder: 'Ism-familiya (ixtiyoriy)' });
+  const newPass = el('input', { type: 'text', class: 'a-input', placeholder: 'Kamida 12 belgi' });
+  const newRole = el('select', { class: 'a-input' });
+  for (const [value, label] of Object.entries(ROLE_LABELS)) {
+    newRole.append(el('option', { value, text: label, selected: value === 'editor' }));
+  }
+
+  setMain(
+    el('div', { class: 'page-bar' }, [
+      el('h1', { text: 'Foydalanuvchilar' }),
+      el('span', { class: 'a-tag', text: `${users.length} ta` }),
+    ]),
+    el('div', { class: 'a-table-wrap' }, [
+      el('table', { class: 'a-table' }, [
+        el('thead', {}, [
+          el('tr', {}, [
+            el('th', { text: 'Foydalanuvchi' }),
+            el('th', { text: 'Ism' }),
+            el('th', { text: 'Rol' }),
+            el('th', { text: 'Yangilangan' }),
+            el('th', { text: '' }),
+          ]),
+        ]),
+        el('tbody', {}, rows),
+      ]),
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Yangi foydalanuvchi' }),
+      el('div', { class: 'a-row' }, [
+        el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Foydalanuvchi nomi' }), newName, el('span', { class: 'a-field__hint', text: 'Lotin harflari, raqam, nuqta, chiziqcha. 3–40 belgi.' })]),
+        el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Ism-familiya' }), newFull]),
+      ]),
+      el('div', { class: 'a-row' }, [
+        el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Parol' }), newPass, el('span', { class: 'a-field__hint', text: 'Kamida 12 belgi. Parolni xavfsiz yo\'l bilan yetkazing.' })]),
+        el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Rol' }), newRole]),
+      ]),
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--primary',
+        text: 'Yaratish',
+        onClick: async () => {
+          try {
+            await api.saveUser({
+              username: newName.value.trim(),
+              name: newFull.value.trim(),
+              password: newPass.value,
+              role: newRole.value,
+            });
+            toast('Foydalanuvchi yaratildi', 'success');
+            render();
+          } catch (error) {
+            toast(userError(error), 'error', 8000);
+          }
+        },
+      }),
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Rollar nima qila oladi' }),
+      el('ul', {}, Object.values(ROLE_LABELS).map((label) => el('li', { text: label }))),
+      el('p', { class: 'a-small a-muted', text: 'Parollar serverda scrypt algoritmi bilan xeshlanadi — hech qayerda ochiq saqlanmaydi va panelda ko\'rsatilmaydi.' }),
+    ]),
+  );
+}
+
+function userError(error) {
+  const messages = {
+    password_short: 'Parol kamida 12 belgidan iborat bo\'lishi kerak.',
+    username_format: 'Foydalanuvchi nomi faqat lotin harflari, raqam, nuqta va chiziqchadan iborat bo\'lsin (3–40 belgi).',
+    last_admin: 'Bu tizimdagi yagona administrator — rolini o\'zgartirish yoki o\'chirish mumkin emas.',
+    cannot_delete_self: 'O\'zingizni o\'chira olmaysiz.',
+    admin_only: 'Bu amalni faqat administrator bajaradi.',
+    wrong_password: 'Joriy parol xato kiritildi.',
+    not_found: 'Foydalanuvchi topilmadi.',
+  };
+  return messages[error.data?.error] || `Xatolik: ${error.message}`;
+}
+
+/* ─────────────────────────── Mening parolim ─────────────────────────── */
+
+async function renderAccountView() {
+  const current = el('input', { type: 'password', class: 'a-input', autocomplete: 'current-password' });
+  const next = el('input', { type: 'password', class: 'a-input', autocomplete: 'new-password' });
+  const repeat = el('input', { type: 'password', class: 'a-input', autocomplete: 'new-password' });
+
+  setMain(
+    el('div', { class: 'page-bar' }, [el('h1', { text: 'Mening parolim' })]),
+    el('div', { class: 'group', style: 'max-width:520px' }, [
+      el('p', { class: 'group__note', text: `Foydalanuvchi: ${state.user?.name || state.user?.username} (${state.user?.role})` }),
+      el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Joriy parol' }), current]),
+      el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Yangi parol' }), next, el('span', { class: 'a-field__hint', text: 'Kamida 12 belgi.' })]),
+      el('label', { class: 'a-field' }, [el('span', { class: 'a-field__label', text: 'Yangi parolni takrorlang' }), repeat]),
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--primary',
+        text: 'Parolni o\'zgartirish',
+        onClick: async () => {
+          if (next.value !== repeat.value) {
+            toast('Yangi parollar bir xil emas.', 'error');
+            return;
+          }
+          if (next.value.length < 12) {
+            toast('Parol kamida 12 belgidan iborat bo\'lishi kerak.', 'error');
+            return;
+          }
+          try {
+            await api.changePassword(current.value, next.value);
+            current.value = '';
+            next.value = '';
+            repeat.value = '';
+            toast('Parol o\'zgartirildi.', 'success');
+          } catch (error) {
+            toast(userError(error), 'error', 7000);
+          }
+        },
+      }),
+    ]),
+    el('div', { class: 'a-alert a-alert--info' }, [
+      el('p', { text: 'Parolni unutgan bo\'lsangiz, administrator uni «Foydalanuvchilar» bo\'limidan tiklab beradi. Administrator paroli yo\'qolsa, serverda buyruq orqali tiklanadi: node server/tools/hash-password.mjs <nom> <parol> admin' }),
+    ]),
+  );
 }
 
 /* ─────────────────────────── Telegram ─────────────────────────── */
