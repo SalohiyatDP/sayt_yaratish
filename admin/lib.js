@@ -199,6 +199,7 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   telegramTest: () => request('/api/admin/telegram/test', { method: 'POST' }),
+  telegramRetry: () => request('/api/admin/telegram/retry', { method: 'POST' }),
 
   uploads: () => request('/api/admin/uploads'),
   upload: (file, folder) =>

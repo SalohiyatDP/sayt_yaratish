@@ -46,7 +46,7 @@ jobs:
         run: |
           set -e
           count=0
-          for f in $(find src server admin assets/js scripts serverless app.js -name '*.mjs' -o -name '*.js' | sort); do
+          for f in $(find src server admin assets/js scripts app.js -name '*.mjs' -o -name '*.js' | sort); do
             node --check "$f"
             count=$((count + 1))
           done

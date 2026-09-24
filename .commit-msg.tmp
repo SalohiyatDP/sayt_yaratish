@@ -1,0 +1,54 @@
+fix: telefon majburiy, Telegram tashxisi, avtomatik nashr
+
+Uchta xatolik hal qilindi va boshqarish soddalashtirildi.
+
+1. TELEFON RAQAM MAJBURIY
+   Ilgari «telefon yoki pochtadan birini» kiritish yetarli edi. Endi telefon
+   raqam majburiy (kamida 7 raqam), pochta ixtiyoriy. Tekshiruv uch joyda:
+   shablon (required), brauzer (contact.js), server (422 + maydon nomi).
+   4 tilda phoneHint/phonePlaceholder qo'shildi.
+
+2. TELEGRAM YETKAZILMAGANINING SABABI KO'RINMAY QOLGANI
+   Zanjirning o'zi to'g'ri ishlayotgan edi, lekin xato sababi hech qayerda
+   ko'rinmasdi — xodim nima buzilganini bilmasdi. Endi:
+   • explainError() — Telegramning ingliz xatoligini sabab + yechimga o'giradi
+     (14 tipik holat: token, chat not found, huquq yo'q, blok, forum mavzusi,
+     DNS, tarmoq to'silgan va h.k.);
+   • probeNetwork() — hostingdan api.telegram.org ga chiqish bormi. Umumiy
+     hostinglarda eng ko'p uchraydigan sabab shu, va uni panel aniq aytadi;
+   • diagnose() uch bosqichli: tarmoq → token → chat, canSend bayrog'i bilan;
+   • «Murojaatlarning yetkazilishi» jadvali — jami/yetkazilgan/navbatda/xato
+     va oxirgi xatolik sababi. Sinov xabaridan ishonchliroq ko'rsatkich;
+   • murojaatlar ro'yxatida ham sabab va yechim o'zbekcha yoziladi.
+
+   Bundan tashqari ishonchlilik oshirildi: server har 5 daqiqada
+   yetkazilmagan murojaatlarni o'zi qayta yuboradi (bir hafta, 20 urinishgacha).
+   Sozlama keyinroq to'g'rilansa, o'shanga qadar kelgan murojaatlar ham
+   yuboriladi. Qaytarib bo'lmaydigan xatoliklar takrorlanmaydi.
+
+3. YANGILIK SAYTDA KO'RINMAGANI
+   Ikki tuzoq bor edi: yangi yozuv `published: false` bilan yaratilardi va
+   nashr katagi shakl oxirida ko'zdan yashirin edi; ustiga «Saytni qurish»ni
+   alohida bosish kerak edi.
+   • kontent saqlanganda server saytni O'ZI qayta quradi (navbat orqali,
+     oxirgi qurish rejimini saqlab);
+   • yangi yozuv sukut bo'yicha nashr etiladi;
+   • nashr holati tahrirlovchining ENG TEPASIDA — yashil «Saytda ko'rinadi»
+     yoki sariq «Qoralama», bir bosishda almashadi;
+   • ro'yxatda qoralama yonida «Saytga chiqarish» tugmasi.
+
+TOZALASH VA OPTIMIZATSIYA
+   • o'chirildi: serverless/ (Cloudflare Worker), Dockerfile,
+     docker-compose.yml, deploy-pages.yml — hech qachon ishlatilmagan va
+     sinovdan o'tkazilmagan yo'llar edi;
+   • 23 ta ishlatilmagan tarjima kaliti (4 tilda 92 yozuv), ikkita o'lik CSS
+     qoidasi, hech qayerda ko'rsatilmaydigan contacts.fax maydoni;
+   • murojaatlar qutisi endi cheklangan hajmda o'qiladi (eng yangi 300 ta) —
+     yillar o'tib minglab murojaat bo'lganda ham panel tez ishlaydi;
+   • «Saytni qurish» → «Sayt holati va zaxira» deb nomlandi, chunki qurish
+     avtomatik bo'lib qoldi;
+   • DEPLOY.md 895 → 785 satr, faqat haqiqiy ishlatilayotgan usullar qoldi.
+
+Sinovlar: server zanjiri 30 tekshiruv (mock Telegram API: ok, chat-not-found,
+flaky rejimlari), brauzerda murojaat shakli, nashr holati, 12 bo'lim —
+konsol xatosi yo'q, `node src/check.mjs` ogohlantirishsiz o'tadi.

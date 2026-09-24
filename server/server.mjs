@@ -561,7 +561,9 @@ async function handleContact(req, res) {
   const errors = [];
   if (!record.name) errors.push('name');
   if (!record.message) errors.push('message');
-  if (!record.phone && !record.email) errors.push('contact');
+  // Telefon raqam majburiy: murojaatga javob berishning asosiy yo'li
+  if (!record.phone) errors.push('phone');
+  else if ((record.phone.match(/\d/g) || []).length < 7) errors.push('phone');
   if (record.email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(record.email)) errors.push('email');
   if (!record.consent) errors.push('consent');
   if (errors.length > 0) return sendJson(res, 422, { ok: false, error: 'validation', fields: errors });
@@ -634,6 +636,105 @@ async function deliverToTelegram(record) {
 }
 
 /** Murojaat yozuvining bir qismini yangilaydi. */
+/* ──────────────── Yetkazilmagan murojaatlarni qayta yuborish ────────────────
+ * Telegram vaqtincha ishlamasa (tarmoq uzilishi, bot qayta ishga tushirilishi),
+ * murojaat qutida yetkazilmagan holda qoladi. Xodim buni qo'lda kuzatib
+ * o'tirmasligi uchun server har 5 daqiqada o'zi qayta urinib ko'radi.
+ * Qaytarib bo'lmaydigan xatoliklar (token xato, chat topilmadi) qayta
+ * urinilmaydi — ular sozlamani tuzatishni talab qiladi.
+ */
+
+const RETRY_INTERVAL_MS = 5 * 60 * 1000;
+const RETRY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // bir haftadan keyin urinish to'xtaydi
+const RETRY_MAX_ROUNDS = 20;
+
+/**
+ * Murojaat fayllarini eng yangisidan boshlab o'qiydi.
+ * Fayl nomi YYYYMMDD-XXXXXX ko'rinishida, shuning uchun nom bo'yicha teskari
+ * tartiblash sana bo'yicha tartiblash bilan bir xil. `limit` bilan cheklash
+ * yillar o'tib murojaatlar minglab bo'lganda ham javobni tez saqlaydi.
+ */
+async function readInbox({ limit = Infinity } = {}) {
+  const names = (await fsp.readdir(INBOX_DIR).catch(() => []))
+    .filter((file) => file.endsWith('.json'))
+    .sort()
+    .reverse();
+
+  const records = [];
+  for (const name of names) {
+    if (records.length >= limit) break;
+    try {
+      records.push(JSON.parse(await fsp.readFile(path.join(INBOX_DIR, name), 'utf8')));
+    } catch (error) {
+      /* buzilgan fayl — o'tkazib yuboriladi */
+    }
+  }
+  records.sort((a, b) => String(b.receivedAt).localeCompare(String(a.receivedAt)));
+  return { records, total: names.length };
+}
+
+const INBOX_PAGE_SIZE = 300;
+
+/** Murojaatlarning yetkazilish statistikasi — panelda ko'rsatiladi. */
+async function deliveryStats() {
+  const stats = { total: 0, delivered: 0, pending: 0, failed: 0, lastError: null, lastDeliveredAt: null };
+  const { records } = await readInbox({ limit: INBOX_PAGE_SIZE });
+
+  for (const record of records) {
+    stats.total += 1;
+    const status = record.telegram;
+    if (status?.delivered) {
+      stats.delivered += 1;
+      if (!stats.lastDeliveredAt) stats.lastDeliveredAt = status.at || record.receivedAt;
+    } else if (status?.permanent) {
+      stats.failed += 1;
+      if (!stats.lastError) stats.lastError = { id: record.id, at: status.at, ...telegram.explainError(status.error) };
+    } else {
+      stats.pending += 1;
+      if (!stats.lastError && status?.error) {
+        stats.lastError = { id: record.id, at: status.at, ...telegram.explainError(status.error) };
+      }
+    }
+  }
+  return stats;
+}
+
+async function retryPendingDeliveries() {
+  const config = telegram.getConfig();
+  if (!config.enabled) return { checked: 0, sent: 0 };
+
+  const { records } = await readInbox({ limit: INBOX_PAGE_SIZE });
+  let checked = 0;
+  let sent = 0;
+
+  for (const record of records) {
+    const status = record.telegram;
+    if (status?.delivered === true) continue;
+    // Hali umuman urinilmagan yozuv fonda yuborilayotgan bo'lishi mumkin
+    if (!status) continue;
+    if (status.permanent === true) continue;
+    if ((status.rounds || 0) >= RETRY_MAX_ROUNDS) continue;
+
+    const age = Date.now() - new Date(record.receivedAt || 0).getTime();
+    if (!Number.isFinite(age) || age > RETRY_MAX_AGE_MS) continue;
+
+    checked += 1;
+    const result = await telegram.notifyContact(record, { adminUrl: adminPanelUrl() });
+    await patchInboxRecord(record.id, {
+      telegram: { ...result, rounds: (status.rounds || 0) + 1, retriedAt: new Date().toISOString() },
+    });
+    if (result.delivered) {
+      sent += 1;
+      logLine(`Telegram: ${record.id} kechikib yetkazildi.`);
+    }
+  }
+
+  if (checked > 0) {
+    logLine(`Telegram navbati: ${checked} ta yetkazilmagan murojaat tekshirildi, ${sent} tasi yuborildi.`);
+  }
+  return { checked, sent };
+}
+
 async function patchInboxRecord(id, patch) {
   const file = path.join(INBOX_DIR, `${safeFileName(id)}.json`);
   try {
@@ -854,25 +955,32 @@ async function handleAdminApi(req, res, url) {
       }
       await fsp.writeFile(file, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
       logLine(`Kontent saqlandi: ${name}.json (${session.sub})`);
-      return sendJson(res, 200, { ok: true, name, savedAt: new Date().toISOString() });
+
+      // Saqlangan zahoti sayt qayta quriladi. Aks holda xodim «saqladim, lekin
+      // saytda ko'rinmayapti» degan holatga tushadi — eng ko'p uchragan muammo.
+      const rebuild = await autoRebuild();
+      return sendJson(res, 200, {
+        ok: true,
+        name,
+        savedAt: new Date().toISOString(),
+        rebuilt: rebuild.ok,
+        rebuildOutput: rebuild.ok ? null : rebuild.output,
+      });
     }
     return sendJson(res, 405, { ok: false, error: 'method_not_allowed' });
   }
 
   // Murojaatlar qutisi
   if (route === 'inbox' && req.method === 'GET') {
-    const files = (await fsp.readdir(INBOX_DIR).catch(() => [])).filter((f) => f.endsWith('.json'));
-    const items = [];
-    for (const file of files) {
-      try {
-        const data = JSON.parse(await fsp.readFile(path.join(INBOX_DIR, file), 'utf8'));
-        items.push(data);
-      } catch (error) {
-        /* buzilgan fayl — o'tkazib yuboriladi */
+    const { records, total } = await readInbox({ limit: INBOX_PAGE_SIZE });
+    const items = records.map((data) => {
+      // Telegram xatoligini xodim tushunadigan tilga o'giramiz (faylga yozilmaydi)
+      if (data.telegram && !data.telegram.delivered && data.telegram.error) {
+        return { ...data, telegram: { ...data.telegram, explained: telegram.explainError(data.telegram.error) } };
       }
-    }
-    items.sort((a, b) => String(b.receivedAt).localeCompare(String(a.receivedAt)));
-    return sendJson(res, 200, { ok: true, items, count: items.length });
+      return data;
+    });
+    return sendJson(res, 200, { ok: true, items, count: items.length, total, limit: INBOX_PAGE_SIZE });
   }
 
   const inboxMatch = /^inbox\/([\w-]+)$/.exec(route);
@@ -1078,7 +1186,22 @@ async function handleAdminApi(req, res, url) {
     } catch (error) {
       contactEndpoint = null;
     }
-    return sendJson(res, 200, { ok: true, report, contactEndpoint, envFileLoaded: ENV_RESULT.loaded });
+    return sendJson(res, 200, {
+      ok: true,
+      report,
+      contactEndpoint,
+      envFileLoaded: ENV_RESULT.loaded,
+      // Oxirgi murojaatlar qanday yetkazilgani — sozlama to'g'ri ishlayotganini
+      // shu ko'rsatadi, sinov xabaridan ham ishonchliroq
+      delivery: await deliveryStats(),
+    });
+  }
+
+  // Yetkazilmagan barcha murojaatlarni qayta yuborish
+  if (route === 'telegram/retry' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    const result = await retryPendingDeliveries();
+    return sendJson(res, 200, { ok: true, ...result });
   }
 
   if (route === 'telegram/config' && req.method === 'POST') {
@@ -1124,7 +1247,12 @@ async function handleAdminApi(req, res, url) {
     if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
     const result = await telegram.sendTestMessage(`Yuborgan xodim: ${session.sub}`);
     logLine(`Telegram sinov xabari (${session.sub}) — ${result.delivered ? 'yuborildi' : result.error}`);
-    return sendJson(res, result.delivered ? 200 : 502, { ok: result.delivered, result });
+    return sendJson(res, result.delivered ? 200 : 502, {
+      ok: result.delivered,
+      result,
+      // Xatolikni tushunarli tilda qaytaramiz — panel shuni ko'rsatadi
+      explained: result.delivered ? null : telegram.explainError(result.error),
+    });
   }
 
   if (route === 'telegram/chats' && req.method === 'GET') {
@@ -1225,6 +1353,33 @@ async function pruneBackups(name, keep = 20) {
   for (const file of files.slice(keep)) {
     await fsp.unlink(path.join(BACKUP_DIR, file)).catch(() => undefined);
   }
+}
+
+/**
+ * Kontent saqlangandan keyin saytni qayta quradi.
+ * Bir vaqtda bitta qurish ishlaydi: ketma-ket saqlashlar bir navbatga qo'shiladi.
+ */
+let rebuildChain = Promise.resolve({ ok: true, output: '' });
+
+/** Oxirgi qurish demo rejimida bo'lganmi — rejimni saqlab qolamiz. */
+function lastBuildWasDemo() {
+  try {
+    const info = JSON.parse(fs.readFileSync(path.join(DIST, 'build-info.json'), 'utf8'));
+    return info?.demo === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function autoRebuild() {
+  rebuildChain = rebuildChain.then(async () => {
+    const result = await runBuild(lastBuildWasDemo());
+    if (result.code !== 0) {
+      logLine('Avtomatik qurish XATO bilan tugadi:', result.output.slice(-400));
+    }
+    return { ok: result.code === 0, output: result.output };
+  });
+  return rebuildChain;
 }
 
 function runBuild(demo) {
@@ -1439,6 +1594,18 @@ const onListening = () => {
 
   if (DEV) console.log('  Rejim:             DEV (cookie Secure bayrog\'isiz — faqat mahalliy sinov uchun)');
   console.log('');
+
+  // Yetkazilmagan murojaatlarni fonda qayta yuborish
+  if (!PUBLIC_ONLY) {
+    const timer = setInterval(() => {
+      retryPendingDeliveries().catch((error) => logLine('Telegram navbati xatolik:', error.message));
+    }, RETRY_INTERVAL_MS);
+    timer.unref();
+    // Ishga tushgandan 20 soniya keyin birinchi tekshiruv
+    setTimeout(() => {
+      retryPendingDeliveries().catch(() => undefined);
+    }, 20_000).unref();
+  }
 };
 
 server.on('error', (error) => {

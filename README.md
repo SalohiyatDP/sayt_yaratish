@@ -297,7 +297,7 @@ o'zlari yangilaydi.
 
 ```bash
 node scripts/bundle.mjs             # A variant (sayt + server + panel)
-node scripts/bundle.mjs --static    # B va C variantlar (faqat HTML fayllar)
+node scripts/bundle.mjs --static    # faqat HTML fayllar (Node.js siz hosting)
 ```
 
 Skript saytni qayta quradi, tekshiradi, **maxfiy fayllar tushmaganini nazorat
@@ -311,10 +311,7 @@ To'plamga **kirmaydi**: `.env`, bot tokeni, panel parollari, kelgan murojaatlar.
 | Usul | Qayerda ishlatiladi |
 |---|---|
 | **systemd + nginx** | O'z VPS serveringiz — eng ko'p ishlatiladigan usul |
-| **cPanel «Setup Node.js App»** | Ko'pgina O'zbekiston hostinglarida bor. Kirish fayli: `app.js` |
-| **Docker** | `docker compose up -d` — tayyor `Dockerfile` va `docker-compose.yml` |
-| **Serverless funksiya** | Faqat statik hosting bo'lsa: `serverless/` (Cloudflare Worker) |
-| **GitHub Pages** | Faqat ko'rib chiqish uchun (Actions ish oqimi tayyor) |
+| **Hosting paneli (ISPmanager, cPanel, Plesk)** | Ko'pgina O'zbekiston hostinglarida bor. Kirish fayli: `app.js` |
 
 Har biri uchun to'liq, qadam-baqadam yo'riqnoma, nginx va systemd namunalari,
 zaxiralash skripti va topshirishdan oldin tekshiruv ro'yxati:
@@ -370,10 +367,8 @@ to'ldiring va kontent fayllariga shu til kalitini qo'shing.
 - [`docs/BOSHQARUV-PANELI.md`](docs/BOSHQARUV-PANELI.md) — xodimlar uchun yo'riqnoma
 - [`docs/TELEGRAM.md`](docs/TELEGRAM.md) — murojaat shaklini Telegram botga ulash
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — hostingga joylashtirish (systemd, nginx,
-  cPanel, Docker, zaxiralash, monitoring, tekshiruv ro'yxati)
+  hosting paneli, zaxiralash, monitoring, tekshiruv ro'yxati)
 - [`docs/ARXITEKTURA.md`](docs/ARXITEKTURA.md) — texnik qarorlar va tuzilma
-- [`serverless/README.md`](serverless/README.md) — faqat statik hosting uchun
-  murojaat shakli (Cloudflare Worker)
 - [`windows/README.md`](windows/README.md) — Windows uchun yordamchi skriptlar va
   PowerShell cheklovini hal qilish
 

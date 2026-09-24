@@ -209,9 +209,18 @@ async function saveContent(name) {
   const data = state.cache[name];
   if (!data) return false;
   try {
-    await api.putContent(name, data);
+    // Server saqlaydi va darhol saytni qayta quradi — xodim hech narsa bosmaydi
+    const result = await api.putContent(name, data);
     state.dirty = false;
-    toast(`${name}.json saqlandi. O'zgarishlar saytda ko'rinishi uchun "Saytni qurish" bo'limidan qayta quring.`, 'success', 6000);
+    if (result.rebuilt === false) {
+      toast(
+        'Saqlandi, lekin saytni qurishda xatolik bo\'ldi. «Sayt holati va zaxira» bo\'limiga kirib xabarni ko\'ring.',
+        'error',
+        9000,
+      );
+    } else {
+      toast('Saqlandi va saytga chiqarildi', 'success', 4000);
+    }
     refreshCounts();
     return true;
   } catch (error) {
@@ -338,7 +347,7 @@ const LOTS_VIEW = {
     },
     documents: [],
     updatedAt: todayIso(),
-    published: false,
+    published: true,
     demo: false,
   }),
   form: async (record) => {
@@ -416,7 +425,6 @@ const LOTS_VIEW = {
 
       group('Nashr', [
         dateField(record, { path: 'updatedAt', label: 'Ma\'lumot yangilangan sana' }),
-        checkboxField(record, { path: 'published', label: 'Saytda nashr etish', hint: 'Belgilanmasa, lot faqat shu panelda ko\'rinadi.' }),
       ]),
     ];
   },
@@ -493,7 +501,7 @@ const MASTERPLANS_VIEW = {
     sheets: [],
     documents: [],
     updatedAt: todayIso(),
-    published: false,
+    published: true,
     demo: false,
   }),
   form: async (record) => {
@@ -560,7 +568,6 @@ const MASTERPLANS_VIEW = {
 
       group('Nashr', [
         dateField(record, { path: 'updatedAt', label: 'Yangilangan sana' }),
-        checkboxField(record, { path: 'published', label: 'Saytda nashr etish' }),
       ]),
     ];
   },
@@ -588,7 +595,7 @@ const NEWS_VIEW = {
     relatedLotIds: [],
     relatedMasterplanIds: [],
     sourceUrl: '',
-    published: false,
+    published: true,
     demo: false,
   }),
   form: async (record) => {
@@ -627,7 +634,6 @@ const NEWS_VIEW = {
         multiSelectField(record, { path: 'relatedLotIds', label: 'Lotlar' }, (lots.items || []).map((lot) => ({ value: lot.id, label: pick(lot.name) || lot.id }))),
         multiSelectField(record, { path: 'relatedMasterplanIds', label: 'Master-rejalar' }, (masterplans.items || []).map((plan) => ({ value: plan.id, label: pick(plan.title) || plan.id }))),
       ]),
-      group('Nashr', [checkboxField(record, { path: 'published', label: 'Saytda nashr etish' })]),
     ];
   },
 };
@@ -694,6 +700,44 @@ function slugControl(record) {
   ]);
 }
 
+/**
+ * Nashr holati — tahrirlovchining eng yuqorisida turadi.
+ * Ilgari bu oddiy katak shakl oxirida edi va e'tibordan chetda qolardi:
+ * yozuv kiritilardi, lekin saytda ko'rinmasdi.
+ */
+function publishBar(record) {
+  const host = el('div', {});
+  const draw = () => {
+    const live = record.published !== false;
+    host.innerHTML = '';
+    host.append(
+      el('div', { class: `publish-bar publish-bar--${live ? 'live' : 'draft'}` }, [
+        el('div', { class: 'publish-bar__text' }, [
+          el('strong', { text: live ? 'Saytda ko\'rinadi' : 'Qoralama — saytda ko\'rinmaydi' }),
+          el('span', {
+            class: 'a-small',
+            text: live
+              ? 'Saqlaganingizdan so\'ng ommaviy saytda darhol chiqadi.'
+              : 'Faqat shu panelda turadi. Saytga chiqarish uchun holatni o\'zgartiring.',
+          }),
+        ]),
+        el('button', {
+          type: 'button',
+          class: `a-btn a-btn--sm${live ? '' : ' a-btn--primary'}`,
+          text: live ? 'Qoralamaga olish' : 'Saytga chiqarish',
+          onClick: () => {
+            record.published = !live;
+            state.dirty = true;
+            draw();
+          },
+        }),
+      ]),
+    );
+  };
+  draw();
+  return host;
+}
+
 function group(title, children, note) {
   return el('section', { class: 'group' }, [
     el('h2', { class: 'group__title', text: title }),
@@ -730,7 +774,7 @@ async function renderCollection(name, view) {
         el('p', { class: 'rec__title' }, [
           view.titleOf(item),
           item.demo ? el('span', { class: 'a-tag a-tag--demo', text: 'DEMO', style: 'margin-left:.4rem' }) : null,
-          item.published === false ? el('span', { class: 'a-tag a-tag--warning', text: 'nashr etilmagan', style: 'margin-left:.4rem' }) : null,
+          item.published === false ? el('span', { class: 'a-tag a-tag--warning', text: 'qoralama — saytda yo\'q', style: 'margin-left:.4rem' }) : null,
         ]),
         el('p', { class: 'rec__meta' }, meta.map((value) => el('span', { class: 'a-tag', text: value }))),
         el('div', { class: 'rec__actions' }, [
@@ -743,6 +787,19 @@ async function renderCollection(name, view) {
               render();
             },
           }),
+          // Qoralamani bir bosishda saytga chiqarish
+          item.published === false
+            ? el('button', {
+                type: 'button',
+                class: 'a-btn a-btn--sm a-btn--primary',
+                text: 'Saytga chiqarish',
+                onClick: async () => {
+                  file.items[index] = { ...item, published: true };
+                  await saveContent(name);
+                  render();
+                },
+              })
+            : null,
           el('button', {
             type: 'button',
             class: 'a-btn a-btn--sm',
@@ -846,7 +903,11 @@ async function renderEditor(name, view, file, tax) {
     el('span', { class: 'a-small a-muted', text: record.id ? `ID: ${record.id}` : 'ID saqlashda beriladi' }),
   ]);
 
-  const editor = el('form', { class: 'editor', onSubmit: (event) => { event.preventDefault(); save(); } }, [...fields, actions]);
+  const editor = el('form', { class: 'editor', onSubmit: (event) => { event.preventDefault(); save(); } }, [
+    publishBar(record),
+    ...fields,
+    actions,
+  ]);
   editor.addEventListener('input', () => {
     state.dirty = true;
   });
@@ -1432,7 +1493,7 @@ async function renderPagesView() {
     el('div', { class: 'page-bar' }, [el('h1', { text: 'Sahifa matnlari' })]),
     el('div', { class: 'a-alert a-alert--info' }, [
       el('p', { text: 'Har bir matn to\'rt tilda kiritiladi. Til tugmalari (ЎЗ / UZ / РУ / EN) yonidagi yashil nuqta — shu tilda matn borligini bildiradi.' }),
-      el('p', { class: 'a-small', text: 'Har saqlashdan oldin serverda avtomatik zaxira nusxa olinadi. Kerak bo\'lsa «Saytni qurish» bo\'limidan tiklash mumkin.' }),
+      el('p', { class: 'a-small', text: 'Har saqlashdan oldin serverda avtomatik zaxira nusxa olinadi. Kerak bo\'lsa «Sayt holati va zaxira» bo\'limidan tiklash mumkin.' }),
     ]),
     tabBar,
     form,
@@ -1595,8 +1656,11 @@ function telegramStatusLine(item) {
   if (tg.skipped) {
     return el('p', { class: 'a-small a-muted', text: `📨 Telegram: o'tkazib yuborildi — ${tg.error}` });
   }
-  return el('p', { class: 'a-small', style: 'color:var(--a-danger)' }, [
-    `📨 Telegramga yuborilmadi: ${tg.error || 'nomalum xatolik'}${tg.permanent ? ' (sozlamalarni tekshiring)' : ''}`,
+  // Xatolik sababi va yechimi server tomonidan tushunarli tilga o'girilgan
+  return el('div', { class: 'a-small', style: 'color:var(--a-danger)' }, [
+    el('p', { text: `📨 Telegramga yuborilmadi — ${tg.explained?.reason || tg.error || 'nomalum xatolik'}` }),
+    tg.explained?.fix ? el('p', { text: tg.explained.fix }) : null,
+    tg.rounds ? el('p', { text: `Qayta urinishlar: ${tg.rounds} ta${tg.permanent ? ' · sozlama tuzatilmaguncha to\'xtatildi' : ''}` }) : null,
   ]);
 }
 
@@ -1699,7 +1763,12 @@ async function renderInboxView() {
     el('div', { class: 'page-bar' }, [
       el('h1', { text: 'Murojaatlar' }),
       el('div', { class: 'page-bar__actions' }, [
-        el('span', { class: 'a-tag', text: `Jami: ${items.length}` }),
+        el('span', {
+          class: 'a-tag',
+          text: data.total > items.length
+            ? `Eng yangi ${items.length} ta (jami ${data.total})`
+            : `Jami: ${items.length}`,
+        }),
         el('button', { type: 'button', class: 'a-btn a-btn--sm', text: 'Yangilash', onClick: render }),
       ]),
     ]),
@@ -1755,7 +1824,7 @@ async function renderFilesView() {
   );
 }
 
-/* ─────────────────────────── Saytni qurish ─────────────────────────── */
+/* ─────────────────────────── Sayt holati va zaxira ─────────────────────────── */
 
 async function renderBuildView() {
   const info = await api.buildInfo().catch(() => ({ info: null }));
@@ -1797,9 +1866,10 @@ async function renderBuildView() {
     : null;
 
   setMain(
-    el('div', { class: 'page-bar' }, [el('h1', { text: 'Saytni qurish' })]),
-    el('div', { class: 'a-alert a-alert--info' }, [
-      el('p', { text: 'Kontentni tahrirlagandan keyin o\'zgarishlar ommaviy saytda ko\'rinishi uchun saytni qayta qurish kerak. Qurish bir necha soniya davom etadi.' }),
+    el('div', { class: 'page-bar' }, [el('h1', { text: 'Sayt holati va zaxira' })]),
+    el('div', { class: 'a-alert a-alert--success' }, [
+      el('strong', { text: 'Qurish avtomatik bajariladi' }),
+      el('p', { text: 'Har bir saqlashdan keyin sayt o\'zi qayta quriladi — bu bo\'limga kirish shart emas. Quyidagi tugmalar faqat zarur hollarda (masalan, fayl qo\'lda o\'zgartirilganda yoki xatolikdan keyin) kerak bo\'ladi.' }),
     ]),
     info.info?.demo
       ? el('div', { class: 'a-alert a-alert--warning' }, [
@@ -1813,7 +1883,7 @@ async function renderBuildView() {
       details,
     ]),
     el('div', { class: 'group' }, [
-      el('h2', { class: 'group__title', text: 'Qurish' }),
+      el('h2', { class: 'group__title', text: 'Qo\'lda qurish' }),
       el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem' }, [
         el('button', { type: 'button', class: 'a-btn a-btn--primary', text: 'Saytni qurish', onClick: () => run(false) }),
         el('button', { type: 'button', class: 'a-btn', text: 'DEMO rejimida qurish', onClick: () => run(true) }),
@@ -2269,11 +2339,14 @@ async function renderTelegramView() {
   const r = data.report || {};
   const isAdmin = state.user?.role === 'admin';
 
+  const problems = r.problems || [];
+
+  // Tashxis: nima ishlamayotgani va uni qanday tuzatish — aniq matn bilan
   const statusBox = (() => {
-    if (r.enabled && r.bot && r.chat && (r.errors || []).length === 0) {
+    if (r.canSend) {
       return el('div', { class: 'a-alert a-alert--success' }, [
-        el('strong', { text: 'Telegram ulangan' }),
-        el('p', { text: `Murojaatlar @${r.bot.username} boti orqali "${r.chat.title || r.chat.id}" chatiga yuboriladi.` }),
+        el('strong', { text: 'Telegram ulangan va ishlayapti' }),
+        el('p', { text: `Murojaatlar @${r.bot.username} boti orqali «${r.chat.title || r.chat.id}» chatiga yuboriladi.` }),
       ]);
     }
     if (r.disabled) {
@@ -2282,12 +2355,58 @@ async function renderTelegramView() {
         el('p', { text: 'Murojaatlar qabul qilinadi va «Murojaatlar» bo\'limida saqlanadi, lekin botga yuborilmaydi.' }),
       ]);
     }
-    return el('div', { class: 'a-alert a-alert--warning' }, [
-      el('strong', { text: 'Telegram hali sozlanmagan' }),
-      el('p', { text: 'Quyida bot tokeni va chat identifikatorini kiriting. Murojaatlar shu paytgacha ham qabul qilinadi va «Murojaatlar» bo\'limida saqlanadi.' }),
-      (r.errors || []).length ? el('ul', {}, r.errors.map((e) => el('li', { text: e }))) : null,
+    return el('div', { class: 'a-alert a-alert--error' }, [
+      el('strong', { text: 'Telegramga yuborish ishlamayapti' }),
+      ...problems.map((p) =>
+        el('div', { style: 'margin-top:0.6rem' }, [
+          el('p', {}, [el('strong', { text: p.reason })]),
+          el('p', { text: p.fix }),
+          p.raw ? el('p', { class: 'a-small' }, [el('code', { text: `Telegram javobi: ${p.raw}` })]) : null,
+        ]),
+      ),
+      problems.length === 0
+        ? el('p', { text: 'Bot tokeni yoki chat_id kiritilmagan. Quyidagi sozlamalarni to\'ldiring.' })
+        : null,
+      el('p', { class: 'a-small', text: 'Murojaatlar yo\'qolmaydi: ular avval serverga saqlanadi va «Murojaatlar» bo\'limida turadi. Sozlama tuzatilgach, tizim ularni o\'zi qayta yuboradi.' }),
     ]);
   })();
+
+  // Haqiqiy yetkazilish tarixi — sinov xabaridan ishonchliroq ko'rsatkich
+  const d = data.delivery || {};
+  const deliveryBox = d.total
+    ? el('div', { class: `a-alert a-alert--${d.pending || d.failed ? 'warning' : 'success'}` }, [
+        el('strong', { text: 'Murojaatlarning yetkazilishi' }),
+        el('p', {
+          text: `Jami ${d.total} ta · yetkazilgan ${d.delivered} ta · navbatda ${d.pending} ta · yetkazilmagan ${d.failed} ta`,
+        }),
+        d.lastError
+          ? el('div', { style: 'margin-top:0.5rem' }, [
+              el('p', {}, [el('strong', { text: `Oxirgi xatolik (${d.lastError.id}): ` }), d.lastError.reason]),
+              el('p', { text: d.lastError.fix }),
+            ])
+          : null,
+        d.pending
+          ? el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm',
+              text: `Yetkazilmaganlarni hoziroq qayta yuborish (${d.pending})`,
+              onClick: async (event) => {
+                const button = event.currentTarget;
+                button.disabled = true;
+                button.textContent = 'Yuborilmoqda…';
+                try {
+                  const result = await api.telegramRetry();
+                  toast(`${result.checked} ta tekshirildi, ${result.sent} tasi yuborildi`, result.sent ? 'success' : 'warning', 7000);
+                  render();
+                } catch (error) {
+                  toast(`Xatolik: ${error.message}`, 'error');
+                  button.disabled = false;
+                }
+              },
+            })
+          : null,
+      ])
+    : null;
 
   const endpointWarning = data.contactEndpoint
     ? null
@@ -2405,7 +2524,15 @@ async function renderTelegramView() {
         await api.telegramTest();
         toast('Sinov xabari yuborildi — Telegramni tekshiring', 'success', 6000);
       } catch (error) {
-        toast(`Yuborilmadi: ${error.data?.result?.error || error.data?.error || error.message}`, 'error', 8000);
+        const explained = error.data?.explained;
+        toast(
+          explained
+            ? `${explained.reason} ${explained.fix}`
+            : `Yuborilmadi: ${error.data?.result?.error || error.data?.error || error.message}`,
+          'error',
+          14000,
+        );
+        render();
       } finally {
         testButton.disabled = false;
         testButton.textContent = 'Sinov xabarini yuborish';
@@ -2436,6 +2563,14 @@ async function renderTelegramView() {
   const details = el('div', { class: 'a-table-wrap' }, [
     el('table', { class: 'a-table' }, [
       el('tbody', {}, [
+        row(
+          'Tarmoq',
+          r.network
+            ? r.network.reachable
+              ? `api.telegram.org ochiq (${r.network.ms} ms)`
+              : `YOPIQ — ${r.network.error}. Hosting tashqi ulanishga ruxsat bermayapti.`
+            : '— tekshirilmagan',
+        ),
         row('Bot', r.bot ? `@${r.bot.username} (${r.bot.name})` : '— tekshirilmagan'),
         row('Bot tokeni', r.hasToken ? `${r.tokenMasked}  (manba: ${r.source?.botToken === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
         row('Chat', r.chat ? `${r.chat.title || '—'} · ${r.chat.type} · ${r.chat.id}` : r.chatId ? `${r.chatId} (tekshirilmagan)` : '— kiritilmagan'),
@@ -2454,6 +2589,7 @@ async function renderTelegramView() {
     ]),
     statusBox,
     endpointWarning,
+    deliveryBox,
     el('div', { class: 'group' }, [
       el('h2', { class: 'group__title', text: 'Joriy holat' }),
       details,

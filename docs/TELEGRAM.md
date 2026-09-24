@@ -159,9 +159,15 @@ Telegram sozlangan bo'lsa ham, shakl saytda faolsiz turadi — uni alohida yoqis
 
 ## Ishonchlilik
 
-- **Qayta urinish:** vaqtinchalik xatolikda 3 martagacha qayta uriniladi
+- **Darhol qayta urinish:** vaqtinchalik xatolikda 3 martagacha qayta uriniladi
   (tarmoq uzilishi, Telegram tomonidagi cheklov). Telegram `retry_after`
   qiymatini bersa, shuncha kutiladi.
+- **Fondagi navbat:** server har **5 daqiqada** yetkazilmagan murojaatlarni
+  qaytadan yuborishga harakat qiladi. Telegram bir necha soat ishlamay qolsa
+  ham, tiklangach murojaatlar o'zi yetib boradi — xodim hech narsa qilmaydi.
+  Navbat bir hafta davomida, ko'pi bilan 20 marta urinadi.
+- **Sozlama tuzatilganda:** bot tokeni yoki `chat_id` keyinroq kiritilsa,
+  o'sha paytgacha kelgan murojaatlar ham navbat orqali yuboriladi.
 - **Qaytarib bo'lmaydigan xatolik** (400/401/403 — token xato, bot bloklangan,
   chat topilmadi) aniqlansa, qayta urinilmaydi va sabab yozib qo'yiladi.
 - Har bir murojaat yozuvida yetkazilish holati saqlanadi:
@@ -180,6 +186,22 @@ Telegram sozlangan bo'lsa ham, shakl saytda faolsiz turadi — uni alohida yoqis
 - Boshqaruv panelida har bir murojaat ostida holat ko'rinadi, yetkazilmaganlar
   uchun **«Telegramga yuborish»** tugmasi chiqadi. Chap menyudagi «Telegram»
   yonidagi raqam — yetkazilmagan murojaatlar soni.
+
+### Panel tashxis qo'yadi
+
+«Telegram» bo'limi ingliz tilidagi xatolik matnini emas, **sabab va yechimni**
+o'zbekcha ko'rsatadi. Tekshiruv uch bosqichda ketadi:
+
+| Bosqich | Nimani tekshiradi | Xato bo'lsa |
+|---|---|---|
+| **Tarmoq** | hostingdan `api.telegram.org` ga chiqish bormi | «YOPIQ» deb yoziladi — hosting xizmatidan 443-portni ochishni so'rash kerak |
+| **Bot tokeni** | token haqiqiymi (`getMe`) | tokenni qayta olish yo'li ko'rsatiladi |
+| **Chat** | chat mavjudmi va bot unda bormi (`getChat`) | `chat_id` va botning guruhga a'zoligi tekshiriladi |
+
+Shu yerda **«Murojaatlarning yetkazilishi»** jadvali ham bor: jami, yetkazilgan,
+navbatda va yetkazilmagan murojaatlar soni hamda oxirgi xatolikning sababi.
+Bu sinov xabaridan ishonchliroq ko'rsatkich — haqiqiy murojaatlar holatini
+ko'rsatadi.
 
 ## Maxfiylik
 
@@ -215,8 +237,14 @@ Shaxsiy chatda foydalanuvchi botni bloklagan. Botni blokdan chiqaring yoki
 guruhga o'tkazing.
 
 **`fetch failed` / `so'rov vaqti tugadi`**
-Serverdan `api.telegram.org` ga chiqish yo'q. Tarmoq/faervolni tekshiring.
-Proksi ishlatilsa, `HTTPS_PROXY` o'zgaruvchisini sozlash kerak bo'ladi.
+Serverdan `api.telegram.org` ga chiqish yo'q — bu umumiy (shared) hostinglarda
+ko'p uchraydi. Panelning «Telegram» bo'limidagi **«Tarmoq»** qatori buni aniq
+aytadi. Hosting qo'llab-quvvatlash xizmatiga murojaat qilib, `api.telegram.org`
+(443-port) ga chiqishni ochishni so'rang. Proksi ishlatilsa, `HTTPS_PROXY`
+o'zgaruvchisini sozlash kerak bo'ladi.
+
+Murojaatlar bu vaqtda ham yo'qolmaydi: ular serverda saqlanadi va tarmoq
+ochilgach navbat orqali o'zi yuboriladi.
 
 **Sinov xabari keladi, lekin saytdan yuborilgani kelmaydi**
 Murojaat shakli saytda faolsiz. «Sayt sozlamalari» → `/api/contact` yozib,

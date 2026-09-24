@@ -1,45 +1,30 @@
 # Saytni hostingga joylashtirish
 
-## 0. Avval hostingni tanlash
+## 0. Hostingga qo'yiladigan talab
 
-Bu saytda ikki xil qism bor:
+Saytning ikki qismi bor va ular bir xil hostingda ishlaydi:
 
 | Qism | Nima kerak |
 |---|---|
-| **Sayt sahifalari** (barcha bo'limlar, katalog, xarita, master-rejalar) | Oddiy statik hosting yetarli |
-| **Murojaat shakli + Telegram + boshqaruv paneli** | **Node.js 20.11+** ishlaydigan hosting |
+| Sayt sahifalari (katalog, xarita, master-rejalar, 4 til) | statik fayllar |
+| Murojaat shakli, Telegram, boshqaruv paneli, murojaatlar arxivi | **Node.js 20.11+** |
 
-Shuning uchun birinchi savol: **hostingda Node.js bormi?**
+Shuning uchun hostingda **Node.js ishga tushirish imkoniyati bo'lishi shart**.
+Bu talab bajarilsa hammasi ishlaydi: xodim kontentni brauzerdan tahrirlaydi,
+murojaatlar serverda arxivlanadi va Telegramga yuboriladi, yetkazilmagan
+murojaat esa avtomatik qayta yuboriladi.
 
-```
-Node.js bor (VPS, cPanel Node.js App, Docker)
-   └──►  A variant: TO'LIQ  ← tavsiya etiladi
-         Hammasi ishlaydi: shakl, Telegram, panel, murojaatlar arxivi
+Amalda ikki xil o'rnatish uchraydi:
 
-Faqat statik hosting (HTML yuklash, Node.js yo'q)
-   ├──►  B variant: STATIK + serverless funksiya
-   │     Shakl Telegramga boradi, lekin murojaatlar hech qayerda saqlanmaydi,
-   │     boshqaruv paneli ham ishlamaydi
-   └──►  C variant: FAQAT STATIK
-         Shakl faolsiz, sayt "qabul qilish tizimi ulanmagan" deb ochiq yozadi
-```
+- **A-1. VPS** — o'z serveringiz, `systemd` bilan boshqariladi.
+- **A-2. Hosting paneli** (ISPmanager, cPanel, Plesk) — panel Node.js ilovasini
+  o'zi ishga tushiradi. `namresort.uz` shu usulda ishlaydi.
 
-### Variantlarni taqqoslash
-
-| | A. To'liq | B. Statik + funksiya | C. Faqat statik |
-|---|---|---|---|
-| Sayt sahifalari, 4 til, xarita | ✅ | ✅ | ✅ |
-| Murojaat Telegramga boradi | ✅ | ✅ | ❌ |
-| Murojaat serverda saqlanadi | ✅ | ❌ | ❌ |
-| Yetkazilmaganini qayta yuborish | ✅ | ❌ | ❌ |
-| Boshqaruv paneli (kontent tahriri) | ✅ | ❌ | ❌ |
-| Fayl yuklash (fotosurat, PDF) | ✅ | ❌ | ❌ |
-| Kontentni kim o'zgartiradi | Xodim brauzerdan | Dasturchi, qayta yuklash | Dasturchi, qayta yuklash |
-| Hosting narxi | O'rtacha | Past | Past |
-
-> **Tavsiya:** davlat muassasasi sayti uchun **A variant**. Sababi: murojaatlar
-> yo'qolmaydi (diskda arxiv qoladi), xodimlar kontentni o'zlari yangilaydi va
-> Telegram ishlamay qolsa murojaat qayta yuboriladi.
+> Node.js bo'lmagan oddiy statik hostingda sayt sahifalari ochiladi, lekin
+> murojaat shakli va boshqaruv paneli ishlamaydi. Bunday holatda shakl saytda
+> «qabul qilish tizimi ulanmagan» deb ochiq yoziladi va soxta muvaffaqiyat
+> xabari ko'rsatilmaydi. Davlat muassasasi sayti uchun bu variant tavsiya
+> etilmaydi.
 
 ### Davlat sayti uchun qo'shimcha talablar
 
@@ -85,7 +70,6 @@ node src/check.mjs     # xatolik bo'lmasligi kerak
 
 ```bash
 node scripts/bundle.mjs             # A variant uchun (to'liq)
-node scripts/bundle.mjs --static    # B va C variantlar uchun
 ```
 
 Skript saytni qayta quradi, tekshiradi, **maxfiy fayllar tushmaganini nazorat
@@ -659,101 +643,6 @@ Bu cheklovlar to'sqinlik qilsa, VPS (A-1) afzal.
 
 ---
 
-### A-3. Docker (VPS yoki Docker qo'llab-quvvatlaydigan hosting)
-
-```bash
-cp .env.example .env && nano .env
-docker compose build
-docker compose up -d
-docker compose logs -f
-```
-
-Foydalanuvchi yaratish:
-
-```bash
-docker compose exec sayt node server/tools/hash-password.mjs direksiya '<parol>' admin
-```
-
-`docker-compose.yml` sukut bo'yicha faqat `127.0.0.1:8080` da tinglaydi —
-oldiga nginx teskari proksi qo'yish kerak (A-1 ning 7-bandi).
-
-Kontent, yuklangan fayllar va sozlamalar `volumes` orqali host mashinada
-saqlanadi, shuning uchun konteynerni yangilash ma'lumotga ta'sir qilmaydi.
-
----
-
-## B variant. Statik hosting + serverless funksiya
-
-Sayt oddiy hostingda turadi, murojaat shakli esa kichik funksiya orqali
-Telegramga yuboriladi. Bot tokeni brauzerga chiqmaydi.
-
-1. `serverless/README.md` bo'yicha Cloudflare Worker yarating (bepul reja yetarli).
-2. Worker manzilini `content/site.json` ga yozing:
-
-   ```json
-   "features": { "contactFormEndpoint": "https://direksiya-murojaat.hisob.workers.dev" }
-   ```
-
-3. To'plam yasab, statik hostingga yuklang:
-
-   ```bash
-   node scripts/bundle.mjs --static
-   ```
-
-**Muhim cheklov:** murojaatlar hech qayerda saqlanmaydi. Telegram xabari yetib
-bormasa, murojaat yo'qoladi (foydalanuvchiga xatolik ko'rsatiladi, soxta
-muvaffaqiyat xabari chiqmaydi). Boshqaruv paneli ham ishlamaydi.
-
----
-
-## C variant. Faqat statik hosting
-
-```bash
-node scripts/bundle.mjs --static
-```
-
-`release/direksiya-sayt-statik-<sana>/` katalogidagi **barcha fayllarni**
-hostingning veb-katalogiga yuklang (`public_html/`, `www/` yoki `htdocs/`).
-Katalogning o'zini emas — ichidagi fayllarni, ya'ni `index.html` hosting
-ildizida turishi kerak.
-
-Sozlash:
-
-- 404 sahifasi sifatida `/404.html` ni ko'rsating.
-- HTTPS sertifikatini yoqing (cPanel → SSL/TLS → Let's Encrypt).
-- Apache hostinglarda `.htaccess` kerak bo'lishi mumkin:
-
-  ```apache
-  ErrorDocument 404 /404.html
-  Options -Indexes
-  AddDefaultCharset UTF-8
-
-  <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
-  </IfModule>
-
-  <IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType text/css "access plus 7 days"
-    ExpiresByType application/javascript "access plus 7 days"
-    ExpiresByType image/svg+xml "access plus 30 days"
-  </IfModule>
-  ```
-
-Murojaat shakli saytda **faolsiz** bo'ladi va bu holat foydalanuvchiga ochiq
-yoziladi. Aloqa uchun telefon va elektron pochtani `content/site.json` ga
-kiritib qo'yish zarur.
-
-### GitHub Pages (ko'rib chiqish uchun)
-
-Repozitoriyada tayyor ish oqimi bor: **Actions → «Statik ko'rinishni GitHub
-Pages ga joylash» → Run workflow**. Avval Settings → Pages → Source: «GitHub
-Actions» qilib qo'yiladi.
-
-Bu **rasmiy sayt uchun emas** — faqat dizayn va kontentni ko'rsatish uchun.
-
----
-
 ## 2. Kontentni yangilash
 
 | Variant | Qanday |
@@ -827,7 +716,8 @@ Nimalarni kuzatish tavsiya etiladi:
   ishlab turgan saytda namunaviy ma'lumot ko'rinib turgan bo'ladi;
 - javob vaqti va HTTP holati (oddiy uptime xizmatlari: UptimeRobot, Better Stack).
 
-Server jurnali: `journalctl -u direksiya -n 200` yoki `docker compose logs`.
+Server jurnali: `journalctl -u direksiya -n 200` (VPS) yoki hosting panelidagi
+Node.js ilovasi jurnali.
 
 ---
 
@@ -874,7 +764,7 @@ curl -s https://sayt-manzili.uz/api/health
 - [ ] `/api/health` `status: ok` qaytaradi
 - [ ] `/sitemap.xml` va `/robots.txt` ochiladi
 
-**Murojaatlar (A yoki B variant)**
+**Murojaatlar**
 - [ ] Sinov murojaati yuborilib, Telegramga yetib borgani tekshirilgan
 - [ ] Murojaat boshqaruv panelida ko'rinadi (A variant)
 - [ ] Murojaatlar keladigan Telegram guruhi **yopiq**, faqat vakolatli xodimlar bor

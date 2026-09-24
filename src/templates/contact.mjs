@@ -158,10 +158,10 @@ function contactForm(ctx, { endpoint }) {
         ${textField(ctx, { id: 'c-name', name: 'name', label: t('contact.form.name'), required: true, autocomplete: 'name' })}
         ${textField(ctx, { id: 'c-org', name: 'organization', label: t('contact.form.org'), autocomplete: 'organization' })}
         <div class="form__row">
-          ${textField(ctx, { id: 'c-phone', name: 'phone', label: t('contact.form.phone'), type: 'tel', autocomplete: 'tel', inputmode: 'tel' })}
+          ${textField(ctx, { id: 'c-phone', name: 'phone', label: t('contact.form.phone'), type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel', placeholder: t('contact.form.phonePlaceholder') })}
           ${textField(ctx, { id: 'c-email', name: 'email', label: t('contact.form.email'), type: 'email', autocomplete: 'email' })}
         </div>
-        <p class="form__hint">${t('contact.form.validation.contact')}</p>
+        <p class="form__hint">${t('contact.form.phoneHint')}</p>
 
         <div class="field">
           <label class="field__label" for="c-area">${t('contact.form.area')}</label>
@@ -207,7 +207,7 @@ function contactForm(ctx, { endpoint }) {
   `;
 }
 
-function textField(ctx, { id, name, label, type = 'text', required = false, autocomplete, inputmode }) {
+function textField(ctx, { id, name, label, type = 'text', required = false, autocomplete, inputmode, placeholder }) {
   return html`
     <div class="field">
       <label class="field__label" for="${id}">
@@ -221,6 +221,7 @@ function textField(ctx, { id, name, label, type = 'text', required = false, auto
         name="${name}"
         ${attr('autocomplete', autocomplete)}
         ${attr('inputmode', inputmode)}
+        ${attr('placeholder', placeholder)}
         ${required ? raw('required aria-required="true"') : raw('')}
       >
       <p class="field__error" data-error-for="${name}" hidden></p>

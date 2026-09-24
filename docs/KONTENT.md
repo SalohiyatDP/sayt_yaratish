@@ -41,7 +41,7 @@ Hech biri bo'lmasa — «Ma'lumot hozircha joylashtirilmagan».
 | `auction` | obyekt | Aukcion — pastda batafsil. |
 | `documents` | massiv | Yuklab olinadigan fayllar. |
 | `updatedAt` | `YYYY-MM-DD` | Ma'lumot yangilangan sana. |
-| `published` | mantiqiy | `false` — faqat panelda ko'rinadi. |
+| `published` | mantiqiy | `false` — qoralama, faqat panelda ko'rinadi. Panelda yaratilgan yozuvda sukut bo'yicha `true`. |
 | `demo` | mantiqiy | `true` — namunaviy yozuv, «DEMO» nishoni bilan chiqadi. |
 
 ### `media` elementi

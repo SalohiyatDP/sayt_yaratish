@@ -63,12 +63,29 @@ kalit endi kerak emas.
 ## 3. Ish tartibi
 
 ```
-Tahrirlash  →  Saqlash  →  «Saytni qurish»  →  Ommaviy saytda ko'rinadi
+Tahrirlash  →  Saqlash  →  Ommaviy saytda ko'rinadi
 ```
 
-**Muhim:** «Saqlash» ma'lumotni faylga yozadi, lekin ommaviy sayt **darhol
-o'zgarmaydi**. O'zgarishlarni ko'rsatish uchun «Saytni qurish» bo'limiga o'tib
-«Saytni qurish» tugmasini bosing (bir necha soniya).
+**Saqlaganingizdan keyin boshqa hech narsa bosish kerak emas** — server saytni
+o'zi qayta quradi va o'zgarish darhol ommaviy saytga chiqadi. Tugaganda
+«Saqlandi va saytga chiqarildi» degan xabar ko'rinadi.
+
+### Nashr holati
+
+Har bir lot, master-reja va yangilikda **nashr holati** bor. U tahrirlash
+oynasining eng tepasida turadi:
+
+| Holat | Ma'nosi |
+|---|---|
+| 🟢 **Saytda ko'rinadi** | Saqlaganingizdan keyin ommaviy saytda chiqadi |
+| 🟡 **Qoralama** | Faqat panelda turadi, saytda ko'rinmaydi |
+
+Yangi yozuv sukut bo'yicha **«Saytda ko'rinadi»** holatida bo'ladi. Tayyor
+bo'lmagan materialni «Qoralamaga olish» tugmasi bilan yashirib qo'yish mumkin.
+
+Ro'yxatda qoralamalar uzuq chiziqli ramka va «qoralama — saytda yo'q» belgisi
+bilan ajralib turadi; yonidagi **«Saytga chiqarish»** tugmasi bir bosishda
+nashr etadi.
 
 Har bir saqlashdan oldin server avtomatik zaxira nusxa oladi (oxirgi 20 versiya,
 `server/data/backups/`).
@@ -225,6 +242,10 @@ Xato bo'lsa saqlanmaydi va nimani tuzatish kerakligi aytiladi.
 
 ## 10. Murojaatlar
 
+Saytdagi shaklda **ism-familiya, telefon raqam, xabar matni va rozilik**
+majburiy. Elektron pochta ixtiyoriy. Shuning uchun har bir murojaatda javob
+berish uchun telefon raqam bo'ladi.
+
 - Kelgan murojaatlar ro'yxati, holati va ichki izoh.
 - Holatlar: *Yangi*, *Ko'rib chiqilmoqda*, *Javob berilgan*, *Arxivlangan*.
 - Ichki izoh faqat panelda ko'rinadi, saytda e'lon qilinmaydi.
@@ -232,8 +253,15 @@ Xato bo'lsa saqlanmaydi va nimani tuzatish kerakligi aytiladi.
   shaxslarga berilmaydi.
 - Murojaatni butunlay o'chirish faqat `admin` roliga ruxsat etilgan.
 
-Murojaatlar ko'rinmasa: «Sayt sozlamalari» da qabul qilish manzili to'ldirilgani va
-sayt qayta qurilganini tekshiring.
+Har bir murojaat ostida Telegramga yetkazilish holati ko'rinadi. Yetkazilmagan
+bo'lsa, sababi va yechimi o'zbek tilida yoziladi hamda **«Telegramga yuborish»**
+tugmasi chiqadi.
+
+Ro'yxatda eng yangi 300 ta murojaat ko'rsatiladi; jami soni sarlavha yonida
+ko'rinadi.
+
+Murojaatlar umuman ko'rinmasa: «Sayt sozlamalari» da qabul qilish manzili
+(`/api/contact`) to'ldirilganini tekshiring.
 
 ---
 
@@ -251,13 +279,24 @@ sayt qayta qurilganini tekshiring.
 
 Murojaatlar Telegram guruhiga kelishi uchun shu bo'limda sozlanadi.
 
-- **Joriy holat** jadvalida bot, chat, murojaat shaklining holati ko'rinadi.
+- Bo'limning tepasida **tashxis** turadi: ishlamayotgan bo'lsa, sababi va uni
+  qanday tuzatish o'zbek tilida yoziladi. Tekshiruv uch bosqichda ketadi —
+  tarmoq (hostingdan Telegramga chiqish bormi), bot tokeni, chat.
+- **«Murojaatlarning yetkazilishi»** jadvali: jami, yetkazilgan, navbatda va
+  yetkazilmagan murojaatlar soni. Navbatda turganlar bo'lsa, ularni bir bosishda
+  qayta yuborish tugmasi chiqadi.
+- **Joriy holat** jadvalida tarmoq, bot, chat va murojaat shaklining holati.
 - **Bot tokeni** va **chat_id** ni faqat `admin` roli kiritadi.
 - **«chat_id ni aniqlash»** tugmasi bot ko'rgan chatlar ro'yxatini chiqaradi —
   keraklisini bosasiz, qiymat o'zi qo'yiladi.
 - **«Sinov xabarini yuborish»** bilan ulanishni tekshirasiz.
 - **«Telegramga yuborishni vaqtincha to'xtatish»** — murojaatlar qabul
   qilinishda va qutida saqlanishda davom etadi, lekin botga yuborilmaydi.
+
+> **Murojaat yo'qolmaydi.** U avval serverga yoziladi, keyin Telegramga
+> yuboriladi. Telegram ishlamasa, server har 5 daqiqada o'zi qayta urinadi —
+> bir hafta davomida. Sozlama keyinroq to'g'rilansa, o'shanga qadar kelgan
+> murojaatlar ham yuboriladi.
 
 To'liq yo'riqnoma (bot yaratish, guruh tanlash): [`docs/TELEGRAM.md`](TELEGRAM.md)
 
@@ -297,32 +336,45 @@ node server/tools/hash-password.mjs <nom> '<yangi-parol>' admin
 
 ---
 
-## 14. Saytni qurish
+## 14. Sayt holati va zaxira
 
-- «Saytni qurish» — odatiy rejim, faqat tasdiqlangan kontent bilan.
-- «DEMO rejimida qurish» — namunaviy ma'lumotlar qo'shiladi (sinov uchun).
-  **Ishlab turgan saytda ishlatilmaydi.** Agar sayt demo rejimida qurilgan bo'lsa,
-  bo'limda qizil ogohlantirish ko'rinadi.
-- Qurish jurnali va ogohlantirishlar ro'yxati shu yerda ko'rsatiladi. Ogohlantirishlarga
-  e'tibor bering — ular yetishmayotgan ma'lumotni ko'rsatadi.
+Bu bo'lim **odatda kerak bo'lmaydi** — sayt har saqlashdan keyin o'zi qayta
+quriladi. Bo'limda quyidagilar bor:
+
+- **Oxirgi qurilish** — sana, rejim, sahifalar va yozuvlar soni.
+- **Ogohlantirishlar** — yetishmayotgan ma'lumotlar ro'yxati (masalan, logotip).
+- **Qo'lda qurish** — fayl serverda qo'lda o'zgartirilgan bo'lsa yoki avtomatik
+  qurish xato bergan bo'lsa ishlatiladi.
+- **DEMO rejimida qurish** — namunaviy ma'lumotlar qo'shiladi (faqat o'qitish va
+  sinov uchun). **Ishlab turgan saytda ishlatilmaydi.** Sayt demo rejimida
+  qurilgan bo'lsa, bo'limda ogohlantirish ko'rinadi.
 
 ### Zaxira nusxalar
 
-Shu bo'limning pastida **«Zaxira nusxalar»** jadvali bor.
+Bo'limning pastida **«Zaxira nusxalar»** jadvali bor.
 
 Kontentni har saqlaganingizda avvalgi holat avtomatik zaxiraga olinadi (har
 bo'lim uchun oxirgi 20 versiya). Xato o'zgartirish kiritilgan bo'lsa,
 **«Tiklash»** tugmasi bilan qaytarish mumkin.
 
 Tiklashda joriy holat ham zaxiraga olinadi — ya'ni bu amalni ham ortga
-qaytarish mumkin. Tiklangandan keyin **saytni qayta qurish** kerak.
+qaytarish mumkin.
 
 ---
 
 ## 15. Tez-tez uchraydigan savollar
 
 **O'zgarishlar saytda ko'rinmayapti.**
-«Saytni qurish» bo'limidan qayta qurdingizmi? Qurmasdan o'zgarish ommaviy saytga chiqmaydi.
+Yozuv **qoralama** holatida qolmaganini tekshiring — tahrirlash oynasining
+tepasidagi holat «Saytda ko'rinadi» bo'lishi kerak. Ro'yxatda qoralamalar
+«qoralama — saytda yo'q» belgisi bilan turadi.
+
+Yangilik uchun yana bitta shart bor: **sana kiritilgan bo'lishi kerak**.
+Sanasi yo'q yangilik ro'yxatda oxirida qoladi.
+
+Agar holat to'g'ri bo'lsa ham ko'rinmasa, «Sayt holati va zaxira» bo'limiga
+kirib «Saytni qurish» tugmasini bosing va jurnalda xatolik yo'qligini
+tekshiring.
 
 **«Seans tugadi» deb yozilmoqda.**
 8 soat o'tgan. Qaytadan kiring; saqlanmagan o'zgarishlar yo'qoladi, shuning uchun
@@ -336,7 +388,7 @@ Fayl turi yoki hajmini tekshiring (25 MB gacha). SVG dan tashqari boshqa vektor
 formatlari qabul qilinmaydi.
 
 **Xato saqlab qo'ydim.**
-«Saytni qurish» bo'limidagi **«Zaxira nusxalar»** jadvalidan avvalgi holatni
+«Sayt holati va zaxira» bo'limidagi **«Zaxira nusxalar»** jadvalidan avvalgi holatni
 tiklang. Har saqlashdan oldin avtomatik zaxira olinadi (oxirgi 20 versiya).
 
 **Ma'lumotnomada id maydoni faol emas.**

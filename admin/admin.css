@@ -203,10 +203,29 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 .rec__actions { grid-row: 1 / span 2; display: flex; gap: 0.35rem; align-items: center; }
 .rec--unpublished { opacity: 0.72; border-style: dashed; }
 
+/* ── Nashr holati (tahrirlovchining tepasida) ──────────────────────────── */
+
+.publish-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--a-border);
+  border-left: 4px solid var(--a-border-strong);
+  border-radius: var(--a-radius);
+  background: var(--a-surface);
+}
+.publish-bar--live { border-left-color: var(--a-success); background: var(--a-success-soft); }
+.publish-bar--draft { border-left-color: var(--a-warning); background: var(--a-warning-soft); }
+.publish-bar__text { display: grid; flex: 1; min-width: 14rem; }
+.publish-bar__text strong { font-size: 14px; }
+.publish-bar__text .a-small { color: inherit; opacity: 0.85; }
+
 .a-tag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--a-surface-2); border: 1px solid var(--a-border); font-size: 11px; font-weight: 600; }
 .a-tag--success { background: var(--a-success-soft); border-color: transparent; color: var(--a-success); }
 .a-tag--warning { background: var(--a-warning-soft); border-color: transparent; color: var(--a-warning); }
-.a-tag--danger { background: var(--a-danger-soft); border-color: transparent; color: var(--a-danger); }
 .a-tag--demo { background: repeating-linear-gradient(135deg, var(--a-warning-soft), var(--a-warning-soft) 5px, transparent 5px, transparent 10px); border-color: var(--a-warning); color: var(--a-warning); }
 
 .empty-box { padding: 2.5rem 1.5rem; text-align: center; border: 1px dashed var(--a-border-strong); border-radius: var(--a-radius-lg); background: var(--a-surface); color: var(--a-text-muted); }
@@ -266,7 +285,6 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 
 pre.a-log { max-height: 320px; overflow: auto; padding: 0.9rem; background: #0e141a; color: #d7e3ec; border-radius: var(--a-radius); font-family: var(--a-mono); font-size: 12px; white-space: pre-wrap; }
 
-.json-editor { width: 100%; min-height: 360px; font-family: var(--a-mono); font-size: 12px; line-height: 1.5; }
 
 /* ── Bildirishnomalar ─────────────────────────────────────────────────── */
 

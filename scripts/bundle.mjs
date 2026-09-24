@@ -179,7 +179,7 @@ async function main() {
     await copyDir(path.join(ROOT, 'windows'), path.join(target, 'windows'));
     await copyDir(path.join(ROOT, 'docs'), path.join(target, 'docs'));
 
-    for (const file of ['package.json', 'app.js', '.env.example', 'Dockerfile', 'docker-compose.yml', '.dockerignore', 'README.md']) {
+    for (const file of ['package.json', 'app.js', '.env.example', 'README.md']) {
       const source = path.join(ROOT, file);
       if (fs.existsSync(source)) await fsp.copyFile(source, path.join(target, file));
     }
@@ -268,7 +268,7 @@ CHEKLOV — MUHIM:
   chiqarmaydi).
 
   Agar murojaatlar Telegram botga kelishi kerak bo'lsa, "server" turidagi
-  to'plamdan foydalaning yoki docs/DEPLOY.md dagi "serverless" variantni
+  to'plamdan foydalaning yoki docs/DEPLOY.md ni
   ko'rib chiqing.
 
 YUKLASH TARTIBI:
@@ -364,11 +364,10 @@ YUKLASH TARTIBI (cPanel "Setup Node.js App"):
   4. Environment variables bo'limida Telegram sozlamalarini kiriting.
   5. Ilovani ishga tushirib, /api/health manzilini tekshiring.
 
-YUKLASH TARTIBI (Docker):
-
-        cp .env.example .env    # to'ldiring
-        docker compose up -d
-        docker compose logs -f
+BIRINCHI ADMINISTRATOR:
+  /admin/ sahifasini ochsangiz "Birinchi administrator" shakli chiqadi.
+  U bir martalik kalit so'raydi — kalit server/data/setup-key.txt faylida
+  va ilovaning ishga tushish jurnalida bo'ladi.
 
 XAVFSIZLIK — MAJBURIY:
   * Boshqaruv paneli (/admin/) FAQAT HTTPS orqali ochiq bo'lsin.

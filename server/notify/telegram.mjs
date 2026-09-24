@@ -289,7 +289,134 @@ export async function sendTestMessage(note = '') {
   return sendMessage(text, { silent: false });
 }
 
-/** Sozlamalarni tekshiradi: token to'g'rimi, chat mavjudmi. */
+/* ─────────────────── Xatolikni tushunarli tilga o'girish ───────────────────
+ * Telegram API ingliz tilida qisqa xatolik qaytaradi («chat not found»).
+ * Xodim uchun bu hech narsa demaydi — shuning uchun har bir tipik xatolikka
+ * sabab va aniq yechim biriktiriladi.
+ */
+
+const ERROR_GUIDE = [
+  {
+    match: /unauthorized|invalid token|bot token is invalid/i,
+    reason: 'Bot tokeni qabul qilinmadi.',
+    fix: 'Token to\'liq va xatosiz kiritilganini tekshiring. Kerak bo\'lsa @BotFather → /mybots → API Token orqali yangisini oling.',
+  },
+  {
+    match: /chat not found/i,
+    reason: 'Ko\'rsatilgan chat topilmadi.',
+    fix: 'Ikki narsani tekshiring: (1) chat_id to\'g\'ri — guruh uchun u manfiy son bo\'ladi, masalan -1001234567890; (2) bot shu guruhga a\'zo qilingan. Botni guruhga qo\'shib, guruhda bitta xabar yozing, so\'ng «chat_id ni aniqlash» tugmasini bosing.',
+  },
+  {
+    match: /bot was kicked|bot is not a member/i,
+    reason: 'Bot guruhdan chiqarilgan.',
+    fix: 'Botni guruhga qaytadan qo\'shing.',
+  },
+  {
+    match: /bot was blocked by the user/i,
+    reason: 'Foydalanuvchi botni bloklagan.',
+    fix: 'Telegramda botni ochib «Start» (ishga tushirish) tugmasini bosing yoki blokdan chiqaring.',
+  },
+  {
+    match: /bot can't initiate conversation|need to start a conversation/i,
+    reason: 'Bot suhbatni o\'zi boshlay olmaydi.',
+    fix: 'Telegramda botni ochib «Start» tugmasini bosing — shundan keyin bot sizga yozishi mumkin bo\'ladi.',
+  },
+  {
+    match: /not enough rights|CHAT_WRITE_FORBIDDEN|have no rights to send/i,
+    reason: 'Botning guruhga yozish huquqi yo\'q.',
+    fix: 'Guruh sozlamalarida botga xabar yuborish huquqini bering (yoki botni administrator qiling).',
+  },
+  {
+    match: /message thread not found|TOPIC_CLOSED|thread not found/i,
+    reason: 'Forum mavzusi (thread) topilmadi yoki yopilgan.',
+    fix: 'Forum mavzusi maydonini bo\'shatib ko\'ring — xabar guruhning umumiy oqimiga tushadi.',
+  },
+  {
+    match: /group chat was upgraded to a supergroup/i,
+    reason: 'Guruh superguruhga aylantirilgan, eski chat_id ishlamaydi.',
+    fix: '«chat_id ni aniqlash» tugmasi orqali yangi chat_id ni oling va saqlang.',
+  },
+  {
+    match: /too many requests|retry after/i,
+    reason: 'Telegram so\'rovlar sonini cheklab qo\'ydi.',
+    fix: 'Bir necha daqiqa kutib turing — tizim o\'zi qayta uriniб ko\'radi.',
+  },
+  {
+    match: /so'rov vaqti tugadi|timeout/i,
+    reason: 'Telegram serveriga ulanish vaqti tugadi.',
+    fix: 'Odatda bu hosting tashqi tarmoqqa chiqishga ruxsat bermaganini bildiradi. Quyidagi «Tarmoq» qatoriga qarang.',
+  },
+  {
+    match: /ENOTFOUND|EAI_AGAIN|getaddrinfo/i,
+    reason: 'api.telegram.org domeni aniqlanmadi (DNS ishlamadi).',
+    fix: 'Hostingda tashqi tarmoq yoki DNS yopiq. Hosting qo\'llab-quvvatlash xizmatiga murojaat qilib, api.telegram.org ga chiqishni oching.',
+  },
+  {
+    match: /ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ENETUNREACH|socket hang up|fetch failed|tarmoq xatoligi/i,
+    reason: 'Telegram serveriga ulanib bo\'lmadi.',
+    fix: 'Hosting tashqi ulanishlarni to\'sib qo\'ygan bo\'lishi mumkin. Hosting xizmatidan api.telegram.org (443-port) ga chiqishni so\'rang.',
+  },
+  {
+    match: /certificate|self signed|SSL/i,
+    reason: 'HTTPS sertifikati tekshirilmadi.',
+    fix: 'Serverdagi ildiz sertifikatlari eskirgan bo\'lishi mumkin — hosting xizmatiga murojaat qiling.',
+  },
+  {
+    match: /^bot_token_yoq$/,
+    reason: 'Bot tokeni kiritilmagan.',
+    fix: 'Quyidagi «Bot tokeni» maydoniga @BotFather bergan tokenni qo\'ying.',
+  },
+  {
+    match: /^chat_id_yoq$/,
+    reason: 'chat_id kiritilmagan.',
+    fix: 'Botni guruhga qo\'shib, «chat_id ni aniqlash» tugmasini bosing.',
+  },
+  {
+    match: /^telegram_ochirilgan$/,
+    reason: 'Telegramga yuborish qo\'lda o\'chirib qo\'yilgan.',
+    fix: 'Quyidagi «Yuborishni vaqtincha to\'xtatish» belgisini olib tashlang.',
+  },
+];
+
+/**
+ * Xatolik matnidan sabab va yechim chiqaradi.
+ * @returns {{ raw: string, reason: string, fix: string }}
+ */
+export function explainError(error) {
+  const raw = String(error ?? '').trim();
+  if (raw === '') return { raw: '', reason: '', fix: '' };
+  for (const entry of ERROR_GUIDE) {
+    if (entry.match.test(raw)) return { raw, reason: entry.reason, fix: entry.fix };
+  }
+  return {
+    raw,
+    reason: 'Telegram xatolik qaytardi.',
+    fix: 'Yuqoridagi xatolik matnini hosting yoki texnik mutaxassisga ko\'rsating.',
+  };
+}
+
+/**
+ * Tashqi tarmoq ochiqligini tekshiradi.
+ * Telegram API ga token talab qilmaydigan so'rov yuboriladi: javob 404 bo'lsa
+ * ham ulanish ishlagan bo'ladi — bizga faqat tarmoq muhim.
+ */
+export async function probeNetwork(config = getConfig()) {
+  const started = Date.now();
+  try {
+    const response = await fetch(`${config.apiBase}/bot0:0/getMe`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(8000),
+    });
+    return { reachable: true, status: response.status, ms: Date.now() - started };
+  } catch (error) {
+    const reason = error?.name === 'TimeoutError' || error?.name === 'AbortError'
+      ? 'so\'rov vaqti tugadi'
+      : error?.cause?.code || error?.message || 'tarmoq xatoligi';
+    return { reachable: false, error: String(reason), ms: Date.now() - started };
+  }
+}
+
+/** Sozlamalarni tekshiradi: tarmoq ochiqmi, token to'g'rimi, chat mavjudmi. */
 export async function diagnose() {
   const config = getConfig();
   const report = {
@@ -302,39 +429,55 @@ export async function diagnose() {
     threadId: config.threadId || null,
     apiBase: config.apiBase,
     source: config.source,
+    network: null,
     bot: null,
     chat: null,
-    errors: [],
+    canSend: false,
+    problems: [],
   };
 
+  const add = (error) => report.problems.push(explainError(error));
+
+  // 1. Tarmoq — eng ko'p uchraydigan sabab shu
+  report.network = await probeNetwork(config);
+  if (!report.network.reachable) {
+    add(report.network.error);
+    return report;
+  }
+
+  // 2. Token
   if (!config.botToken) {
-    report.errors.push('Bot tokeni kiritilmagan.');
+    add('bot_token_yoq');
     return report;
   }
-
   const me = await getMe(config);
-  if (me.ok) {
-    report.bot = { id: me.result.id, username: me.result.username, name: me.result.first_name };
-  } else {
-    report.errors.push(`Bot tokeni tekshirilmadi: ${me.error}`);
+  if (!me.ok) {
+    add(me.error);
     return report;
   }
+  report.bot = { id: me.result.id, username: me.result.username, name: me.result.first_name };
 
+  // 3. Chat
   if (!config.chatId) {
-    report.errors.push('chat_id kiritilmagan.');
+    add('chat_id_yoq');
+    return report;
+  }
+  const chat = await callApi('getChat', { chat_id: config.chatId }, config);
+  if (!chat.ok) {
+    add(chat.error);
+    return report;
+  }
+  report.chat = {
+    id: chat.result.id,
+    type: chat.result.type,
+    title: chat.result.title || chat.result.username || chat.result.first_name || null,
+  };
+
+  if (config.disabled) {
+    add('telegram_ochirilgan');
     return report;
   }
 
-  const chat = await callApi('getChat', { chat_id: config.chatId }, config);
-  if (chat.ok) {
-    report.chat = {
-      id: chat.result.id,
-      type: chat.result.type,
-      title: chat.result.title || chat.result.username || chat.result.first_name || null,
-    };
-  } else {
-    report.errors.push(`Chat tekshirilmadi: ${chat.error}`);
-  }
-
+  report.canSend = true;
   return report;
 }

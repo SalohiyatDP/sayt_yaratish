@@ -458,7 +458,7 @@ function pickClientStrings(ctx) {
     'masterplan.viewer.zoomIn', 'masterplan.viewer.zoomOut', 'masterplan.viewer.reset',
     'contact.form.sending', 'contact.form.submit', 'contact.form.success', 'contact.form.successHint',
     'contact.form.error', 'contact.form.errorHint', 'contact.form.disabledTitle', 'contact.form.disabledText',
-    'contact.form.validation.required', 'contact.form.validation.contact', 'contact.form.validation.email',
+    'contact.form.validation.required', 'contact.form.validation.email',
     'contact.form.validation.phone', 'contact.form.validation.consent', 'contact.form.validation.summary',
     'site.openMenu', 'site.closeMenu', 'site.theme.light', 'site.theme.dark', 'site.theme.auto',
     'offline.title', 'offline.text',

@@ -57,18 +57,17 @@ function validate(form) {
     setFieldError(form, 'message', t('contact.form.validation.required'));
     errors.push('message');
   }
-  if (values.phone === '' && values.email === '') {
-    setFieldError(form, 'email', t('contact.form.validation.contact'));
-    errors.push('contact');
-  } else {
-    if (values.email !== '' && !EMAIL_RE.test(values.email)) {
-      setFieldError(form, 'email', t('contact.form.validation.email'));
-      errors.push('email');
-    }
-    if (values.phone !== '' && !PHONE_RE.test(values.phone)) {
-      setFieldError(form, 'phone', t('contact.form.validation.phone'));
-      errors.push('phone');
-    }
+  // Telefon raqam majburiy — murojaatga javob berishning asosiy yo'li
+  if (values.phone === '') {
+    setFieldError(form, 'phone', t('contact.form.validation.required'));
+    errors.push('phone');
+  } else if (!PHONE_RE.test(values.phone)) {
+    setFieldError(form, 'phone', t('contact.form.validation.phone'));
+    errors.push('phone');
+  }
+  if (values.email !== '' && !EMAIL_RE.test(values.email)) {
+    setFieldError(form, 'email', t('contact.form.validation.email'));
+    errors.push('email');
   }
   if (!values.consent) {
     setFieldError(form, 'consent', t('contact.form.validation.consent'));
