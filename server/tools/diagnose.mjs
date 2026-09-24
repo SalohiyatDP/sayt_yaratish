@@ -78,6 +78,61 @@ function checkPortFree(port, host) {
   });
 }
 
+/**
+ * nginx sozlamalaridan veb-server kutayotgan manzilni topadi.
+ *
+ * Bu eng ko'p uchraydigan xatolikni aniqlaydi: ilova bir soketda tinglaydi,
+ * nginx esa boshqasini qidiradi — natijada «502 Bad Gateway» chiqadi.
+ *
+ * nginx sozlamalari odatda root uchun ochiq bo'ladi; o'qish imkoni bo'lmasa
+ * funksiya jimgina null qaytaradi.
+ */
+function findNginxUpstream() {
+  const roots = ['/etc/nginx', '/usr/local/nginx/conf', '/usr/local/etc/nginx'];
+  const found = [];
+  let scanned = 0;
+  let denied = false;
+
+  const walk = (dir, depth = 0) => {
+    if (depth > 4 || scanned > 800) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'EACCES' || error.code === 'EPERM') denied = true;
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, depth + 1);
+      } else if (/\.(conf|vhost)$/.test(entry.name) || !entry.name.includes('.')) {
+        scanned += 1;
+        let text;
+        try {
+          text = fs.readFileSync(full, 'utf8');
+        } catch (error) {
+          if (error.code === 'EACCES' || error.code === 'EPERM') denied = true;
+          continue;
+        }
+        for (const match of text.matchAll(/proxy_pass\s+https?:\/\/(unix:([^;:\s]+)|127\.0\.0\.1:(\d+)|localhost:(\d+))/g)) {
+          found.push({
+            file: full,
+            socketPath: match[2] || null,
+            port: match[3] || match[4] || null,
+          });
+        }
+      }
+    }
+  };
+
+  for (const root of roots) {
+    if (fs.existsSync(root)) walk(root);
+  }
+
+  return { found, denied };
+}
+
 /** Unix soketini bog'lab ko'radi — muvaffaqiyatli bo'lsa darhol bo'shatadi. */
 function checkSocketFree(socketPath) {
   return new Promise((resolve) => {
@@ -261,6 +316,71 @@ async function main() {
     console.log(`     ${DIM}Agar bu eski jarayon bo'lsa: pkill -f "server/server.mjs"${R}`);
   } else {
     ok('Loyihaning boshqa ishlayotgan jarayoni topilmadi');
+  }
+
+  /* ── 2b. nginx bilan solishtirish ── */
+  section('2b. Veb-server (nginx) kutayotgan manzil');
+
+  const nginx = findNginxUpstream();
+
+  if (nginx.found.length === 0) {
+    if (nginx.denied) {
+      warn(
+        'nginx sozlamalarini o\'qish imkoni bo\'lmadi (ruxsat yo\'q)',
+        'Bu normal holat — sozlamalar odatda faqat administrator uchun ochiq.\n     Qo\'lda tekshirish: grep -r "proxy_pass" /etc/nginx/ | grep -E "unix:|127.0.0.1"',
+      );
+    } else {
+      warn('nginx sozlamalarida proxy_pass topilmadi', 'Sayt boshqa veb-server orqali ishlayotgan bo\'lishi mumkin.');
+    }
+  } else {
+    // Bizga tegishli bo'lishi ehtimoli yuqori yozuvlarni ajratamiz
+    const ours = nginx.found.filter(
+      (item) =>
+        (item.socketPath && item.socketPath.includes(path.basename(path.dirname(listen.socketPath || '')))) ||
+        (item.socketPath && listen.socketPath && path.dirname(item.socketPath) === path.dirname(listen.socketPath)) ||
+        (item.port && listen.port && String(item.port) === String(listen.port)),
+    );
+    const candidates = ours.length > 0 ? ours : nginx.found.slice(0, 6);
+
+    for (const item of candidates) {
+      const target = item.socketPath ? `unix:${item.socketPath}` : `127.0.0.1:${item.port}`;
+      console.log(`   ${DIM}${target}${R}  ${DIM}← ${item.file}${R}`);
+    }
+
+    // Mos kelishini tekshiramiz
+    const expectedSockets = nginx.found.filter((i) => i.socketPath).map((i) => i.socketPath);
+    const expectedPorts = nginx.found.filter((i) => i.port).map((i) => String(i.port));
+
+    if (listen.kind === 'socket') {
+      if (expectedSockets.includes(listen.socketPath)) {
+        ok('Ilova va nginx bir xil soketni ishlatadi');
+      } else if (expectedSockets.length > 0) {
+        // Xuddi shu katalogdagi boshqa soket — eng ehtimolli xato
+        const sameDir = expectedSockets.filter((s) => path.dirname(s) === path.dirname(listen.socketPath));
+        const hint = sameDir.length > 0 ? sameDir : expectedSockets;
+        bad(
+          'ILOVA VA nginx BOSHQA-BOSHQA SOKETNI ISHLATADI — «502 Bad Gateway» sababi shu',
+          `Ilova tinglaydi:  ${listen.socketPath}\n` +
+            `     nginx qidiradi:   ${hint.join('\n                       ')}\n\n` +
+            `     YECHIM: panelda PORT o'zgaruvchisining qiymatini nginx kutayotgan\n` +
+            `     yo'lga o'zgartiring:\n\n` +
+            `        PORT = ${hint[0]}\n`,
+        );
+      }
+    } else if (expectedSockets.length > 0) {
+      bad(
+        'nginx Unix soketini kutadi, ilova esa TCP portda tinglaydi',
+        `nginx qidiradi: ${expectedSockets[0]}\n` +
+          `     YECHIM: panelda PORT qiymatiga shu yo'lni yozing.`,
+      );
+    } else if (expectedPorts.length > 0 && !expectedPorts.includes(String(listen.port))) {
+      bad(
+        'Ilova va nginx boshqa-boshqa portni ishlatadi',
+        `Ilova: ${listen.port}\n     nginx: ${expectedPorts.join(', ')}\n     YECHIM: PORT qiymatini nginx kutayotgan portga o'zgartiring.`,
+      );
+    } else if (expectedPorts.includes(String(listen.port))) {
+      ok('Ilova va nginx bir xil portni ishlatadi');
+    }
   }
 
   /* ── 3. Sayt qurilgani ── */

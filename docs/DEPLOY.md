@@ -493,8 +493,8 @@ Node.js ga uzatish.
 
 #### Muammolarni aniqlash: `EADDRINUSE` va boshqalar
 
-Server ishga tushmasa, **birinchi navbatda** tashxis vositasini ishga tushiring —
-u sababni topib, yechimni ko'rsatadi:
+Server ishga tushmasa yoki sayt `502` bersa, **birinchi navbatda** tashxis
+vositasini ishga tushiring — u sababni topib, yechimni ko'rsatadi:
 
 ```bash
 node server/tools/diagnose.mjs
@@ -502,9 +502,46 @@ node server/tools/diagnose.mjs
 
 Windows'da: `windows\tashxis.cmd` faylini ikki marta bosing.
 
-Vosita quyidagilarni tekshiradi: Node versiyasi, port bo'sh-band, sayt
-qurilgani, yozish huquqlari, panel foydalanuvchilari, Telegram sozlamalari,
-murojaat shakli holati va loyihaning boshqa ishlayotgan jarayonlari.
+Vosita quyidagilarni tekshiradi: Node versiyasi, tinglash manzili (port yoki
+soket) bo'sh-bandligi, **nginx kutayotgan manzil bilan mos kelishi**, sayt
+qurilgani, yozish huquqlari, panel foydalanuvchilari, Telegram sozlamalari va
+loyihaning boshqa ishlayotgan jarayonlari.
+
+##### Eng ko'p uchraydigan xato: manzil mos kelmasligi
+
+Ilova bir soketda tinglaydi, nginx esa boshqasini qidiradi. Natijada
+`502 Bad Gateway` va jurnalda:
+
+```
+connect() to unix:/var/www/s0277/data/nodejs/26.sock failed
+(2: No such file or directory) while connecting to upstream
+```
+
+Tashxis vositasi buni o'zi aniqlaydi va kerakli qiymatni aytadi:
+
+```
+2b. Veb-server (nginx) kutayotgan manzil
+ unix:/var/www/s0277/data/nodejs/26.sock  ← /etc/nginx/vhosts/s0277/namresort.uz.conf
+ ✗ ILOVA VA nginx BOSHQA-BOSHQA SOKETNI ISHLATADI — «502 Bad Gateway» sababi shu
+   Ilova tinglaydi:  /var/www/s0277/data/nodejs/21.sock
+   nginx qidiradi:   /var/www/s0277/data/nodejs/26.sock
+
+   YECHIM: panelda PORT o'zgaruvchisining qiymatini nginx kutayotgan
+   yo'lga o'zgartiring:
+
+      PORT = /var/www/s0277/data/nodejs/26.sock
+```
+
+nginx sozlamalari faqat administrator uchun ochiq bo'lsa, vosita buni aytadi —
+u holda qo'lda tekshiring:
+
+```bash
+grep -r "proxy_pass" /etc/nginx/ | grep -E "unix:|127.0.0.1"
+```
+
+> ⚠️ Soket raqami (`26.sock`) **ilova qayta yaratilganda o'zgarishi mumkin**.
+> Panelda ilovani o'chirib qaytadan qo'shsangiz, `PORT` qiymatini ham
+> yangilashni unutmang.
 
 ##### `EADDRINUSE: address already in use 0.0.0.0:8080`
 
