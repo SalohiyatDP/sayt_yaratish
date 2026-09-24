@@ -283,13 +283,130 @@ curl -s https://sayt-manzili.uz/api/health | head -20
 
 ---
 
-### A-2. cPanel «Setup Node.js App»
+### A-2. Hosting paneli orqali (ISPmanager, cPanel, Plesk)
 
-Ko'pgina O'zbekiston hostinglarida shu imkoniyat bor.
+Panellar Node.js ilovani o'zi ishga tushiradi va oldiga nginx proksisini
+avtomatik sozlaydi. Sizdan faqat ishga tushirish buyrug'i va muhit
+o'zgaruvchilari so'raladi.
 
-1. Fayllarni **`public_html` dan tashqarida**, alohida katalogga yuklang,
-   masalan `direksiya_app/` (File Manager yoki FTP orqali, arxivni yuklab
-   «Extract» qilish qulay).
+#### Port masalasi — eng ko'p xato qilinadigan joy
+
+Panel ilovaga qaysi portda tinglashni aytadi, lekin buni turli panellar turli
+usulda qiladi: ko'pchiligi `PORT` o'zgaruvchisi orqali, ba'zilari boshqa nom
+bilan, ayrimlari esa TCP port o'rniga Unix soketi yo'lini beradi.
+
+Server shu farqlarni o'zi hisobga oladi va quyidagi o'zgaruvchilarni
+navbatma-navbat tekshiradi:
+
+```
+PORT  →  SOCKET  →  NODE_PORT  →  APP_PORT  →  SERVER_PORT  →  HTTP_PORT
+```
+
+- Qiymat son bo'lsa — shu TCP portda tinglaydi.
+- Qiymat yo'l bo'lsa (`/`, `./` bilan boshlansa yoki `.sock` bilan tugasa) —
+  Unix soketida tinglaydi.
+- Hech biri berilmasa — `8080` portida tinglaydi.
+
+Ishga tushgandan keyin jurnalda qaysi manba ishlatilgani ko'rinadi:
+
+```
+  Direksiya sayti serveri ishga tushdi
+  Manzil:            http://0.0.0.0:10000/
+  Port manbasi:      PORT
+```
+
+Agar «Port manbasi: odatiy qiymat» deb yozilgan bo'lsa, panel portni
+uzatmagan — bu holda panelda ko'rsatilgan portni `PORT` o'zgaruvchisiga
+**qo'lda yozib qo'yish** kerak.
+
+> ISPmanager bo'sh TCP portni o'zi tanlaydi; qidiruv `NodeJsBackendBind`
+> qiymatidan boshlanadi (odatiy holda `127.0.0.1:10000`) —
+> [ispmanager hujjatlari](https://www.ispmanager.com/docs/ispmanager/creating-a-new-nodejs-project).
+> Ya'ni port odatda `10000` va undan yuqori bo'ladi. Panelda ko'rsatilgan
+> aniq qiymatni tekshirib oling.
+> *(Manba mazmuni litsenziya talablariga muvofiq qisqartirib berildi.)*
+
+#### ISPmanager — «Параметры запуска Node.js»
+
+**1. Fayllarni yuklash**
+
+To'plamni (`direksiya-sayt-server-*.tar.gz`) sayt katalogiga yuklab, panelning
+fayl menejeri orqali oching. Odatda yo'l:
+`/var/www/<foydalanuvchi>/data/www/<domen>/`
+
+**2. Команда запуска** — «Указать команду вручную» ni tanlab, yozing:
+
+```
+node server/server.mjs
+```
+
+**3. Выполнять дополнительную команду перед запуском**
+
+Bu katagi belgilangan bo'lsa, «Указать команду вручную» ni tanlab yozing:
+
+```
+node src/build.mjs
+```
+
+Bu buyruq har ishga tushishda saytni kontentdan qayta yig'adi (0,1 soniya).
+Foydasi: birinchi ishga tushirishda `dist/` avtomatik paydo bo'ladi va kontent
+o'zgarganda sayt yangilanadi.
+
+> `npm install` **kerak emas** — loyihada hech qanday bog'liqlik yo'q.
+> Ro'yxatdan `npm install` tanlansa, u bo'sh ishlaydi yoki xato berishi mumkin.
+> Agar qo'lda buyruq kiritish imkoni bo'lmasa, bu katakni **belgilamang** va
+> saytni bir marta terminal orqali quring.
+
+**4. Переменная окружения** — quyidagilarni qo'shing:
+
+| Имя | Значение | Izoh |
+|---|---|---|
+| `NODE_ENV` | `production` | Ishlab chiqarish rejimi |
+| `SITE_ORIGIN` | `https://<domen>` | Telegram xabaridagi panel tugmasi uchun |
+| `TELEGRAM_BOT_TOKEN` | `1234567890:AA…` | @BotFather bergan token |
+| `TELEGRAM_CHAT_ID` | `-1001234567890` | Murojaatlar keladigan chat |
+
+`PORT` ni **panel o'zi bersa qo'shmang**. Jurnalda «Port manbasi: odatiy
+qiymat» deb chiqsa — panelda ko'rsatilgan portni `PORT` sifatida qo'shing.
+
+`HOST` ni ham qo'shmang: odatiy `0.0.0.0` qiymati panel proksisi bilan ishlaydi.
+
+**5. Saqlash va perezapustit** tugmasini bosing.
+
+**6. Bir marta terminal orqali (panelning «Shell» bo'limi yoki SSH)**
+
+```bash
+cd /var/www/<foydalanuvchi>/data/www/<domen>
+node server/tools/hash-password.mjs direksiya '<kuchli-parol>' admin
+node src/build.mjs
+```
+
+**7. Tekshirish**
+
+```
+https://<domen>/api/health
+```
+
+`"status": "ok"` qaytishi kerak.
+
+#### Sayt ildizi (document root) masalasi
+
+Panel nginx ni ikki xil sozlashi mumkin:
+
+| Holat | Nima qilish kerak |
+|---|---|
+| Barcha so'rovlar Node.js ga uzatiladi | Hech narsa — shunday ishlaydi (tavsiya etiladi) |
+| nginx statik fayllarni o'zi beradi | Sayt ildizini `dist` ostkatalogiga o'zgartiring, `/api/` va `/admin/` esa Node.js ga uzatilsin |
+
+Agar sayt ochilganda **404** yoki panelning standart sahifasi chiqsa —
+sababi shu: nginx `index.html` ni ilova ildizidan qidirmoqda, bizda esa u
+`dist/` ichida. Yechim: ildizni `dist` ga o'zgartirish yoki barcha so'rovlarni
+Node.js ga uzatish.
+
+#### cPanel «Setup Node.js App»
+
+1. Fayllarni **`public_html` dan tashqarida**, alohida katalogga yuklang
+   (masalan `direksiya_app/`).
 
 2. cPanel → **Setup Node.js App** → **Create Application**:
 
@@ -301,33 +418,25 @@ Ko'pgina O'zbekiston hostinglarida shu imkoniyat bor.
    | Application URL | sayt domeni |
    | Application startup file | `app.js` |
 
-3. **«Run NPM Install» tugmasini bosish shart emas** — loyihada bog'liqliklar yo'q.
+3. **«Run NPM Install» tugmasini bosish shart emas.**
 
-4. Shu sahifada **Environment variables** bo'limiga qo'shing:
+4. **Environment variables** bo'limiga yuqoridagi jadvaldagi o'zgaruvchilarni
+   qo'shing.
 
-   ```
-   NODE_ENV=production
-   SITE_ORIGIN=https://sayt-manzili.uz
-   TELEGRAM_BOT_TOKEN=...
-   TELEGRAM_CHAT_ID=...
-   ```
+5. Terminal orqali bir marta parol yaratib, saytni quring (6-band bilan bir xil).
 
-   `PORT` ni qo'shmang — cPanel uni o'zi beradi.
+6. **Restart** → `https://<domen>/api/health`.
 
-5. Terminal (yoki cPanel Terminal) orqali bir marta:
+#### Panel hostinglaridagi cheklovlar
 
-   ```bash
-   cd ~/direksiya_app
-   node server/tools/hash-password.mjs direksiya '<parol>' admin
-   node src/build.mjs
-   ```
+- Ba'zi umumiy (shared) hostinglar jarayonni faol bo'lmaganda to'xtatadi —
+  birinchi so'rov sekin bo'lishi mumkin.
+- Fayl yozish huquqi cheklangan bo'lsa, boshqaruv panelidan saqlash ishlamaydi.
+  Quyidagi kataloglarga yozish huquqi kerak:
+  `content/`, `content/inbox/`, `assets/uploads/`, `server/data/`, `dist/`.
+- Xotira cheklovi past bo'lsa (128 MB dan kam), qurish sekin ketishi mumkin.
 
-6. **Restart** tugmasini bosib, `https://sayt-manzili.uz/api/health` ni tekshiring.
-
-**Cheklovlar:** ba'zi umumiy (shared) hostinglar jarayonni faol bo'lmaganda
-to'xtatadi — bunda sayt sekin ochilishi mumkin. Shuningdek fayl yozish huquqi
-cheklangan bo'lsa, boshqaruv panelidan saqlash ishlamaydi. Bunday holatda VPS
-yoki B varianti afzal.
+Bu cheklovlar to'sqinlik qilsa, VPS (A-1) afzal.
 
 ---
 

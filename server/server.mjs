@@ -41,8 +41,42 @@ const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const argv = process.argv.slice(2);
 const PUBLIC_ONLY = argv.includes('--public-only');
 const DEV = argv.includes('--dev');
-const PORT = Number(process.env.PORT || 8080);
-const HOST = process.env.HOST || '0.0.0.0';
+
+/**
+ * Tinglash manzilini aniqlaydi.
+ *
+ * Turli hosting panellari portni turli nomlar bilan uzatadi (ba'zilari esa
+ * TCP port o'rniga Unix soketi yo'lini beradi). Shu sababli bir necha keng
+ * tarqalgan nomni tekshiramiz va qaysi biri ishlatilganini jurnalga yozamiz —
+ * bu hostingda sozlashni ancha osonlashtiradi.
+ */
+function resolveListenTarget() {
+  const CANDIDATES = ['PORT', 'SOCKET', 'NODE_PORT', 'APP_PORT', 'SERVER_PORT', 'HTTP_PORT'];
+
+  for (const name of CANDIDATES) {
+    const raw = process.env[name];
+    if (raw == null || String(raw).trim() === '') continue;
+    const value = String(raw).trim();
+
+    // Unix soketi: yo'l ko'rinishidagi qiymat
+    if (value.startsWith('/') || value.startsWith('./') || value.endsWith('.sock')) {
+      return { kind: 'socket', socketPath: value, source: name };
+    }
+
+    const port = Number(value);
+    if (Number.isInteger(port) && port > 0 && port < 65536) {
+      return { kind: 'port', port, host: process.env.HOST || '0.0.0.0', source: name };
+    }
+
+    console.warn(`  DIQQAT: ${name} o'zgaruvchisidagi "${value}" qiymati port yoki soket yo'li emas — e'tiborsiz qoldirildi.`);
+  }
+
+  return { kind: 'port', port: 8080, host: process.env.HOST || '0.0.0.0', source: 'odatiy qiymat' };
+}
+
+const LISTEN = resolveListenTarget();
+const PORT = LISTEN.port ?? null;
+const HOST = LISTEN.host ?? null;
 
 const EDITABLE_FILES = new Set(['site', 'taxonomies', 'pages', 'lots', 'masterplans', 'news']);
 const MAX_JSON_BODY = 8 * 1024 * 1024; // 8 MB
@@ -895,13 +929,37 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => {
+/** Soket faylini eski jarayondan qolgan bo'lsa tozalaydi. */
+function prepareSocket(socketPath) {
+  try {
+    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
+  } catch (error) {
+    console.error(`  Eski soket faylini o'chirish imkoni bo'lmadi: ${socketPath} — ${error.message}`);
+  }
+}
+
+if (LISTEN.kind === 'socket') prepareSocket(LISTEN.socketPath);
+
+const onListening = () => {
   const users = loadUsers();
   console.log('');
   console.log('  Direksiya sayti serveri ishga tushdi');
-  console.log(`  Manzil:            http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
+
+  if (LISTEN.kind === 'socket') {
+    console.log(`  Tinglanmoqda:      Unix soketi ${LISTEN.socketPath}`);
+    try {
+      fs.chmodSync(LISTEN.socketPath, 0o660);
+    } catch (error) {
+      /* huquqni o'zgartirish imkoni bo'lmasa, e'tiborsiz */
+    }
+  } else {
+    console.log(`  Manzil:            http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
+  }
+  console.log(`  Port manbasi:      ${LISTEN.source}`);
+
   if (!fs.existsSync(DIST)) {
-    console.log('  DIQQAT: dist/ katalogi topilmadi. Avval `npm run build` buyrug\'ini bajaring.');
+    console.log('  DIQQAT: dist/ katalogi topilmadi — sayt qurilmagan.');
+    console.log('          Bajaring: node src/build.mjs');
   }
   if (PUBLIC_ONLY) {
     console.log('  Boshqaruv paneli:  o\'chirilgan (--public-only)');
@@ -933,9 +991,48 @@ server.listen(PORT, HOST, () => {
 
   if (DEV) console.log('  Rejim:             DEV (cookie Secure bayrog\'isiz — faqat mahalliy sinov uchun)');
   console.log('');
+};
+
+server.on('error', (error) => {
+  console.error('');
+  if (error.code === 'EADDRINUSE') {
+    const where = LISTEN.kind === 'socket' ? LISTEN.socketPath : `${HOST}:${PORT}`;
+    console.error(`  XATOLIK: ${where} allaqachon band.`);
+    console.error('  Boshqa jarayon shu portni ishlatmoqda. Uni to\'xtating yoki');
+    console.error('  PORT o\'zgaruvchisida boshqa port ko\'rsating.');
+  } else if (error.code === 'EACCES') {
+    console.error(`  XATOLIK: ${LISTEN.kind === 'socket' ? LISTEN.socketPath : `${PORT}-port`} uchun ruxsat yo'q.`);
+    console.error('  1024 dan kichik portlar administrator huquqini talab qiladi —');
+    console.error('  1024 dan katta port ishlatib, oldiga nginx qo\'ying.');
+  } else {
+    console.error(`  Server xatoligi: ${error.message}`);
+  }
+  console.error('');
+  process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  console.log('\n  Server to\'xtatilmoqda…');
-  server.close(() => process.exit(0));
-});
+if (LISTEN.kind === 'socket') {
+  server.listen(LISTEN.socketPath, onListening);
+} else {
+  server.listen(PORT, HOST, onListening);
+}
+
+/** To'xtatishda soket faylini tozalaydi. */
+function shutdown(signal) {
+  console.log(`\n  Server to'xtatilmoqda (${signal})…`);
+  server.close(() => {
+    if (LISTEN.kind === 'socket') {
+      try {
+        fs.unlinkSync(LISTEN.socketPath);
+      } catch (error) {
+        /* e'tiborsiz */
+      }
+    }
+    process.exit(0);
+  });
+  // Ulanishlar yopilmasa, 10 soniyadan keyin majburan chiqamiz
+  setTimeout(() => process.exit(0), 10_000).unref();
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
