@@ -289,11 +289,70 @@ Panellar Node.js ilovani o'zi ishga tushiradi va oldiga nginx proksisini
 avtomatik sozlaydi. Sizdan faqat ishga tushirish buyrug'i va muhit
 o'zgaruvchilari so'raladi.
 
-#### Port masalasi — eng ko'p xato qilinadigan joy
+#### Unix soketi (ISPmanager'da ko'p uchraydi)
 
-Panel ilovaga qaysi portda tinglashni aytadi, lekin buni turli panellar turli
-usulda qiladi: ko'pchiligi `PORT` o'zgaruvchisi orqali, ba'zilari boshqa nom
-bilan, ayrimlari esa TCP port o'rniga Unix soketi yo'lini beradi.
+ISPmanager odatda TCP port emas, **Unix soketi** yo'lini beradi. Ko'rinishi:
+
+```
+/var/www/<foydalanuvchi>/data/nodejs/<raqam>.sock
+```
+
+Masalan: `/var/www/s0277/data/nodejs/21.sock`
+
+Shu yo'lni `PORT` o'zgaruvchisiga yozish **yetarli** — server qiymat yo'l
+ko'rinishida ekanini o'zi aniqlab, soketda tinglaydi:
+
+| Имя | Значение |
+|---|---|
+| `PORT` | `/var/www/s0277/data/nodejs/21.sock` |
+
+Aniqroq bo'lishi uchun `SOCKET` nomini ishlatish ham mumkin — natija bir xil.
+
+Soket rejimida `HOST` o'zgaruvchisi **kerak emas** (u e'tiborga olinmaydi).
+
+Server soket bilan ishlashda quyidagilarni o'zi bajaradi:
+
+- ota katalog mavjud bo'lmasa — **yaratadi**;
+- eski jarayondan qolgan soket faylini **o'chiradi** (aks holda `EADDRINUSE`);
+- soket fayliga `0660` huquqini qo'yadi;
+- to'xtaganda (`SIGTERM`/`SIGINT`) soket faylini **tozalaydi**.
+
+Ishga tushganda jurnalda shunday yoziladi:
+
+```
+  Tinglanmoqda:      Unix soketi /var/www/s0277/data/nodejs/21.sock
+  Soket huquqi:      660
+  Port manbasi:      PORT
+  Jarayon raqami:    12345
+```
+
+##### Soketni nginx sozlamasidan tasdiqlash
+
+Panel qaysi yo'lni kutayotganini tekshirish:
+
+```bash
+grep -r "unix:" /etc/nginx/ | grep nodejs
+```
+
+Natijada `proxy_pass http://unix:/var/www/s0277/data/nodejs/21.sock;` kabi
+qator chiqadi — `PORT` qiymati **aynan shu yo'l** bo'lishi kerak.
+
+##### `502 Bad Gateway` va soket huquqi
+
+nginx soketga ulanolmasa (`Permission denied`), huquqni bo'shatib ko'ring —
+panelda yana bitta o'zgaruvchi qo'shasiz:
+
+| Имя | Значение |
+|---|---|
+| `SOCKET_MODE` | `666` |
+
+Odatiy qiymat `660` (egasi va guruh). nginx boshqa foydalanuvchi ostida ishlab,
+sayt foydalanuvchisining guruhiga kirmasa, `666` kerak bo'ladi.
+
+#### TCP port ishlatilganda
+
+Ba'zi panellar soket emas, port beradi. Server quyidagi o'zgaruvchilarni
+navbatma-navbat tekshiradi:
 
 Server shu farqlarni o'zi hisobga oladi va quyidagi o'zgaruvchilarni
 navbatma-navbat tekshiradi:
@@ -361,15 +420,20 @@ o'zgarganda sayt yangilanadi.
 
 | Имя | Значение | Izoh |
 |---|---|---|
+| `PORT` | `/var/www/<foydalanuvchi>/data/nodejs/<raqam>.sock` | ISPmanager bergan soket yo'li |
 | `NODE_ENV` | `production` | Ishlab chiqarish rejimi |
 | `SITE_ORIGIN` | `https://<domen>` | Telegram xabaridagi panel tugmasi uchun |
 | `TELEGRAM_BOT_TOKEN` | `1234567890:AA…` | @BotFather bergan token |
 | `TELEGRAM_CHAT_ID` | `-1001234567890` | Murojaatlar keladigan chat |
 
-`PORT` ni **panel o'zi bersa qo'shmang**. Jurnalda «Port manbasi: odatiy
-qiymat» deb chiqsa — panelda ko'rsatilgan portni `PORT` sifatida qo'shing.
+Soket yo'lini panelda yoki nginx sozlamasida ko'rish mumkin
+(`grep -r "unix:" /etc/nginx/ | grep nodejs`).
 
-`HOST` ni ham qo'shmang: odatiy `0.0.0.0` qiymati panel proksisi bilan ishlaydi.
+Panel TCP port bergan bo'lsa, `PORT` ga shu raqamni yozib, `HOST` ni
+`127.0.0.1` qilib qo'yasiz.
+
+Jurnalda «Port manbasi: odatiy qiymat» deb chiqsa — demak panel hech narsa
+bermagan va `PORT` ni qo'lda kiritish kerak.
 
 **5. Saqlash va perezapustit** tugmasini bosing.
 
@@ -497,11 +561,34 @@ Bu bayroq muhit o'zgaruvchilaridan ustun turadi — hostingda tez tekshirish uch
 1024 dan kichik port (80, 443) administrator huquqini talab qiladi. 1024 dan
 katta port ishlatib, oldiga nginx qo'yish kerak.
 
+##### Soket rejimidagi `EADDRINUSE`
+
+Soket fayli eski jarayondan qolgan. Server uni o'zi tozalashga harakat qiladi,
+lekin eski jarayon hali tirik bo'lsa tozalab bo'lmaydi:
+
+```bash
+ps aux | grep "server/server.mjs"
+pkill -f "server/server.mjs"
+rm -f /var/www/<foydalanuvchi>/data/nodejs/<raqam>.sock
+```
+
+So'ngra panelda ilovani qayta ishga tushiring.
+
 ##### Sayt ochiladi, lekin `502 Bad Gateway`
 
-nginx Node.js ga ulanolmayapti: ilova ishlamayapti yoki **boshqa portda**
-tinglayapti. Jurnaldagi «Manzil» qatorini nginx `proxy_pass` qiymati bilan
-solishtiring — ikkalasi bir xil port bo'lishi kerak.
+nginx Node.js ga ulanolmayapti. Uch sababi bo'ladi:
+
+1. **Ilova ishlamayapti** — jurnalni ko'ring, `node server/tools/diagnose.mjs`
+   ishga tushiring.
+2. **Manzil mos kelmayapti** — jurnaldagi «Tinglanmoqda» / «Manzil» qatorini
+   nginx `proxy_pass` qiymati bilan solishtiring, ikkalasi bir xil bo'lishi kerak:
+
+   ```bash
+   grep -r "proxy_pass" /etc/nginx/ | grep -E "unix:|127.0.0.1"
+   ```
+
+3. **Soket huquqi yetarli emas** (`Permission denied`) — `SOCKET_MODE=666`
+   o'zgaruvchisini qo'shib ko'ring.
 
 ##### Boshqaruv panelidan saqlash ishlamaydi
 

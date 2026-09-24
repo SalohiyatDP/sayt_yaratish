@@ -60,8 +60,17 @@ export function resolveListenTarget() {
   };
 
   const cliHost = cliValue('host');
+  const cliSocket = cliValue('socket');
+  if (cliSocket) {
+    return { kind: 'socket', socketPath: cliSocket, source: '--socket bayrog\'i' };
+  }
+
   const cliPort = cliValue('port');
   if (cliPort) {
+    // --port ga soket yo'li berilgan bo'lsa ham qabul qilamiz
+    if (cliPort.startsWith('/') || cliPort.startsWith('./') || cliPort.endsWith('.sock')) {
+      return { kind: 'socket', socketPath: cliPort, source: '--port bayrog\'i (soket yo\'li)' };
+    }
     const port = Number(cliPort);
     if (Number.isInteger(port) && port > 0 && port < 65536) {
       return { kind: 'port', port, host: cliHost || process.env.HOST || '0.0.0.0', source: '--port bayrog\'i' };
@@ -946,12 +955,57 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-/** Soket faylini eski jarayondan qolgan bo'lsa tozalaydi. */
+/**
+ * Unix soketini tinglashga tayyorlaydi:
+ *   • ota katalog mavjud bo'lmasa — yaratadi
+ *   • eski jarayondan qolgan soket faylini o'chiradi
+ *     (aks holda EADDRINUSE xatoligi chiqadi)
+ */
 function prepareSocket(socketPath) {
+  const dir = path.dirname(socketPath);
+
+  if (!fs.existsSync(dir)) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`  Soket katalogi yaratildi: ${dir}`);
+    } catch (error) {
+      console.error('');
+      console.error(`  XATOLIK: soket katalogini yaratish imkoni bo'lmadi: ${dir}`);
+      console.error(`  ${error.message}`);
+      console.error('  Katalogni qo\'lda yaratib, huquqlarni to\'g\'rilang.');
+      console.error('');
+      process.exit(1);
+    }
+  }
+
   try {
-    if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
+    if (fs.existsSync(socketPath)) {
+      fs.unlinkSync(socketPath);
+      console.log(`  Eski soket fayli tozalandi: ${socketPath}`);
+    }
   } catch (error) {
-    console.error(`  Eski soket faylini o'chirish imkoni bo'lmadi: ${socketPath} — ${error.message}`);
+    console.error(`  DIQQAT: eski soket faylini o'chirish imkoni bo'lmadi — ${error.message}`);
+  }
+}
+
+/**
+ * Soket fayliga kirish huquqini belgilaydi.
+ *
+ * Veb-server (nginx) soketga ulanishi uchun huquq yetarli bo'lishi kerak.
+ * Odatiy qiymat 0660 — egasi va guruh. Agar nginx boshqa foydalanuvchi ostida
+ * ishlasa va guruhga kirmasa, «502 Bad Gateway / Permission denied» chiqadi.
+ * Bunday holatda SOCKET_MODE=666 qilib qo'yish mumkin.
+ */
+function applySocketMode(socketPath) {
+  const raw = String(process.env.SOCKET_MODE || '660').replace(/^0o?/, '');
+  const mode = Number.parseInt(raw, 8);
+  const safeMode = Number.isInteger(mode) && mode > 0 && mode <= 0o777 ? mode : 0o660;
+  try {
+    fs.chmodSync(socketPath, safeMode);
+    return safeMode.toString(8).padStart(3, '0');
+  } catch (error) {
+    console.error(`  DIQQAT: soket huquqini o'zgartirish imkoni bo'lmadi — ${error.message}`);
+    return null;
   }
 }
 
@@ -963,12 +1017,9 @@ const onListening = () => {
   console.log('  Direksiya sayti serveri ishga tushdi');
 
   if (LISTEN.kind === 'socket') {
+    const mode = applySocketMode(LISTEN.socketPath);
     console.log(`  Tinglanmoqda:      Unix soketi ${LISTEN.socketPath}`);
-    try {
-      fs.chmodSync(LISTEN.socketPath, 0o660);
-    } catch (error) {
-      /* huquqni o'zgartirish imkoni bo'lmasa, e'tiborsiz */
-    }
+    if (mode) console.log(`  Soket huquqi:      ${mode}${process.env.SOCKET_MODE ? ' (SOCKET_MODE)' : ''}`);
   } else {
     console.log(`  Manzil:            http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   }
@@ -1015,11 +1066,28 @@ server.on('error', (error) => {
   console.error('');
   console.error('  ════════════════════════════════════════════════════════════');
 
-  if (error.code === 'EADDRINUSE') {
-    const where = LISTEN.kind === 'socket' ? LISTEN.socketPath : `${HOST}:${PORT}`;
+  if (error.code === 'ENOENT' && LISTEN.kind === 'socket') {
+    console.error(`  SERVER ISHGA TUSHMADI: soket yo'li mavjud emas.`);
+    console.error('');
+    console.error(`  Yo'l: ${LISTEN.socketPath}`);
+    console.error(`  Katalog: ${path.dirname(LISTEN.socketPath)}`);
+    console.error('');
+    console.error('  Katalogni yaratib, huquqlarni to\'g\'rilang, so\'ngra qayta ishga tushiring.');
+  } else if (error.code === 'EADDRINUSE' && LISTEN.kind === 'socket') {
+    console.error(`  SERVER ISHGA TUSHMADI: soket fayli band.`);
+    console.error('');
+    console.error(`  Yo'l: ${LISTEN.socketPath}`);
+    console.error('');
+    console.error('  Eski jarayon hali ishlayotgan bo\'lishi mumkin:');
+    console.error('     ps aux | grep "server/server.mjs"');
+    console.error('     pkill -f "server/server.mjs"');
+    console.error('  So\'ngra soket faylini o\'chiring:');
+    console.error(`     rm -f ${LISTEN.socketPath}`);
+  } else if (error.code === 'EADDRINUSE') {
+    const where = `${HOST}:${PORT}`;
     console.error(`  SERVER ISHGA TUSHMADI: ${where} allaqachon band.`);
     console.error('');
-    console.error(`  Port manbasi: ${LISTEN.source}`);
+    console.error(`  Manba: ${LISTEN.source}`);
     console.error('');
     if (LISTEN.source.startsWith('odatiy')) {
       console.error('  SABABI EHTIMOL SHU: hosting paneli portni bermagan, shuning uchun');
@@ -1047,7 +1115,8 @@ server.on('error', (error) => {
       console.error('  1024 dan kichik portlar administrator huquqini talab qiladi.');
       console.error('  1024 dan katta port ishlatib (masalan 8080), oldiga nginx qo\'ying.');
     } else {
-      console.error('  Soket fayli joylashgan katalogga yozish huquqi yo\'q.');
+      console.error(`  Soket katalogiga yozish huquqi yo'q: ${path.dirname(LISTEN.socketPath)}`);
+      console.error('  Katalog egasi sayt foydalanuvchisi bo\'lishi kerak.');
     }
   } else {
     console.error(`  SERVER XATOLIGI: ${error.message}`);

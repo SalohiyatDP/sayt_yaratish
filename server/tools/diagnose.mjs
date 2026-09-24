@@ -78,6 +78,36 @@ function checkPortFree(port, host) {
   });
 }
 
+/** Unix soketini bog'lab ko'radi — muvaffaqiyatli bo'lsa darhol bo'shatadi. */
+function checkSocketFree(socketPath) {
+  return new Promise((resolve) => {
+    // Mavjud soketga ulanib ko'ramiz: ulansa — eski jarayon tirik
+    const probe = net.connect(socketPath);
+    probe.once('connect', () => {
+      probe.destroy();
+      resolve({ free: false, code: 'EADDRINUSE', message: 'Soketda tirik jarayon javob bermoqda.' });
+    });
+    probe.once('error', (connectError) => {
+      probe.destroy();
+      // Ulanish bo'lmadi — endi o'zimiz bog'lab ko'ramiz
+      const testPath = `${socketPath}.tekshiruv-${process.pid}`;
+      const tester = net.createServer();
+      tester.once('error', (error) => resolve({ free: false, code: error.code, message: error.message }));
+      tester.once('listening', () =>
+        tester.close(() => {
+          try {
+            if (fs.existsSync(testPath)) fs.unlinkSync(testPath);
+          } catch (error) {
+            /* e'tiborsiz */
+          }
+          resolve({ free: true, staleSocket: connectError.code === 'ECONNREFUSED' });
+        }),
+      );
+      tester.listen(testPath);
+    });
+  });
+}
+
 /** Portni kim band qilganini aniqlashga urinadi (tizim buyruqlari mavjud bo'lsa). */
 function whoUsesPort(port) {
   for (const [cmd, args] of [
@@ -164,12 +194,47 @@ async function main() {
   }
 
   if (listen.kind === 'socket') {
+    ok('Rejim: Unix soketi', listen.socketPath);
+
     const dir = path.dirname(listen.socketPath);
-    if (fs.existsSync(dir)) ok(`Soket katalogi mavjud: ${dir}`);
-    else bad(`Soket katalogi yo'q: ${dir}`);
-    if (fs.existsSync(listen.socketPath)) {
-      warn(`Eski soket fayli mavjud: ${listen.socketPath}`, 'Server ishga tushganda uni o\'zi tozalaydi.');
+    const dirExists = fs.existsSync(dir);
+
+    if (dirExists) {
+      ok(`Soket katalogi mavjud: ${dir}`);
+    } else {
+      warn(
+        `Soket katalogi hali yo'q: ${dir}`,
+        'Server ishga tushganda uni o\'zi yaratadi. Agar yaratolmasa, xatolik\n     xabarida aniq aytiladi — katalogni qo\'lda yaratish kerak bo\'ladi.',
+      );
     }
+
+    if (fs.existsSync(listen.socketPath)) {
+      warn(
+        `Eski soket fayli mavjud: ${listen.socketPath}`,
+        'Server ishga tushganda uni o\'zi tozalaydi. Agar eski jarayon hali\n     ishlayotgan bo\'lsa, avval uni to\'xtatish kerak: pkill -f "server/server.mjs"',
+      );
+    }
+
+    // Soketni haqiqatan bog'lab ko'ramiz — faqat katalog mavjud bo'lsa
+    if (dirExists) {
+      const bindResult = await checkSocketFree(listen.socketPath);
+      if (bindResult.free) {
+        ok('Soketni bog\'lash mumkin — server ishga tushadi');
+      } else {
+        bad(
+          `Soketni bog'lash imkoni bo'lmadi (${bindResult.code})`,
+          bindResult.code === 'EADDRINUSE'
+            ? `Eski jarayon ishlayapti yoki soket fayli qolgan.\n     To'xtatish: pkill -f "server/server.mjs"\n     So'ngra: rm -f ${listen.socketPath}`
+            : bindResult.code === 'EACCES'
+              ? `Katalogga yozish huquqi yo'q: ${dir}\n     Katalog egasi sayt foydalanuvchisi bo'lishi kerak.`
+              : bindResult.message || '',
+        );
+      }
+    }
+
+    const mode = String(process.env.SOCKET_MODE || '660');
+    ok(`Soket huquqi: ${mode}`, process.env.SOCKET_MODE ? 'SOCKET_MODE orqali' : 'odatiy qiymat');
+    console.log(`     ${DIM}nginx «502 Permission denied» bersa: SOCKET_MODE=666 qilib ko'ring.${R}`);
   } else {
     const result = await checkPortFree(listen.port, listen.host);
     if (result.free) {
