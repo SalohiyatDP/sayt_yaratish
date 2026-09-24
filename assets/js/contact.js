@@ -34,6 +34,17 @@ function clearErrors(form) {
   for (const input of qsa('[aria-invalid]', form)) input.removeAttribute('aria-invalid');
 }
 
+/** Murojaat yuborilgan sahifaning to'liq manzili. */
+function pageUrl() {
+  try {
+    const url = new URL(window.location.href);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    return `${url.origin}${url.pathname}`;
+  } catch (error) {
+    return '';
+  }
+}
+
 function validate(form) {
   clearErrors(form);
   const values = {
@@ -45,7 +56,9 @@ function validate(form) {
     message: String(form.elements.message?.value || '').trim(),
     consent: Boolean(form.elements.consent?.checked),
     locale: String(form.elements.locale?.value || ''),
-    page: String(form.elements.page?.value || ''),
+    // Murojaat qaysi sahifadan yuborilgani — xodimga kontekst beradi.
+    // Faqat shu saytning to'liq manzili yuboriladi (hash va parametrlarsiz).
+    page: pageUrl(),
   };
 
   const errors = [];

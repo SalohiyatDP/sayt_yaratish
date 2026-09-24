@@ -99,8 +99,16 @@ Har bir saqlashdan oldin server avtomatik zaxira nusxa oladi (oxirgi 20 versiya,
 1. «Hududlar va lotlar» → «+ Yangi lot».
 2. **Nom** — kamida bitta tilda to'ldiring. Tillar orasida `ЎЗ / UZ / РУ / EN` tugmalari
    bilan almashiladi; to'ldirilgan til yonida yashil nuqta paydo bo'ladi.
-3. **Manzil (slug)** nomdan avtomatik yasaladi. Nashrdan keyin uni o'zgartirish
-   tashqi havolalarni buzadi — zarur bo'lmasa tegmang.
+3. **Manzil (slug)** nomni yozgan sari o'zi to'ldirilib boradi — unga tegish
+   shart emas. Kirill harflari lotinchaga o'giriladi
+   («Чодак ҳудуди» → `chodak-hududi`).
+
+   Xohlasangiz o'zingiz ham yozishingiz mumkin; shundan keyin maydon nomga
+   qarab o'zgarmaydi.
+
+   **Saqlangan** yozuvda slug avtomatik o'zgarmaydi — bu tashqi havolalarni
+   buzardi. Haqiqatan kerak bo'lsa, maydon ostidagi «Nomdan qayta yasash»
+   tugmasi bor (ogohlantirish bilan).
 4. Tuman, hudud turi va holatni tanlang.
 5. Maydonni gektarda kiriting.
 6. **Koordinatalar** — faqat haqiqiy geodezik qiymatlar. `41.074200, 71.813500`
@@ -375,6 +383,16 @@ Sanasi yo'q yangilik ro'yxatda oxirida qoladi.
 Agar holat to'g'ri bo'lsa ham ko'rinmasa, «Sayt holati va zaxira» bo'limiga
 kirib «Saytni qurish» tugmasini bosing va jurnalda xatolik yo'qligini
 tekshiring.
+
+**Yangilikni saqladim, lekin saytda yo'q.**
+Saqlashdan keyin sayt o'zi qayta quriladi — «Saqlandi va saytga chiqarildi»
+xabari chiqishi kerak. Chiqmasa, yozuv **qoralama** holatida qolgan bo'lishi
+mumkin (tahrirlash oynasining tepasidagi holatga qarang).
+
+**Panel yangilanmagan ko'rinadi (eski tugmalar, eski matnlar).**
+Brauzer eski faylni keshdan olgan. `Ctrl+Shift+R` (macOS: `Cmd+Shift+R`) bilan
+majburiy yangilang. Takrorlansa, hosting nginx sozlamalarida `/admin/` yo'li
+keshlanmayotganini tekshirish kerak — [`docs/DEPLOY.md`](DEPLOY.md) da namuna bor.
 
 **«Seans tugadi» deb yozilmoqda.**
 8 soat o'tgan. Qaytadan kiring; saqlanmagan o'zgarishlar yo'qoladi, shuning uchun

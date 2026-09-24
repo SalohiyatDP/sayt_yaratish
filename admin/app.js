@@ -512,9 +512,7 @@ const MASTERPLANS_VIEW = {
         i18nField(record, {
           path: 'title',
           label: 'Master-reja nomi *',
-          onInput: (value) => {
-            if (!record.slug) record.slug = slugify(pick(value));
-          },
+          onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
           slugControl(record),
@@ -613,9 +611,7 @@ const NEWS_VIEW = {
         i18nField(record, {
           path: 'title',
           label: 'Sarlavha *',
-          onInput: (value) => {
-            if (!record.slug) record.slug = slugify(pick(value));
-          },
+          onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
           slugControl(record),
@@ -680,24 +676,77 @@ function coverField(record) {
   return host;
 }
 
+/* ── Manzil (slug) ────────────────────────────────────────────────────────
+ * Slug nomdan avtomatik yasaladi va nom yozilgan sari yangilanib turadi.
+ * Xodim maydonni o'zi tahrirlasa, avtomatik to'ldirish o'sha zahoti to'xtaydi.
+ * Mavjud (saqlangan) yozuvda slug avtomatik o'zgarmaydi — tashqi havolalar
+ * buzilmasligi kerak.
+ */
+
+// Ochiq tahrirlovchidagi slug maydoni. Har yangi tahrirlovchida tozalanadi.
+let slugInputRef = null;
+
 function slugControl(record) {
+  const isNew = Boolean(state.editing?.isNew);
   const input = el('input', {
     type: 'text',
     value: record.slug || '',
     dataset: { slugInput: 'true' },
     onInput: (event) => {
+      // Qo'lda tahrirlangandan keyin nomga bog'lanish uzilib qoladi
       event.target.dataset.touched = 'true';
       record.slug = slugify(event.target.value);
+      hint.textContent = HINT_MANUAL;
     },
     onBlur: (event) => {
       event.target.value = record.slug || '';
     },
   });
+  slugInputRef = input;
+
+  const HINT_AUTO = 'Nomdan avtomatik to\'ldiriladi. Xohlasangiz o\'zingiz ham yozishingiz mumkin.';
+  const HINT_MANUAL = 'Qo\'lda kiritildi — endi nomga qarab o\'zgarmaydi.';
+  const HINT_SAVED = 'Sahifa manzilida ishlatiladi. O\'zgartirish tashqi havolalarni buzadi — zarur bo\'lmasa tegmang.';
+  const hint = el('span', { class: 'a-field__hint', text: isNew ? HINT_AUTO : HINT_SAVED });
+
+  // Saqlangan yozuvda nomdan qayta yasash faqat xodim so'raganda bo'ladi
+  const regenerate = isNew
+    ? null
+    : el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--sm',
+        text: 'Nomdan qayta yasash',
+        style: 'margin-top:0.35rem;align-self:start',
+        onClick: () => {
+          const source = pick(record.title ?? record.name);
+          if (!source) {
+            toast('Avval nomni to\'ldiring.', 'error');
+            return;
+          }
+          if (!confirmAction('Manzil o\'zgarsa, bu sahifaga oldin berilgan havolalar ishlamay qoladi. Davom etasizmi?')) return;
+          record.slug = slugify(source);
+          input.value = record.slug;
+          state.dirty = true;
+        },
+      });
+
   return el('label', { class: 'a-field' }, [
-    el('span', { class: 'a-field__label', text: 'Manzil (slug) *' }),
+    el('span', { class: 'a-field__label', text: 'Manzil (slug)' }),
     input,
-    el('span', { class: 'a-field__hint', text: 'Sahifa manzilida ishlatiladi. Nashrdan keyin o\'zgartirish havolalarni buzadi.' }),
+    hint,
+    regenerate,
   ]);
+}
+
+/**
+ * Nom o'zgarganda slugni yangilaydi.
+ * Nom maydonining har bosilishida chaqiriladi.
+ */
+function syncSlug(record, nameValue) {
+  if (!state.editing?.isNew) return;
+  if (!slugInputRef || slugInputRef.dataset.touched === 'true') return;
+  record.slug = slugify(pick(nameValue));
+  slugInputRef.value = record.slug;
 }
 
 /**
@@ -850,6 +899,7 @@ async function renderCollection(name, view) {
 
 async function renderEditor(name, view, file, tax) {
   const { record, index, isNew } = state.editing;
+  slugInputRef = null;
   const fields = await view.form(record);
 
   const save = async () => {

@@ -161,13 +161,28 @@ export async function sendMessage(text, options = {}) {
   if (options.replyMarkup) payload.reply_markup = options.replyMarkup;
 
   let lastError = 'nomalum xatolik';
+  let markupDropped = false;
+
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const result = await callApi('sendMessage', payload, config);
     if (result.ok) {
-      return { delivered: true, attempts: attempt, messageId: result.result?.message_id ?? null };
+      return {
+        delivered: true,
+        attempts: attempt,
+        messageId: result.result?.message_id ?? null,
+        ...(markupDropped ? { note: 'tugmalar olib tashlanib yuborildi' } : {}),
+      };
     }
 
     lastError = result.error || 'nomalum xatolik';
+
+    // Xatolik tugmalar sababli bo'lsa, xabarni tugmasiz qaytadan yuboramiz.
+    // Murojaat matni tugmadan muhimroq — u hech qanday holatda yo'qolmasligi kerak.
+    if (!markupDropped && payload.reply_markup && /BUTTON|reply_markup|keyboard|INLINE/i.test(lastError)) {
+      delete payload.reply_markup;
+      markupDropped = true;
+      continue;
+    }
 
     // Qaytarib bo'lmaydigan xatoliklar: token xato, chat topilmadi, bot bloklangan
     const permanent = result.status === 400 || result.status === 401 || result.status === 403;
@@ -217,11 +232,17 @@ export function formatContactMessage(record) {
     `<code>${escapeHtml(record.id || '')}</code>`,
   ].join('  ');
 
+  // Telefon va pochta <code> ichida beriladi: Telegramda ustiga bosilsa
+  // nusxalanadi. Tugma qilib qo'yish mumkin emas — quyidagi buildReplyMarkup
+  // izohiga qarang.
+  const copyable = (icon, label, value) =>
+    value ? `${icon} <b>${escapeHtml(label)}:</b> <code>${escapeHtml(value)}</code>` : null;
+
   const details = [
     line('👤', 'Ism-familiya', record.name),
     line('🏢', 'Tashkilot', record.organization),
-    line('📞', 'Telefon', record.phone),
-    line('✉️', 'Pochta', record.email),
+    copyable('📞', 'Telefon', record.phone),
+    copyable('✉️', 'Pochta', record.email),
     line('📍', 'Qiziqtirgan hudud', record.area),
     line('🌐', 'Sayt tili', LOCALE_NAMES[record.locale] || record.locale),
   ].filter(Boolean);
@@ -237,17 +258,20 @@ export function formatContactMessage(record) {
   return parts.join('\n');
 }
 
-/** Xabar ostidagi tugmalar (telefon va pochta uchun tezkor havolalar). */
+/**
+ * Xabar ostidagi tugmalar.
+ *
+ * DIQQAT: Telegram inline tugmalarida faqat `http://`, `https://` va `tg://`
+ * havolalariga ruxsat beradi. `mailto:` yoki `tel:` qo'yilsa, butun xabar
+ * `BUTTON_URL_INVALID` xatoligi bilan rad etiladi. Shu sababli pochta va
+ * telefon tugma emas — xabar matnida bosib nusxalanadigan ko'rinishda beriladi.
+ */
+const isButtonUrl = (value) => typeof value === 'string' && /^https:\/\/|^http:\/\/|^tg:\/\//i.test(value) && value.length <= 256;
+
 export function buildReplyMarkup(record, adminUrl) {
-  const row = [];
-  if (record.email) row.push({ text: '✉️ Javob yozish', url: `mailto:${record.email}` });
-  if (record.page && /^https?:\/\//i.test(record.page)) {
-    row.push({ text: '🔗 Sahifa', url: record.page });
-  }
-  const rows = row.length > 0 ? [row] : [];
-  if (adminUrl && /^https?:\/\//i.test(adminUrl)) {
-    rows.push([{ text: '🗂 Boshqaruv paneli', url: adminUrl }]);
-  }
+  const rows = [];
+  if (isButtonUrl(record.page)) rows.push([{ text: '🔗 Murojaat kelgan sahifa', url: record.page }]);
+  if (isButtonUrl(adminUrl)) rows.push([{ text: '🗂 Boshqaruv paneli', url: adminUrl }]);
   return rows.length > 0 ? { inline_keyboard: rows } : undefined;
 }
 
@@ -330,6 +354,11 @@ const ERROR_GUIDE = [
     match: /message thread not found|TOPIC_CLOSED|thread not found/i,
     reason: 'Forum mavzusi (thread) topilmadi yoki yopilgan.',
     fix: 'Forum mavzusi maydonini bo\'shatib ko\'ring — xabar guruhning umumiy oqimiga tushadi.',
+  },
+  {
+    match: /BUTTON_URL_INVALID|BUTTON_TYPE_INVALID|reply markup|inline keyboard/i,
+    reason: 'Xabar ostidagi tugma havolasi Telegram talabiga mos kelmadi.',
+    fix: 'Tizim bu holatda xabarni tugmalarsiz qaytadan yuboradi, murojaat yo\'qolmaydi. Takrorlansa, «Sayt sozlamalari» dagi sayt manzili to\'g\'ri (https:// bilan) yozilganini tekshiring.',
   },
   {
     match: /group chat was upgraded to a supergroup/i,

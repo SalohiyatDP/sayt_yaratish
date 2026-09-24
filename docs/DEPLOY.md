@@ -233,6 +233,14 @@ server {
         deny all;
         proxy_pass http://127.0.0.1:8080;
         include proxy_params;
+
+        # Panel fayllarini nginx keshlamasligi kerak: yangilash chiqqanda
+        # xodim eski koddan foydalanib qolmasin. Node.js allaqachon
+        # `no-store` yuboradi — quyidagilar nginx o'z keshini qo'shmasligi uchun.
+        expires off;
+        proxy_no_cache 1;
+        proxy_cache_bypass 1;
+        add_header Cache-Control "no-store, must-revalidate" always;
     }
     location /api/admin/ {
         allow 10.0.0.0/8;

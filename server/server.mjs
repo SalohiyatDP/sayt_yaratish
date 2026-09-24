@@ -452,7 +452,16 @@ async function serveStatic(req, res, baseDir, urlPath, { cacheable = true } = {}
     'Content-Length': String(stat.size),
     ETag: etag,
     'Last-Modified': new Date(stat.mtimeMs).toUTCString(),
-    'Cache-Control': ext === '.html' || !cacheable ? 'no-cache' : immutable ? 'public, max-age=3600' : 'public, max-age=300',
+    // Boshqaruv paneli fayllari (cacheable=false) umuman keshlanmaydi: yangilash
+    // chiqqanda xodim eski koddan foydalanib qolmasligi kerak. `no-cache` yetarli
+    // emas edi — oldida turgan nginx o'z keshini qo'shib yuborishi mumkin.
+    'Cache-Control': !cacheable
+      ? 'no-store, must-revalidate'
+      : ext === '.html'
+        ? 'no-cache'
+        : immutable
+          ? 'public, max-age=3600'
+          : 'public, max-age=300',
     'X-Content-Type-Options': 'nosniff',
   };
   if (ext === '.svg') headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'";

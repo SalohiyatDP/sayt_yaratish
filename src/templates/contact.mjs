@@ -195,7 +195,6 @@ function contactForm(ctx, { endpoint }) {
         </div>
 
         <input type="hidden" name="locale" value="${ctx.locale}">
-        <input type="hidden" name="page" value="">
         <div class="form__actions">
           <button type="submit" class="btn btn--primary btn--lg"${disabled ? raw(' disabled') : raw('')} data-submit-label="${t('contact.form.submit')}" data-sending-label="${t('contact.form.sending')}">
             ${icon('mail', { size: 17 })}<span>${t('contact.form.submit')}</span>
