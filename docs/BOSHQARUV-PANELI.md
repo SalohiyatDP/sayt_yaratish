@@ -94,37 +94,109 @@ Har bir saqlashdan oldin server avtomatik zaxira nusxa oladi (oxirgi 20 versiya,
 
 ## 4. Hududlar va lotlar
 
-### Yangi lot qo'shish
+Saytda ikki daraja bor va ular panelda **alohida bo'limlarda** kiritiladi:
 
-1. «Hududlar va lotlar» → «+ Yangi lot».
-2. **Nom** — kamida bitta tilda to'ldiring. Tillar orasida `ЎЗ / UZ / РУ / EN` tugmalari
-   bilan almashiladi; to'ldirilgan til yonida yashil nuqta paydo bo'ladi.
+```
+Hudud  (umumiy maydon — masalan, «Chodak daryo bo'yi rekreatsion hududi»)
+  ├── Lot 1/1   (aniq uchastka, o'z kadastr raqami va aukcioni bilan)
+  ├── Lot 1/2
+  └── Lot 1/3
+```
+
+**Muhim qoida:** tuman, hudud turi, turizm yo'nalishlari, umumiy infratuzilma va
+kirish yo'li **faqat hududda** kiritiladi. Lotlar ularni o'zi meros qilib oladi —
+har bir lotda qaytarib yozish shart emas. Shu tarzda bir xil ma'lumot ikki joyda
+saqlanmaydi va qarama-qarshilik yuzaga kelmaydi.
+
+Shuning uchun **tartib shunday**: avval hudud, keyin uning ichiga lotlar.
+
+---
+
+### 4.1. Yangi hudud qo'shish
+
+1. **«Hududlar»** → «+ Yangi hudud».
+2. **Nom** — kamida bitta tilda to'ldiring. Tillar orasida `ЎЗ / UZ / РУ / EN`
+   tugmalari bilan almashiladi; to'ldirilgan til yonida yashil nuqta paydo bo'ladi.
 3. **Manzil (slug)** nomni yozgan sari o'zi to'ldirilib boradi — unga tegish
    shart emas. Kirill harflari lotinchaga o'giriladi
    («Чодак ҳудуди» → `chodak-hududi`).
 
    Xohlasangiz o'zingiz ham yozishingiz mumkin; shundan keyin maydon nomga
-   qarab o'zgarmaydi.
+   qarab o'zgarmaydi. **Saqlangan** yozuvda slug avtomatik o'zgarmaydi — bu
+   tashqi havolalarni buzardi. Kerak bo'lsa «Nomdan qayta yasash» tugmasi bor.
+4. **Tuman** va **hudud turi** — ro'yxatdan tanlanadi.
+5. **Umumiy maydoni** (gektar) — rasmiy hujjatdagi qiymat.
+6. **Turizm yo'nalishlari** — bir nechtasini belgilash mumkin. Ro'yxatda kerakli
+   yo'nalish bo'lmasa, yonidagi **«Ma'lumotnomalarda tahrirlash»** tugmasini
+   bosasiz — panel sizni kerakli ro'yxatga olib boradi (4.4-bandga qarang).
+7. **Koordinatalar va chegara** — quyidagi 4.3-bandga qarang.
+8. **Umumiy infratuzilma** va **kirish yo'li** — hudud bo'yicha. Lotlar shu
+   ma'lumotni meros qilib oladi.
+9. **Master-reja** — hudud uchun master-reja tayyor bo'lsa, shu yerda bog'lanadi.
+10. «Saqlash» — sayt o'zi qayta quriladi.
 
-   **Saqlangan** yozuvda slug avtomatik o'zgarmaydi — bu tashqi havolalarni
-   buzardi. Haqiqatan kerak bo'lsa, maydon ostidagi «Nomdan qayta yasash»
-   tugmasi bor (ogohlantirish bilan).
-4. Tuman, hudud turi va holatni tanlang.
-5. Maydonni gektarda kiriting.
-6. **Koordinatalar** — faqat haqiqiy geodezik qiymatlar. `41.074200, 71.813500`
-   ko'rinishidagi juftlikni pastdagi maydonga nusxalab qo'yish ham mumkin.
-   Koordinata kiritilmasa, hudud xaritada ko'rsatilmaydi (bu normal holat).
-7. **Chegara konturi** — kadastr hujjatidan olingan nuqtalar:
-   `[[41.0762, 71.8105], [41.0765, 71.8168], [41.0722, 71.8172]]`.
-   Nuqtalarni o'zgartirish yoki soddalashtirish man etiladi.
-8. **Tasvirlar** — fayllarni maydonga tortib tashlang yoki bosib tanlang.
+---
+
+### 4.2. Yangi lot qo'shish
+
+1. **«Lotlar»** → «+ Yangi lot».
+2. Eng tepada **«Hudud»** tanlovi turadi — bu majburiy. Hudud tanlanganda
+   ustidagi yashil panelda uning tumani, turi va yo'nalishlari ko'rinadi, ya'ni
+   lot nimani meros olganini darhol ko'rasiz.
+
+   > Hudud tanlanmasa, lot saytda tumansiz va yo'nalishlarsiz chiqadi. Qurishda
+   > bu haqda ogohlantirish beriladi.
+
+3. **Nom**, **lot raqami** (hujjatdagi raqam) va **holat**.
+4. **Maydon** (gektar yoki sotix) va **kadastr raqami**.
+5. **Koordinatalar va chegara** — lotning o'z chegarasi (4.3-band).
+6. **Tasvirlar** — fayllarni maydonga tortib tashlang yoki bosib tanlang.
    Har bir tasvir uchun turini to'g'ri belgilang:
    - **Haqiqiy fotosurat** — hududning suratga olish vaqtidagi holati;
    - **Loyiha konsepsiyasi** — vizualizatsiya (saytda shu yozuv va ogohlantirish bilan chiqadi);
    - **Chizma / sxema**.
-9. Nihoyat «Saytda nashr etish» katagini belgilang va «Saqlash» ni bosing.
+7. **Aukcion** bo'limi — quyida alohida tushuntirilgan.
+8. «Saqlash».
 
-### Aukcion bo'limi
+Hudud sahifasida uning barcha lotlari kartochkalar ko'rinishida chiqadi; lot
+sahifasida esa qaysi hududga tegishli ekani va hududga havola bo'ladi.
+
+---
+
+### 4.3. Koordinatalarni KMZ fayl orqali yuklash
+
+Geodeziya xizmati chegarani odatda **KMZ** faylida beradi. Koordinatalarni qo'lda
+ko'chirib yozish shart emas:
+
+1. Hudud yoki lot tahrirlash oynasida **«Koordinata faylini yuklang»** maydoniga
+   faylni tortib tashlang (yoki bosib tanlang).
+2. Tizim faylni o'qiydi va **markaziy nuqta** hamda **chegara konturini** o'zi
+   to'ldiradi. Nechta nuqta olingani darhol yoziladi.
+3. Kerak bo'lsa, quyidagi maydonlarda qiymatlarni ko'rib chiqishingiz mumkin.
+
+| Format | Izoh |
+|---|---|
+| **KMZ** | Google Earth arxivi (ichida KML). Eng ko'p ishlatiladigan format. |
+| **KML** | XML ko'rinishidagi variant. |
+| **GeoJSON** | Ba'zi GIS tizimlari shu formatda beradi. |
+
+Nimalar olinadi:
+
+- `Polygon` (ko'pburchak) → chegara konturi, markaziy nuqta esa hisoblab chiqiladi;
+- `Point` (nuqta) → faqat markaziy nuqta;
+- `LineString` (chiziq) → chegara sifatida ishlatiladi (bu haqda izoh chiqadi).
+
+Faylda bir nechta obyekt bo'lsa, **birinchisi** olinadi va bu haqda xabar
+beriladi. Fayl serverda saqlanmaydi — faqat koordinatalar olinadi.
+
+> Koordinata kiritilmasa, hudud yoki lot xaritada ko'rsatilmaydi. Bu xato emas,
+> lekin qurishda eslatma chiqadi.
+
+Chegara nuqtalarini qo'lda o'zgartirish yoki soddalashtirish man etiladi.
+
+---
+
+### 4.4. Aukcion bo'limi
 
 Bu bo'lim ataylab qattiq nazorat ostida:
 
@@ -136,15 +208,13 @@ Bu bo'lim ataylab qattiq nazorat ostida:
 - **Huquq turi** rasmiy hujjatdagi ibora bilan yoziladi. Umumiy «yer sotiladi» iborasi
   ishlatilmaydi.
 
-### Nashr etmasdan saqlash
+---
 
-«Saytda nashr etish» katagi belgilanmagan yozuv faqat panelda ko'rinadi. Bu lotni
-bosqichma-bosqich to'ldirish uchun qulay.
+### 4.5. Nusxalash
 
-### Nusxalash
-
-O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar ko'chiriladi,
-`id` va `slug` bo'sh qoladi, nashr holati o'chiriladi.
+O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar
+ko'chiriladi, `id` va `slug` bo'sh qoladi, nashr holati qoralamaga o'tadi.
+Bir hududda bir nechta o'xshash lot bo'lganda qulay.
 
 ---
 
@@ -195,6 +265,25 @@ O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar 
 
 Bo'sh qoldirilgan ro'yxatlar (rahbariyat, tuzilma, hujjatlar) saytda umuman
 ko'rsatilmaydi — o'rniga «Ma'lumot hozircha joylashtirilmagan» chiqadi.
+
+### Sayt holati va zaxira nusxalar
+
+Bu bo'limning eng pastida ikkita texnik blok bor. Kundalik ishda ularga kirish
+shart emas.
+
+**Sayt holati** — oxirgi qurilish sanasi, sahifalar/hududlar/lotlar soni va
+**to'ldirilishi kerak bo'lgan joylar** ro'yxati (masalan, koordinatasi yo'q
+hudud yoki logotip). Shu ro'yxatga vaqti-vaqti bilan qarab turish foydali.
+
+Yonida **«Saytni qayta qurish»** tugmasi bor — fayl serverda qo'lda
+o'zgartirilgan bo'lsa yoki avtomatik qurish xato bergan bo'lsa ishlatiladi.
+**«DEMO rejimida qurish»** faqat o'qitish uchun; ishlab turgan saytda
+ishlatilmaydi (sayt demo rejimida bo'lsa, ogohlantirish chiqadi).
+
+**Zaxira nusxalar** — kontentni har saqlaganingizda avvalgi holat avtomatik
+zaxiraga olinadi (har bo'lim uchun oxirgi 20 versiya). Xato o'zgartirish
+kiritilgan bo'lsa, **«Tiklash»** tugmasi bilan qaytarasiz. Tiklashda joriy holat
+ham zaxiraga olinadi — ya'ni bu amalni ham ortga qaytarish mumkin.
 
 ---
 
@@ -275,11 +364,26 @@ Murojaatlar umuman ko'rinmasa: «Sayt sozlamalari» da qabul qilish manzili
 
 ## 11. Fayllar
 
-- Ruxsat etilgan turlar: JPG, PNG, WEBP, AVIF, SVG, PDF, ZIP.
-- Eng katta hajm: 25 MB.
-- Fotosuratlarni yuklashdan oldin siqishni tavsiya etamiz (eng kengi 2000 px,
-  sifat ≈ 80%) — sayt tezroq yuklanadi.
-- Fayl manzilini nusxalab, boshqa joylarda ishlatish mumkin.
+- Yuklangan barcha fayllar ro'yxati: manzili, holati, hajmi va sanasi.
+- **«Holati»** ustuni faylning qayerda ishlatilayotganini ko'rsatadi (masalan,
+  «Hududlar», «Yangiliklar»). Hech qayerda ishlatilmasa — «ishlatilmagan».
+- **«Manzilni nusxalash»** — matn ichida havola qilish uchun.
+- **«O'chirish»** — faylni butunlay o'chiradi.
+
+  Fayl biror joyda ishlatilayotgan bo'lsa, tizim ogohlantiradi va qaysi
+  bo'limlarda ishlatilganini aytadi. Rozilik bergandan keyingina o'chiriladi —
+  o'sha joylarda rasm ko'rinmay qoladi.
+
+  Sarlavha yonida nechta fayl ishlatilmagani ko'rsatiladi — joy tozalash uchun
+  qulay.
+
+- Ruxsat etilgan turlar: JPG, PNG, WEBP, AVIF, SVG, PDF, ZIP, KMZ, KML, GeoJSON.
+  Eng katta hajm: 25 MB.
+- Fayl nomiga noyob qo'shimcha qo'shiladi — bir xil nomli fayllar bir-birini
+  almashtirib yubormaydi.
+
+> O'chirilgan faylni qaytarib bo'lmaydi. Zaxira nusxalar faqat **kontent**
+> uchun olinadi, yuklangan fayllar uchun emas.
 
 ---
 
@@ -294,9 +398,27 @@ Murojaatlar Telegram guruhiga kelishi uchun shu bo'limda sozlanadi.
   yetkazilmagan murojaatlar soni. Navbatda turganlar bo'lsa, ularni bir bosishda
   qayta yuborish tugmasi chiqadi.
 - **Joriy holat** jadvalida tarmoq, bot, chat va murojaat shaklining holati.
-- **Bot tokeni** va **chat_id** ni faqat `admin` roli kiritadi.
-- **«chat_id ni aniqlash»** tugmasi bot ko'rgan chatlar ro'yxatini chiqaradi —
-  keraklisini bosasiz, qiymat o'zi qo'yiladi.
+- **Bot tokeni** va **xabar oluvchilar** ro'yxatini faqat `admin` roli kiritadi.
+- **Xabar oluvchilar** — har bir murojaat ro'yxatdagi **barcha** chatlarga
+  yuboriladi. Bir nechta xodim va guruh qo'shish mumkin (20 tagacha):
+
+  | Maydon | Nima yoziladi |
+  |---|---|
+  | `chat_id` | Shaxsiy chat uchun son (`123456789`), guruh uchun manfiy son (`-1001234567890`), kanal uchun `@kanal_nomi` |
+  | Kim (izoh) | Erkin matn — «direktor», «mas'ul xodim», «umumiy guruh». Faqat panelda ko'rinadi |
+  | Forum mavzusi | Forum guruhidagi mavzu raqami (ixtiyoriy) |
+  | Vaqtincha yubormaslik | Xodim ta'tilda bo'lsa — o'chirmasdan to'xtatib qo'yish |
+
+  Har bir oluvchi yonida holati ko'rinadi: `✓` ishlaydi, `✕` muammo bor (sababi
+  yoziladi), `⏸` vaqtincha o'chirilgan.
+
+  **Biriga yetmasa, qolganlariga xabar boradi.** Murojaatlar ro'yxatida kim
+  olgani va kim olmagani alohida ko'rsatiladi.
+- **«chat_id larni aniqlash»** tugmasi bot ko'rgan chatlar ro'yxatini chiqaradi —
+  keraklisini bossangiz, ro'yxatga qo'shiladi.
+
+  Xodim xabar olishi uchun avval botni ochib **«Start»** tugmasini bosishi kerak —
+  aks holda Telegram botga yozishga ruxsat bermaydi.
 - **«Sinov xabarini yuborish»** bilan ulanishni tekshirasiz.
 - **«Telegramga yuborishni vaqtincha to'xtatish»** — murojaatlar qabul
   qilinishda va qutida saqlanishda davom etadi, lekin botga yuborilmaydi.
@@ -344,33 +466,7 @@ node server/tools/hash-password.mjs <nom> '<yangi-parol>' admin
 
 ---
 
-## 14. Sayt holati va zaxira
-
-Bu bo'lim **odatda kerak bo'lmaydi** — sayt har saqlashdan keyin o'zi qayta
-quriladi. Bo'limda quyidagilar bor:
-
-- **Oxirgi qurilish** — sana, rejim, sahifalar va yozuvlar soni.
-- **Ogohlantirishlar** — yetishmayotgan ma'lumotlar ro'yxati (masalan, logotip).
-- **Qo'lda qurish** — fayl serverda qo'lda o'zgartirilgan bo'lsa yoki avtomatik
-  qurish xato bergan bo'lsa ishlatiladi.
-- **DEMO rejimida qurish** — namunaviy ma'lumotlar qo'shiladi (faqat o'qitish va
-  sinov uchun). **Ishlab turgan saytda ishlatilmaydi.** Sayt demo rejimida
-  qurilgan bo'lsa, bo'limda ogohlantirish ko'rinadi.
-
-### Zaxira nusxalar
-
-Bo'limning pastida **«Zaxira nusxalar»** jadvali bor.
-
-Kontentni har saqlaganingizda avvalgi holat avtomatik zaxiraga olinadi (har
-bo'lim uchun oxirgi 20 versiya). Xato o'zgartirish kiritilgan bo'lsa,
-**«Tiklash»** tugmasi bilan qaytarish mumkin.
-
-Tiklashda joriy holat ham zaxiraga olinadi — ya'ni bu amalni ham ortga
-qaytarish mumkin.
-
----
-
-## 15. Tez-tez uchraydigan savollar
+## 14. Tez-tez uchraydigan savollar
 
 **O'zgarishlar saytda ko'rinmayapti.**
 Yozuv **qoralama** holatida qolmaganini tekshiring — tahrirlash oynasining
@@ -380,8 +476,8 @@ tepasidagi holat «Saytda ko'rinadi» bo'lishi kerak. Ro'yxatda qoralamalar
 Yangilik uchun yana bitta shart bor: **sana kiritilgan bo'lishi kerak**.
 Sanasi yo'q yangilik ro'yxatda oxirida qoladi.
 
-Agar holat to'g'ri bo'lsa ham ko'rinmasa, «Sayt holati va zaxira» bo'limiga
-kirib «Saytni qurish» tugmasini bosing va jurnalda xatolik yo'qligini
+Agar holat to'g'ri bo'lsa ham ko'rinmasa, «Sayt sozlamalari» bo'limining
+pastidagi «Saytni qayta qurish» tugmasini bosing va jurnalda xatolik yo'qligini
 tekshiring.
 
 **Yangilikni saqladim, lekin saytda yo'q.**
@@ -406,7 +502,7 @@ Fayl turi yoki hajmini tekshiring (25 MB gacha). SVG dan tashqari boshqa vektor
 formatlari qabul qilinmaydi.
 
 **Xato saqlab qo'ydim.**
-«Sayt holati va zaxira» bo'limidagi **«Zaxira nusxalar»** jadvalidan avvalgi holatni
+«Sayt sozlamalari» bo'limining pastidagi **«Zaxira nusxalar»** jadvalidan avvalgi holatni
 tiklang. Har saqlashdan oldin avtomatik zaxira olinadi (oxirgi 20 versiya).
 
 **Ma'lumotnomada id maydoni faol emas.**

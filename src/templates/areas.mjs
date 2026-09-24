@@ -1,12 +1,13 @@
 /** "Hududlar va lotlar" katalogi — saytning asosiy amaliy bo'limi. */
-import { html, raw, when, attr, cx, formatNumber, isoDate } from '../lib/util.mjs';
+import { html, raw, when, formatNumber, isoDate } from '../lib/util.mjs';
 import { icon, areaTypeIcon } from '../lib/icons.mjs';
-import { lotCard, emptyState, statusBadge, demoBadge } from '../lib/ui.mjs';
+import { lotCard, emptyState, statusBadge, demoBadge, mediaFigure, mediaPlaceholder } from '../lib/ui.mjs';
 
 export function areasPage(ctx) {
   const { t, content, pages } = ctx;
   const page = pages.areas || {};
   const lots = content.lots;
+  const areas = content.areas;
   const tax = content.taxonomies;
 
   const withCoords = lots.filter((lot) => lot.coordinates);
@@ -20,6 +21,8 @@ export function areasPage(ctx) {
       </div>
     </section>
 
+    ${areasBlock(ctx, areas)}
+
     ${lots.length === 0
       ? html`<section class="section"><div class="container">
           ${emptyState(ctx, {
@@ -31,7 +34,7 @@ export function areasPage(ctx) {
         </div></section>`
       : html`
         <section class="catalog" data-catalog aria-labelledby="catalog-heading">
-          <h2 class="sr-only" id="catalog-heading">${ctx.pick(page.title)}</h2>
+          <h2 class="catalog__heading" id="catalog-heading">${t('areas.lotsTitle')}</h2>
           <div class="container">
             <form class="filters" data-filters role="search" aria-label="${t('catalog.filters')}">
               <div class="filters__search">
@@ -47,6 +50,15 @@ export function areasPage(ctx) {
                   <span class="filters__badge" data-filters-count hidden></span>
                 </summary>
                 <div class="filters__grid">
+                  ${when(
+                    areas.length > 1,
+                    selectField(ctx, {
+                      id: 'f-area',
+                      name: 'area',
+                      label: t('catalog.filters.parentArea'),
+                      options: areas.map((area) => ({ value: area.id, label: ctx.pick(area.name) || area.id })),
+                    }),
+                  )}
                   ${selectField(ctx, {
                     id: 'f-district',
                     name: 'district',
@@ -142,7 +154,7 @@ export function areasPage(ctx) {
                   <ul class="coord-list">
                     ${withCoords.map(
                       (lot) => html`<li>
-                        <a href="${ctx.url('areas', lot.slug)}">${ctx.pick(lot.name)}</a>
+                        <a href="${ctx.url('lots', lot.slug)}">${ctx.pick(lot.name)}</a>
                         <code>${lot.coordinates.lat.toFixed(5)}, ${lot.coordinates.lng.toFixed(5)}</code>
                       </li>`,
                     )}
@@ -174,7 +186,7 @@ export function areasPage(ctx) {
                         const areaType = content.lookup.areaTypes.get(String(lot.areaType));
                         return html`<tr ${lotDataAttrs(ctx, lot)}>
                           <th scope="row">
-                            <a href="${ctx.url('areas', lot.slug)}">${ctx.pick(lot.name)}</a>
+                            <a href="${ctx.url('lots', lot.slug)}">${ctx.pick(lot.name)}</a>
                             ${demoBadge(ctx, lot.demo)}
                             ${when(lot.lotNumber, html`<span class="muted small"> № ${lot.lotNumber}</span>`)}
                           </th>
@@ -204,11 +216,76 @@ export function areasPage(ctx) {
   };
 }
 
+/**
+ * Hududlar ro'yxati.
+ * Hudud — umumiy maydon, lotlar uning ichida. Investor avval hududni
+ * ko'radi, keyin ichidagi aniq lotni tanlaydi.
+ */
+function areasBlock(ctx, areas) {
+  const { t } = ctx;
+  if (areas.length === 0) return raw('');
+
+  return html`
+    <section class="section section--tight" aria-labelledby="areas-heading">
+      <div class="container">
+        <h2 class="block-title" id="areas-heading">${t('areas.areasTitle')}</h2>
+        <p class="block-note">${t('areas.areasLead')}</p>
+        <div class="card-grid card-grid--tight">
+          ${areas.map((area) => areaCard(ctx, area))}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function areaCard(ctx, area) {
+  const { t } = ctx;
+  const district = ctx.content.lookup.districts.get(String(area.district));
+  const areaTypeItem = ctx.content.lookup.areaTypes.get(String(area.areaType));
+  const cover = area.photos[0] || area.renders[0] || area.schemes[0] || null;
+  const href = ctx.url('areas', area.slug);
+  const name = ctx.pick(area.name) || area.id;
+
+  return html`
+    <article class="lot-card lot-card--area">
+      <a class="lot-card__media-link" href="${href}" tabindex="-1" aria-hidden="true">
+        ${cover
+          ? mediaFigure(ctx, cover, { className: 'media--cover' })
+          : mediaPlaceholder(ctx, { iconName: areaTypeIcon(area.areaType) })}
+      </a>
+      <div class="lot-card__body">
+        <div class="lot-card__top">
+          <span class="chip chip--soft">${t('area.badge')}</span>
+          ${demoBadge(ctx, area.demo)}
+        </div>
+        <h3 class="lot-card__title"><a href="${href}">${name}</a></h3>
+        <ul class="lot-card__facts">
+          ${when(district, html`<li>${icon('pin', { size: 15 })}${ctx.pick(district?.name)}</li>`)}
+          ${when(
+            areaTypeItem,
+            html`<li>${icon(areaTypeIcon(area.areaType), { size: 15 })}${ctx.pick(areaTypeItem?.name)}</li>`,
+          )}
+          ${when(
+            area.totalAreaHa != null,
+            html`<li>${icon('layers', { size: 15 })}${formatNumber(area.totalAreaHa, ctx.locale)} ${t('unit.ha')}</li>`,
+          )}
+          <li>${icon('tag', { size: 15 })}${t('area.lotCount', { n: area.lotCount })}</li>
+        </ul>
+        ${when(ctx.pick(area.shortDescription), html`<p class="lot-card__text">${ctx.pick(area.shortDescription)}</p>`)}
+        <div class="lot-card__actions">
+          <a class="btn btn--primary btn--sm" href="${href}">${t('common.details')}${icon('arrowRight', { size: 16 })}</a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 function lotDataAttrs(ctx, lot) {
   return raw(
     [
       `data-lot="${lot.id}"`,
       `data-slug="${lot.slug}"`,
+      `data-area="${lot.areaId || ''}"`,
       `data-district="${lot.district || ''}"`,
       `data-area-type="${lot.areaType || ''}"`,
       `data-status="${lot.status || ''}"`,

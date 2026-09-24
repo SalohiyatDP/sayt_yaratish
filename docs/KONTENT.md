@@ -15,34 +15,73 @@ Hech biri bo'lmasa — «Ma'lumot hozircha joylashtirilmagan».
 
 ---
 
-## 1. `lots.json` — hududlar va lotlar
+## 1. `areas.json` — hududlar
+
+Hudud — umumiy turistik-rekreatsion maydon. Lotlar hudud **ichida** joylashadi
+va `lots.json` faylida alohida kiritiladi.
 
 | Maydon | Turi | Izoh |
 |---|---|---|
-| `id` | matn | Yozuvning ichki identifikatori. Panel avtomatik beradi. O'zgartirmang. |
+| `id` | matn | Ichki identifikator. Panel avtomatik beradi. O'zgartirmang — lotlar unga bog'lanadi. |
 | `slug` | matn | Sahifa manzili: `/uz-cyrl/areas/<slug>/`. Nashrdan keyin o'zgartirish havolalarni buzadi. |
-| `lotNumber` | matn | Rasmiy hujjatdagi lot raqami. |
-| `name` | ko'p tilli | Hudud yoki lot nomi. **Majburiy.** |
-| `district` | id | `taxonomies.json → districts`. |
-| `areaType` | id | `mountain` (tog'li hudud), `river` (daryo bo'yi), `reservoir` (suv ombori atrofi). |
+| `name` | ko'p tilli | Hudud nomi. **Majburiy.** |
+| `district` | id | `taxonomies.json → districts`. Lotlar meros qilib oladi. |
+| `areaType` | id | `mountain` (tog'li hudud), `river` (daryo bo'yi), `reservoir` (suv ombori atrofi). Lotlar meros qilib oladi. |
 | `location` | ko'p tilli | Joylashuvning matnli tavsifi. |
-| `coordinates` | `{lat, lng}` | **Faqat haqiqiy geodezik koordinatalar.** Bo'sh bo'lsa hudud xaritada ko'rsatilmaydi. |
-| `boundary` | `[[lat,lng], …]` | Kadastr chegarasi konturi, kamida 3 nuqta. Berilgan konturni o'zgartirmang, soddalashtirmang. |
-| `cadastreNumber` | matn | Kadastr raqami. |
-| `areaHa` / `areaSotix` | son | Maydon gektarda / sotixda. |
-| `tourismDirections` | id massivi | `taxonomies.json → tourismDirections`. |
-| `status` | id | `study`, `masterplan`, `auction-prep`, `auction`, `auction-closed`. |
+| `coordinates` | `{lat, lng}` | Hududning markaziy nuqtasi. Odatda KMZ fayldan olinadi. Bo'sh bo'lsa xaritada ko'rsatilmaydi. |
+| `boundary` | `[[lat,lng], …]` | Hududning umumiy chegarasi, kamida 3 nuqta. KMZ fayldan olinadi. |
+| `boundarySource` | matn | Chegara qaysi hujjatdan olingani. |
+| `totalAreaHa` | son | Umumiy maydoni (gektar). Faqat rasmiy hujjatdagi qiymat. |
+| `tourismDirections` | id massivi | `taxonomies.json → tourismDirections`. Lotlar meros qilib oladi. |
 | `shortDescription` | ko'p tilli | Kartochkada ko'rinadi (≈160 belgi). |
 | `description` | ko'p tilli | To'liq tavsif. Cheklangan HTML ruxsat etiladi. |
 | `media` | massiv | Tasvirlar — pastda batafsil. |
-| `masterplanId` | id | Bog'liq master-reja. |
-| `plannedObjects`, `services`, `infrastructure`, `requirements`, `restrictions` | ko'p tilli massiv | Ro'yxatlar. |
-| `access` | ko'p tilli | Kirish yo'li. |
-| `auction` | obyekt | Aukcion — pastda batafsil. |
+| `access` | ko'p tilli | Kirish yo'li. Lotlar meros qilib oladi. |
+| `infrastructure` | ko'p tilli massiv | Umumiy muhandislik infratuzilmasi. Lotlar meros qilib oladi. |
+| `masterplanId` | id | Hududning master-rejasi. |
 | `documents` | massiv | Yuklab olinadigan fayllar. |
 | `updatedAt` | `YYYY-MM-DD` | Ma'lumot yangilangan sana. |
 | `published` | mantiqiy | `false` — qoralama, faqat panelda ko'rinadi. Panelda yaratilgan yozuvda sukut bo'yicha `true`. |
 | `demo` | mantiqiy | `true` — namunaviy yozuv, «DEMO» nishoni bilan chiqadi. |
+
+## 2. `lots.json` — lotlar
+
+Lot — hudud ichidagi aniq yer uchastkasi, o'z kadastr raqami va aukcioni bilan.
+
+> **Meros qilib olinadigan maydonlar.** `district`, `areaType`,
+> `tourismDirections`, `location`, `infrastructure` va `access` lotda
+> kiritilmaydi — ular hududdan olinadi. Lotda `location`, `infrastructure`
+> yoki `access` alohida to'ldirilsa, hududdagi qiymat o'rniga shu ishlatiladi.
+
+| Maydon | Turi | Izoh |
+|---|---|---|
+| `id` | matn | Ichki identifikator. Panel avtomatik beradi. |
+| `slug` | matn | Sahifa manzili: `/uz-cyrl/lots/<slug>/`. |
+| `areaId` | id | **MAJBURIY.** `areas.json` dagi hudud `id` si. Bo'sh bo'lsa, lot saytda hududsiz chiqadi va qurishda ogohlantirish beriladi. |
+| `lotNumber` | matn | Rasmiy hujjatdagi lot raqami. |
+| `name` | ko'p tilli | Lot nomi. **Majburiy.** |
+| `coordinates` | `{lat, lng}` | Lotning markaziy nuqtasi. KMZ fayldan olinadi. |
+| `boundary` | `[[lat,lng], …]` | Lotning kadastr chegarasi, kamida 3 nuqta. Konturni o'zgartirmang, soddalashtirmang. |
+| `boundarySource` | matn | Chegara qaysi hujjatdan olingani. |
+| `cadastreNumber` | matn | Kadastr raqami. |
+| `areaHa` / `areaSotix` | son | Maydon gektarda / sotixda. |
+| `status` | id | `study`, `masterplan`, `auction-prep`, `auction`, `auction-closed`. |
+| `shortDescription` | ko'p tilli | Kartochkada ko'rinadi (≈160 belgi). |
+| `description` | ko'p tilli | To'liq tavsif. Cheklangan HTML ruxsat etiladi. |
+| `media` | massiv | Tasvirlar — pastda batafsil. |
+| `plannedObjects`, `services`, `requirements`, `restrictions` | ko'p tilli massiv | Ro'yxatlar. |
+| `auction` | obyekt | Aukcion — pastda batafsil. |
+| `documents` | massiv | Yuklab olinadigan fayllar. |
+| `updatedAt` | `YYYY-MM-DD` | Ma'lumot yangilangan sana. |
+| `published` | mantiqiy | `false` — qoralama, faqat panelda ko'rinadi. |
+| `demo` | mantiqiy | `true` — namunaviy yozuv, «DEMO» nishoni bilan chiqadi. |
+
+### Koordinatalarni fayl orqali yuklash
+
+`coordinates` va `boundary` maydonlarini qo'lda yozish shart emas: boshqaruv
+panelida **KMZ**, **KML** yoki **GeoJSON** faylni yuklasangiz, ular avtomatik
+to'ldiriladi. Batafsil: [`docs/BOSHQARUV-PANELI.md`](BOSHQARUV-PANELI.md) →
+«Koordinatalarni KMZ fayl orqali yuklash».
 
 ### `media` elementi
 
@@ -95,7 +134,7 @@ Hech biri bo'lmasa — «Ma'lumot hozircha joylashtirilmagan».
 
 ---
 
-## 2. `masterplans.json`
+## 3. `masterplans.json`
 
 | Maydon | Izoh |
 |---|---|
@@ -110,7 +149,7 @@ Hech biri bo'lmasa — «Ma'lumot hozircha joylashtirilmagan».
 
 ---
 
-## 3. `news.json`
+## 4. `news.json`
 
 | Maydon | Izoh |
 |---|---|
@@ -127,7 +166,7 @@ Hech biri bo'lmasa — «Ma'lumot hozircha joylashtirilmagan».
 
 ---
 
-## 4. `site.json`
+## 5. `site.json`
 
 Asosiy bo'limlar:
 
@@ -149,7 +188,7 @@ Asosiy bo'limlar:
 
 ---
 
-## 5. `taxonomies.json`
+## 6. `taxonomies.json`
 
 Ma'lumotnoma ro'yxatlar: tumanlar, hudud turlari, lot holatlari, ish bosqichlari,
 turizm yo'nalishlari, huquq turlari, master-reja holatlari.
@@ -159,7 +198,7 @@ Yangi qiymat qo'shsangiz `id` ni lotin harflarida yozing va nomini to'rt tilda t
 
 ---
 
-## 6. `pages.json`
+## 7. `pages.json`
 
 Bosh sahifa, «Direksiya haqida», «Investorlarga» (5 qadam va ko'p so'raladigan savollar),
 «Hududlar va lotlar», «Master-rejalar», «Yangiliklar», «Bog'lanish» va «Qulaylik»
@@ -171,7 +210,7 @@ serverda avtomatik zaxira nusxa olinadi.
 
 ---
 
-## 7. Tekshirish
+## 8. Tekshirish
 
 ```bash
 npm run build     # kontentdagi muammolar ro'yxati chiqadi

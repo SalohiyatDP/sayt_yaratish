@@ -201,7 +201,19 @@ export const api = {
   telegramTest: () => request('/api/admin/telegram/test', { method: 'POST' }),
   telegramRetry: () => request('/api/admin/telegram/retry', { method: 'POST' }),
 
+  // Koordinata faylini o'qish — fayl serverda saqlanmaydi
+  parseGeoFile: (file) =>
+    request(`/api/admin/geo?name=${encodeURIComponent(file.name)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file,
+    }),
+
   uploads: () => request('/api/admin/uploads'),
+  deleteUpload: (src, force = false) =>
+    request(`/api/admin/uploads/${src.replace(/^\/assets\/uploads\//, '')}${force ? '?force=1' : ''}`, {
+      method: 'DELETE',
+    }),
   upload: (file, folder) =>
     request(`/api/admin/upload?name=${encodeURIComponent(file.name)}&folder=${encodeURIComponent(folder || 'general')}`, {
       method: 'POST',

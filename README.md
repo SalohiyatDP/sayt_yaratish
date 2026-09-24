@@ -115,7 +115,8 @@ ko'rsatiladi. **Ishlab turgan saytni demo rejimida qurish man etiladi.**
 ├── content/               ← KONTENT (ma'lumotlarning yagona manbasi)
 │   ├── site.json          muassasa nomi, rekvizitlar, E-auksion, statistika, sozlamalar
 │   ├── taxonomies.json    tumanlar, hudud turlari, lot holatlari, ish bosqichlari
-│   ├── lots.json          hududlar va lotlar
+│   ├── areas.json         hududlar (umumiy maydonlar)
+│   ├── lots.json          lotlar — hudud ichidagi uchastkalar (areaId orqali bog'lanadi)
 │   ├── masterplans.json   master-rejalar
 │   ├── news.json          yangiliklar
 │   ├── pages.json         sahifa matnlari (bosh sahifa, "Direksiya haqida", FAQ …)

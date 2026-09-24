@@ -1,30 +1,38 @@
 {
-  "_note": "Hududlar va lotlar katalogi. Dastlab ro'yxat BO'SH — saytda 'Ma'lumot hozircha joylashtirilmagan' holati ko'rsatiladi. Har bir yozuvni faqat rasmiy hujjatlar asosida to'ldiring. _template maydonini nusxalab yangi lot yarating; _template o'zi saytda ko'rsatilmaydi.",
-
+  "_note": "LOTLAR. Lot — hudud ichidagi aniq yer uchastkasi. Hudud haqidagi umumiy ma'lumot (tuman, hudud turi, turizm yo'nalishlari, infratuzilma) content/areas.json faylida kiritiladi va lot uni meros qilib oladi — bu yerda takrorlanmaydi. Soxta narx, sana yoki tasdiqlanmagan aukcion ma'lumotini kiritish QAT'IYAN man etiladi.",
   "_template": {
     "id": "lot-0001",
-    "slug": "hudud-nomi-lot-1",
+    "slug": "lot-nomi",
+    "areaId": "area-0001",
     "lotNumber": null,
-    "name": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
-    "district": "chortoq",
-    "areaType": "mountain",
-    "location": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "name": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
     "coordinates": null,
     "boundary": null,
     "boundarySource": "",
     "cadastreNumber": "",
     "areaHa": null,
     "areaSotix": null,
-    "tourismDirections": [],
     "status": "study",
-    "shortDescription": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
-    "description": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "shortDescription": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
+    "description": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
     "media": [],
-    "masterplanId": null,
     "plannedObjects": [],
     "services": [],
-    "access": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
-    "infrastructure": [],
     "requirements": [],
     "restrictions": [],
     "auction": {
@@ -35,7 +43,12 @@
       "startPrice": null,
       "currency": "UZS",
       "rightType": null,
-      "rightTypeText": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "rightTypeText": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
       "lotUrl": null,
       "verified": false
     },
@@ -44,10 +57,9 @@
     "published": false,
     "demo": false
   },
-
   "_fieldGuide": {
-    "coordinates": "{ \"lat\": 41.0000, \"lng\": 71.0000 } — FAQAT haqiqiy geodezik koordinatalar. Taxminiy nuqta qo'yish man etiladi.",
-    "boundary": "[[lat,lng],[lat,lng], ...] — kadastr chegarasi konturi. Berilgan konturni o'zgartirmang, soddalashtirmang.",
+    "coordinates": "{ \"lat\": 41.07, \"lng\": 71.81 } — lotning markaziy nuqtasi. KMZ fayldan olinadi.",
+    "boundary": "[[lat, lng], ...] — lotning aniq chegarasi. KMZ fayl orqali to'ldiriladi.",
     "areaHa": "Maydon gektarda (son). areaSotix — zarur bo'lsa sotixda.",
     "status": "taxonomies.json → lotStatuses dagi id: study | masterplan | auction-prep | auction | auction-closed",
     "media": "[{ \"kind\": \"photo|render|scheme\", \"src\": \"/assets/uploads/...\", \"caption\": {..}, \"alt\": {..}, \"date\": \"\", \"author\": \"\" }] — kind=render bo'lsa sayt uni avtomatik 'Loyiha konsepsiyasi' deb belgilaydi.",
@@ -55,8 +67,9 @@
     "auction.lotUrl": "E-auksion'dagi AYNAN shu lotning rasmiy sahifasi. Havola bo'lmasa null qoldiring — sayt tugmani faolsiz qilib, sababini ochiq yozadi. Platformaning umumiy manzilini bu maydonga yozish man etiladi.",
     "auction.verified": "true — faqat aukcion ma'lumotlari (sana, boshlang'ich narx, huquq turi) rasmiy e'lon bilan tasdiqlangan bo'lsa. false bo'lsa sayt bu bloklarni ko'rsatmaydi.",
     "published": "false bo'lsa lot faqat boshqaruv panelida ko'rinadi, ommaviy saytda chiqmaydi.",
-    "demo": "true — namunaviy ma'lumot. Saytda har doim 'DEMO' belgisi bilan ko'rsatiladi va faqat demo rejimida chiqadi."
+    "demo": "true — namunaviy ma'lumot. Saytda har doim 'DEMO' belgisi bilan ko'rsatiladi va faqat demo rejimida chiqadi.",
+    "areaId": "MAJBURIY. content/areas.json dagi hudud id si. Lot shu hudud ichida joylashadi. Ko'rsatilmasa, lot saytda hududsiz chiqadi va qurishda ogohlantirish beriladi.",
+    "_inherited": "Quyidagi maydonlar hududdan meros qilib olinadi va lotda kiritilmaydi: district, areaType, tourismDirections, location, infrastructure, access."
   },
-
   "items": []
 }

@@ -482,28 +482,37 @@ async function main() {
   /* ── 6. Telegram ── */
   section('6. Telegram');
 
-  const token = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  const chatId = String(process.env.TELEGRAM_CHAT_ID || '').trim();
+  const envToken = String(process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const envChats = String(process.env.TELEGRAM_CHAT_ID || '').trim();
   let fileToken = '';
-  let fileChat = '';
+  let fileChats = [];
   try {
     const cfg = JSON.parse(await fsp.readFile(path.join(ROOT, 'server', 'data', 'telegram.json'), 'utf8'));
     fileToken = String(cfg.botToken || '').trim();
-    fileChat = String(cfg.chatId || '').trim();
+    // Yangi format: recipients massivi. Eski format: bitta chatId maydoni.
+    fileChats = Array.isArray(cfg.recipients) && cfg.recipients.length > 0
+      ? cfg.recipients.map((item) => String(item?.chatId || '').trim()).filter(Boolean)
+      : cfg.chatId
+        ? [String(cfg.chatId).trim()]
+        : [];
   } catch (error) {
     /* fayl yo'q */
   }
 
-  const finalToken = token || fileToken;
-  const finalChat = chatId || fileChat;
+  const finalToken = envToken || fileToken;
+  const chats = envChats ? envChats.split(/[,;\s]+/).filter(Boolean) : fileChats;
 
-  if (finalToken && finalChat) {
-    ok('Token va chat_id kiritilgan', `manba: ${token ? 'muhit o\'zgaruvchisi' : 'telegram.json'}`);
+  if (finalToken && chats.length > 0) {
+    ok(
+      `Token va ${chats.length} ta xabar oluvchi kiritilgan`,
+      `manba: ${envToken ? 'muhit o\'zgaruvchisi' : 'telegram.json'}`,
+    );
+    console.log(`     ${DIM}Oluvchilar: ${chats.join(', ')}${R}`);
     console.log(`     ${DIM}Ulanishni tekshirish: node server/tools/telegram-setup.mjs --check${R}`);
   } else if (!finalToken) {
     warn('Telegram sozlanmagan (token yo\'q)', 'Murojaatlar qabul qilinadi va qutida saqlanadi, lekin botga yuborilmaydi.');
   } else {
-    warn('Token bor, lekin chat_id yo\'q', 'Sozlash: node server/tools/telegram-setup.mjs');
+    warn('Token bor, lekin xabar oluvchi kiritilmagan', 'Sozlash: node server/tools/telegram-setup.mjs');
   }
 
   /* ── Yakun ── */

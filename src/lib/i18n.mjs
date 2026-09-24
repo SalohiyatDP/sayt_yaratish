@@ -13,6 +13,8 @@ export const SECTIONS = {
   home: '',
   about: 'about',
   areas: 'areas',
+  // Lot — hudud ichidagi uchastka. Alohida sahifada ochiladi.
+  lots: 'lots',
   masterplans: 'masterplans',
   investors: 'investors',
   news: 'news',
@@ -25,6 +27,7 @@ export const SECTION_NAV_KEY = {
   home: 'nav.home',
   about: 'nav.about',
   areas: 'nav.areas',
+  lots: 'nav.lots',
   masterplans: 'nav.masterplans',
   investors: 'nav.investors',
   news: 'nav.news',

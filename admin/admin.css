@@ -236,6 +236,13 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 .group { padding: 1.15rem; background: var(--a-surface); border: 1px solid var(--a-border); border-radius: var(--a-radius-lg); box-shadow: var(--a-shadow); }
 .group__title { margin: 0 0 0.9rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--a-border); font-size: 15px; }
 .group__note { margin: -0.4rem 0 0.9rem; font-size: 12px; color: var(--a-text-muted); }
+.group__subtitle { margin: 1.4rem 0 0.5rem; font-size: 14px; }
+
+/* Boshqa bo'limdan o'tilganda kerakli guruhni qisqa vaqt ajratib ko'rsatish */
+.group.is-highlighted { outline: 3px solid var(--a-accent); outline-offset: 3px; transition: outline-color 0.4s; }
+
+/* Jadval katagida ko'p qatorli matn (masalan, oluvchilar ro'yxati) */
+.a-table td { white-space: pre-line; }
 
 .i18n { margin-bottom: 0.9rem; border: 1px solid var(--a-border); border-radius: var(--a-radius); overflow: hidden; }
 .i18n__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding: 0.45rem 0.6rem; background: var(--a-surface-2); border-bottom: 1px solid var(--a-border); }

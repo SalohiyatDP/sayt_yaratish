@@ -23,6 +23,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { loadEnvFile } from './lib/env.mjs';
+import { parseGeoFile } from './lib/geo.mjs';
 import * as telegram from './notify/telegram.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -104,7 +105,7 @@ const LISTEN = resolveListenTarget();
 const PORT = LISTEN.port ?? null;
 const HOST = LISTEN.host ?? null;
 
-const EDITABLE_FILES = new Set(['site', 'taxonomies', 'pages', 'lots', 'masterplans', 'news']);
+const EDITABLE_FILES = new Set(['site', 'taxonomies', 'pages', 'areas', 'lots', 'masterplans', 'news']);
 const MAX_JSON_BODY = 8 * 1024 * 1024; // 8 MB
 const MAX_UPLOAD = 25 * 1024 * 1024; // 25 MB
 const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 soat
@@ -129,9 +130,16 @@ const MIME = {
   '.pdf': 'application/pdf',
   '.woff2': 'font/woff2',
   '.zip': 'application/zip',
+  '.kmz': 'application/vnd.google-earth.kmz',
+  '.kml': 'application/vnd.google-earth.kml+xml',
+  '.geojson': 'application/geo+json',
 };
 
-const ALLOWED_UPLOAD_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg', '.pdf', '.zip']);
+const ALLOWED_UPLOAD_EXT = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg', '.pdf', '.zip',
+  // Koordinata fayllari: geodeziya xizmati odatda shu formatlarda beradi
+  '.kmz', '.kml', '.geojson',
+]);
 
 /* ─────────────────────────── Sozlash ─────────────────────────── */
 
@@ -638,7 +646,9 @@ async function deliverToTelegram(record) {
   await patchInboxRecord(record.id, { telegram: status });
 
   if (status.delivered) {
-    logLine(`Telegram: ${record.id} yuborildi (chat ${status.chatId}, urinish ${status.attempts}).`);
+    const sentTo = (status.recipients || []).filter((item) => item.delivered).length;
+    const total = (status.recipients || []).length;
+    logLine(`Telegram: ${record.id} yuborildi (${sentTo}/${total} oluvchi, urinish ${status.attempts}).`);
   } else {
     logLine(`Telegram: ${record.id} YUBORILMADI — ${status.error}${status.permanent ? ' (qaytarib bo\'lmaydigan xatolik)' : ''}`);
   }
@@ -684,6 +694,18 @@ async function readInbox({ limit = Infinity } = {}) {
 
 const INBOX_PAGE_SIZE = 300;
 
+/**
+ * Xabar barcha oluvchilarga yetib bordimi.
+ * Eski yozuvlarda `recipients` bo'lmaydi — ular uchun `delivered` yetarli.
+ */
+function isFullyDelivered(status) {
+  if (!status) return false;
+  if (Array.isArray(status.recipients) && status.recipients.length > 0) {
+    return status.recipients.every((item) => item.delivered);
+  }
+  return status.delivered === true;
+}
+
 /** Murojaatlarning yetkazilish statistikasi — panelda ko'rsatiladi. */
 async function deliveryStats() {
   const stats = { total: 0, delivered: 0, pending: 0, failed: 0, lastError: null, lastDeliveredAt: null };
@@ -692,7 +714,7 @@ async function deliveryStats() {
   for (const record of records) {
     stats.total += 1;
     const status = record.telegram;
-    if (status?.delivered) {
+    if (isFullyDelivered(status)) {
       stats.delivered += 1;
       if (!stats.lastDeliveredAt) stats.lastDeliveredAt = status.at || record.receivedAt;
     } else if (status?.permanent) {
@@ -718,19 +740,42 @@ async function retryPendingDeliveries() {
 
   for (const record of records) {
     const status = record.telegram;
-    if (status?.delivered === true) continue;
     // Hali umuman urinilmagan yozuv fonda yuborilayotgan bo'lishi mumkin
     if (!status) continue;
+    // Bir nechta oluvchi bo'lsa: hammasiga yetmaguncha navbatda qoladi
+    if (isFullyDelivered(status)) continue;
     if (status.permanent === true) continue;
     if ((status.rounds || 0) >= RETRY_MAX_ROUNDS) continue;
+    // Barcha qolgan oluvchilarda qaytarib bo'lmaydigan xatolik bo'lsa, to'xtaymiz
+    const retryable = (status.recipients || []).filter((item) => !item.delivered && !item.permanent);
+    if (status.recipients?.length && retryable.length === 0) continue;
 
     const age = Date.now() - new Date(record.receivedAt || 0).getTime();
     if (!Number.isFinite(age) || age > RETRY_MAX_AGE_MS) continue;
 
     checked += 1;
-    const result = await telegram.notifyContact(record, { adminUrl: adminPanelUrl() });
+
+    // Faqat xabar yetib bormagan oluvchilarga qayta yuboramiz — allaqachon
+    // olganlar ikkinchi marta bir xil xabarni ko'rmasligi kerak.
+    const pendingTargets = (status.recipients || [])
+      .filter((item) => !item.delivered && !item.permanent)
+      .map((item) => ({ chatId: item.chatId, threadId: item.threadId, label: item.label }));
+    const options = { adminUrl: adminPanelUrl() };
+    if (pendingTargets.length > 0) options.recipients = pendingTargets;
+
+    const result = await telegram.notifyContact(record, options);
+
+    // Avvalgi muvaffaqiyatli yetkazishlarni saqlab qolamiz
+    const merged = mergeRecipientStatus(status.recipients, result.recipients);
     await patchInboxRecord(record.id, {
-      telegram: { ...result, rounds: (status.rounds || 0) + 1, retriedAt: new Date().toISOString() },
+      telegram: {
+        ...result,
+        recipients: merged,
+        delivered: merged.length > 0 ? merged.some((item) => item.delivered) : result.delivered,
+        allDelivered: merged.length > 0 && merged.every((item) => item.delivered),
+        rounds: (status.rounds || 0) + 1,
+        retriedAt: new Date().toISOString(),
+      },
     });
     if (result.delivered) {
       sent += 1;
@@ -742,6 +787,21 @@ async function retryPendingDeliveries() {
     logLine(`Telegram navbati: ${checked} ta yetkazilmagan murojaat tekshirildi, ${sent} tasi yuborildi.`);
   }
   return { checked, sent };
+}
+
+/**
+ * Oluvchilar holatini birlashtiradi: avval yetkazilganlar yetkazilgan holda
+ * qoladi, yangi natija esa faqat qayta urinilganlarni yangilaydi.
+ */
+function mergeRecipientStatus(previous, fresh) {
+  const key = (item) => `${item.chatId}|${item.threadId || ''}`;
+  const map = new Map((Array.isArray(previous) ? previous : []).map((item) => [key(item), item]));
+  for (const item of Array.isArray(fresh) ? fresh : []) {
+    const existing = map.get(key(item));
+    // Bir marta yetkazilgan bo'lsa, holatni saqlab qolamiz
+    map.set(key(item), existing?.delivered ? existing : item);
+  }
+  return [...map.values()];
 }
 
 async function patchInboxRecord(id, patch) {
@@ -982,12 +1042,18 @@ async function handleAdminApi(req, res, url) {
   // Murojaatlar qutisi
   if (route === 'inbox' && req.method === 'GET') {
     const { records, total } = await readInbox({ limit: INBOX_PAGE_SIZE });
+    // Telegram xatoliklarini xodim tushunadigan tilga o'giramiz (faylga yozilmaydi)
     const items = records.map((data) => {
-      // Telegram xatoligini xodim tushunadigan tilga o'giramiz (faylga yozilmaydi)
-      if (data.telegram && !data.telegram.delivered && data.telegram.error) {
-        return { ...data, telegram: { ...data.telegram, explained: telegram.explainError(data.telegram.error) } };
+      const tg = data.telegram;
+      if (!tg) return data;
+      const next = { ...tg };
+      if (!tg.delivered && tg.error) next.explained = telegram.explainError(tg.error);
+      if (Array.isArray(tg.recipients)) {
+        next.recipients = tg.recipients.map((entry) =>
+          entry.delivered || !entry.error ? entry : { ...entry, explained: telegram.explainError(entry.error) },
+        );
       }
-      return data;
+      return { ...data, telegram: next };
     });
     return sendJson(res, 200, { ok: true, items, count: items.length, total, limit: INBOX_PAGE_SIZE });
   }
@@ -1181,7 +1247,9 @@ async function handleAdminApi(req, res, url) {
     }
     await fsp.writeFile(target, restored, 'utf8');
     logLine(`Zaxiradan tiklandi: ${file} → ${name}.json (${session.sub})`);
-    return sendJson(res, 200, { ok: true, name });
+    // Tiklangandan keyin ham sayt o'zi qayta quriladi
+    const rebuild = await autoRebuild();
+    return sendJson(res, 200, { ok: true, name, rebuilt: rebuild.ok });
   }
 
   /* ── Telegram sozlamalari ── */
@@ -1230,19 +1298,29 @@ async function handleAdminApi(req, res, url) {
       }
       patch.botToken = token;
     }
-    if (typeof payload.chatId === 'string') {
-      const chatId = payload.chatId.trim();
-      if (chatId !== '' && !/^(-?\d{1,20}|@[A-Za-z][\w]{4,31})$/.test(chatId)) {
-        return sendJson(res, 422, { ok: false, error: 'chat_id_format' });
+    if (Array.isArray(payload.recipients)) {
+      if (payload.recipients.length > 20) {
+        return sendJson(res, 422, { ok: false, error: 'too_many_recipients' });
       }
-      patch.chatId = chatId;
-    }
-    if (typeof payload.threadId === 'string') {
-      const threadId = payload.threadId.trim();
-      if (threadId !== '' && !/^\d{1,20}$/.test(threadId)) {
-        return sendJson(res, 422, { ok: false, error: 'thread_id_format' });
+      const cleaned = [];
+      for (const entry of payload.recipients) {
+        const chatId = sanitizeText(entry?.chatId, 40);
+        if (chatId === '') continue;
+        if (!telegram.isChatId(chatId)) {
+          return sendJson(res, 422, { ok: false, error: 'chat_id_format', value: chatId });
+        }
+        const threadId = sanitizeText(entry?.threadId, 20);
+        if (threadId !== '' && !/^\d{1,20}$/.test(threadId)) {
+          return sendJson(res, 422, { ok: false, error: 'thread_id_format', value: threadId });
+        }
+        cleaned.push({
+          chatId,
+          threadId,
+          label: sanitizeText(entry?.label, 80),
+          disabled: entry?.disabled === true,
+        });
       }
-      patch.threadId = threadId;
+      patch.recipients = cleaned;
     }
     if (typeof payload.disabled === 'boolean') patch.disabled = payload.disabled;
 
@@ -1334,7 +1412,74 @@ async function handleAdminApi(req, res, url) {
     };
     await walk(UPLOAD_DIR, '/assets/uploads');
     items.sort((a, b) => String(b.modifiedAt).localeCompare(String(a.modifiedAt)));
+
+    // Har bir fayl kontentda ishlatilyaptimi — o'chirishdan oldin ogohlantirish uchun
+    const used = await collectUsedMedia();
+    for (const item of items) item.usedIn = used.get(item.src) || [];
+
     return sendJson(res, 200, { ok: true, items });
+  }
+
+  // Yuklangan faylni o'chirish
+  const uploadMatch = /^uploads\/(.+)$/.exec(route);
+  if (uploadMatch && req.method === 'DELETE') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+
+    // Yo'l faqat yuklangan fayllar katalogi ichida bo'lishi shart
+    const relative = decodeURIComponent(uploadMatch[1]).replace(/^\/?assets\/uploads\/?/, '');
+    if (relative === '' || relative.includes('\0')) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_path' });
+    }
+    const target = path.resolve(UPLOAD_DIR, relative);
+    if (target !== UPLOAD_DIR && !target.startsWith(UPLOAD_DIR + path.sep)) {
+      return sendJson(res, 403, { ok: false, error: 'outside_uploads' });
+    }
+    const stat = await fsp.stat(target).catch(() => null);
+    if (!stat || !stat.isFile()) return sendJson(res, 404, { ok: false, error: 'not_found' });
+
+    const publicPath = `/assets/uploads/${relative.split(path.sep).join('/')}`;
+    const used = await collectUsedMedia();
+    const usedIn = used.get(publicPath) || [];
+    // `force` bo'lmasa, ishlatilayotgan faylni o'chirmaymiz
+    if (usedIn.length > 0 && url.searchParams.get('force') !== '1') {
+      return sendJson(res, 409, { ok: false, error: 'in_use', usedIn });
+    }
+
+    await fsp.unlink(target);
+    // dist/ dagi nusxasi ham olib tashlanadi
+    await fsp.unlink(path.join(DIST, 'assets', 'uploads', relative)).catch(() => undefined);
+
+    logLine(`Fayl o'chirildi: ${publicPath} (${session.sub})${usedIn.length ? ` — ${usedIn.length} joyda ishlatilgan edi` : ''}`);
+    return sendJson(res, 200, { ok: true, src: publicPath, usedIn });
+  }
+
+  // Koordinata faylini o'qish: POST /api/admin/geo?name=hudud.kmz
+  // Fayl saqlanmaydi — faqat koordinata va chegara qaytariladi.
+  if (route === 'geo' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    const name = safeFileName(url.searchParams.get('name') || 'fayl');
+    let buffer;
+    try {
+      buffer = await readBody(req, 12 * 1024 * 1024);
+    } catch (error) {
+      return sendJson(res, 413, { ok: false, error: 'too_large' });
+    }
+    if (buffer.length === 0) return sendJson(res, 400, { ok: false, error: 'empty' });
+
+    try {
+      const result = parseGeoFile(buffer, name);
+      if (!result.coordinates && !result.boundary) {
+        return sendJson(res, 422, {
+          ok: false,
+          error: 'no_geometry',
+          message: 'Faylda nuqta yoki chegara topilmadi.',
+        });
+      }
+      logLine(`Koordinata fayli o'qildi: ${name} (${result.format}, ${session.sub})`);
+      return sendJson(res, 200, { ok: true, fileName: name, ...result });
+    } catch (error) {
+      return sendJson(res, 422, { ok: false, error: 'parse_failed', message: error.message });
+    }
   }
 
   // Saytni qayta qurish
@@ -1352,6 +1497,39 @@ async function handleAdminApi(req, res, url) {
   }
 
   return sendJson(res, 404, { ok: false, error: 'not_found' });
+}
+
+/**
+ * Kontent fayllarida ishlatilayotgan media manzillarini yig'adi.
+ * @returns {Promise<Map<string, string[]>>} manzil → qayerda ishlatilgani
+ */
+async function collectUsedMedia() {
+  const used = new Map();
+  const add = (src, where) => {
+    if (typeof src !== 'string' || !src.startsWith('/assets/uploads/')) return;
+    const list = used.get(src) || [];
+    if (!list.includes(where)) list.push(where);
+    used.set(src, list);
+  };
+
+  const LABELS = {
+    lots: 'Lotlar',
+    areas: 'Hududlar',
+    masterplans: 'Master-rejalar',
+    news: 'Yangiliklar',
+    site: 'Sayt sozlamalari',
+    pages: 'Sahifa matnlari',
+  };
+
+  for (const name of EDITABLE_FILES) {
+    const text = await fsp.readFile(path.join(CONTENT_DIR, `${name}.json`), 'utf8').catch(() => null);
+    if (!text) continue;
+    // Manzillarni matndan qidirish yetarli: tuzilmadan qat'i nazar hammasini topadi
+    for (const match of text.matchAll(/"(\/assets\/uploads\/[^"]+)"/g)) {
+      add(match[1], LABELS[name] || name);
+    }
+  }
+  return used;
 }
 
 async function pruneBackups(name, keep = 20) {
@@ -1590,7 +1768,8 @@ const onListening = () => {
 
   const tg = telegram.getConfig();
   if (tg.enabled) {
-    console.log(`  Telegram:          ulangan → chat ${tg.chatId}${tg.threadId ? `, mavzu ${tg.threadId}` : ''}`);
+    const list = tg.active.map((item) => `${item.chatId}${item.threadId ? `/${item.threadId}` : ''}`).join(', ');
+    console.log(`  Telegram:          ulangan → ${tg.active.length} ta oluvchi (${list})`);
   } else if (tg.disabled) {
     console.log('  Telegram:          vaqtincha o\'chirilgan');
   } else if (!tg.botToken) {

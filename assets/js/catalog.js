@@ -5,7 +5,7 @@
 import { qs, qsa, t, config, storage, STORAGE_KEYS, fetchJson, debounce } from './core/config.js';
 import { createMap } from './map.js';
 
-const FILTER_FIELDS = ['q', 'district', 'areaType', 'tourism', 'status', 'areaMin', 'areaMax', 'sort'];
+const FILTER_FIELDS = ['q', 'area', 'district', 'areaType', 'tourism', 'status', 'areaMin', 'areaMax', 'sort'];
 const VIEWS = ['cards', 'map', 'table'];
 
 const STAGE_WEIGHT = { auction: 0, 'auction-prep': 1, masterplan: 2, study: 3, 'auction-closed': 4 };
@@ -47,6 +47,8 @@ function collectFilters(form) {
 
 function matches(node, filters) {
   const data = node.dataset;
+  // `area` — lot qaysi hududga tegishli (areaId). `areaHa` esa maydon o'lchami.
+  if (filters.area && data.area !== filters.area) return false;
   if (filters.district && data.district !== filters.district) return false;
   if (filters.areaType && data.areaType !== filters.areaType) return false;
   if (filters.status && data.status !== filters.status) return false;

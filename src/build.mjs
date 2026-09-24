@@ -21,6 +21,7 @@ import { stripTags, truncate, isoDate } from './lib/util.mjs';
 import { homePage } from './templates/home.mjs';
 import { aboutPage } from './templates/about.mjs';
 import { areasPage } from './templates/areas.mjs';
+import { areaPage } from './templates/area.mjs';
 import { lotPage } from './templates/lot.mjs';
 import { masterplansPage, masterplanPage } from './templates/masterplans.mjs';
 import { investorsPage } from './templates/investors.mjs';
@@ -135,7 +136,7 @@ function build() {
   const seconds = ((Date.now() - started) / 1000).toFixed(2);
   log(`\n  Sayt qurildi: ${OPTIONS.outDir}`);
   log(`  Sahifalar: ${written.length} ta (${codes.length} til)`);
-  log(`  Lotlar: ${content.lots.length} · Master-rejalar: ${content.masterplans.length} · Yangiliklar: ${content.news.length}`);
+  log(`  Hududlar: ${content.areas.length} · Lotlar: ${content.lots.length} · Master-rejalar: ${content.masterplans.length} · Yangiliklar: ${content.news.length}`);
   log(`  Rejim: ${OPTIONS.demo ? 'DEMO (namuna ma\'lumotlar qo\'shildi)' : 'faqat tasdiqlangan kontent'}`);
   log(`  Vaqt: ${seconds}s`);
 
@@ -199,6 +200,10 @@ function collectPages(ctx, content) {
     accessibilityPage(ctx),
   ];
 
+  // Hudud sahifalari — lotlardan yuqori darajada turadi
+  for (const area of content.areas) {
+    pages.push({ ...areaPage(ctx, area), lastmod: isoDate(area.updatedAt) || undefined, priority: '0.85' });
+  }
   for (const lot of content.lots) {
     pages.push({ ...lotPage(ctx, lot), lastmod: isoDate(lot.updatedAt) || undefined, priority: '0.8' });
   }
@@ -230,7 +235,7 @@ function buildCatalogData(ctx, content) {
     lots: content.lots.map((lot) => ({
       id: lot.id,
       slug: lot.slug,
-      url: ctx.url('areas', lot.slug),
+      url: ctx.url('lots', lot.slug),
       name: ctx.pick(lot.name),
       lotNumber: lot.lotNumber || null,
       district: lot.district || null,
@@ -268,7 +273,7 @@ function buildSearchIndex(ctx, content) {
     entries.push({
       type: 'lots',
       title: ctx.pick(lot.name),
-      url: ctx.url('areas', lot.slug),
+      url: ctx.url('lots', lot.slug),
       meta: [ctx.pick(content.lookup.districts.get(String(lot.district))?.name), ctx.pick(content.lookup.lotStatuses.get(String(lot.status))?.name)]
         .filter(Boolean)
         .join(' · '),
@@ -551,6 +556,7 @@ function writeBuildInfo(buildInfo, pageCount, content) {
   const info = {
     ...buildInfo,
     pages: pageCount,
+    areas: content.areas.length,
     lots: content.lots.length,
     masterplans: content.masterplans.length,
     news: content.news.length,
@@ -570,18 +576,43 @@ function validateContent(content) {
       slugs.set(key, true);
     }
   };
+  check(content.areas, 'hudud');
   check(content.lots, 'lot');
   check(content.masterplans, 'master-reja');
   check(content.news, 'yangilik');
 
+  // Hududlar — umumiy ma'lumot shu yerda saqlanadi, lotlar undan meros oladi
+  for (const area of content.areas) {
+    if (!content.lookup.districts.has(String(area.district))) {
+      warn(`"${area.slug}" hududida noma'lum tuman: "${area.district}".`);
+    }
+    if (!content.lookup.areaTypes.has(String(area.areaType))) {
+      warn(`"${area.slug}" hududida noma'lum hudud turi: "${area.areaType}".`);
+    }
+    if (area.coordinates == null) {
+      warn(`"${area.slug}" hududida koordinatalar yo'q — xaritada ko'rsatilmaydi. KMZ fayl yuklash tavsiya etiladi.`);
+    }
+    if (area.masterplanId && !content.masterplans.some((plan) => plan.id === area.masterplanId)) {
+      warn(`"${area.slug}" hududida ko'rsatilgan master-reja topilmadi: "${area.masterplanId}".`);
+    }
+    if (area.lots.length === 0) {
+      warn(`"${area.slug}" hududida birorta lot yo'q — saytda bo'sh hudud sahifasi chiqadi.`);
+    }
+    for (const media of area.media) checkLocalFile(media.src, `"${area.slug}" hududi media fayli`);
+    for (const doc of area.documents) checkLocalFile(doc.src, `"${area.slug}" hududi hujjati`);
+  }
+
+  // Hududi ko'rsatilmagan lotlar: tuman, hudud turi va yo'nalishlar meros
+  // qilinmaydi, shuning uchun saytda to'liq ko'rinmaydi
+  for (const lot of content.orphanLots) {
+    warn(
+      `"${lot.slug}" loti qaysi hududga tegishli ekani ko'rsatilmagan (areaId bo'sh yoki noto'g'ri). `
+        + 'Tuman, hudud turi va turizm yo\'nalishlari hududdan olinadi — ular bu lotda ko\'rinmaydi.',
+    );
+  }
+
   const platformUrl = String(content.site.eauction?.platformUrl || '').replace(/\/$/, '');
   for (const lot of content.lots) {
-    if (!content.lookup.districts.has(String(lot.district))) {
-      warn(`"${lot.slug}" lotida noma'lum tuman: "${lot.district}".`);
-    }
-    if (!content.lookup.areaTypes.has(String(lot.areaType))) {
-      warn(`"${lot.slug}" lotida noma'lum hudud turi: "${lot.areaType}".`);
-    }
     if (!content.lookup.lotStatuses.has(String(lot.status))) {
       warn(`"${lot.slug}" lotida noma'lum holat: "${lot.status}".`);
     }

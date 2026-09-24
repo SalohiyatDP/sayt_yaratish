@@ -228,7 +228,7 @@ export function lotCard(ctx, lot, { compare = true, level = 3 } = {}) {
   const district = ctx.content.lookup.districts.get(String(lot.district));
   const areaType = ctx.content.lookup.areaTypes.get(String(lot.areaType));
   const cover = lot.photos[0] || lot.renders[0] || lot.schemes[0] || null;
-  const href = ctx.url('areas', lot.slug);
+  const href = ctx.url('lots', lot.slug);
   const name = ctx.pick(lot.name) || lot.id;
 
   return html`

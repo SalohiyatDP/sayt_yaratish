@@ -71,14 +71,23 @@ async function main() {
   }
 
   if (chatArg) {
-    if (!/^(-?\d{1,20}|@[A-Za-z][\w]{4,31})$/.test(chatArg)) {
-      say(`${RED}chat_id noto'g'ri ko'rinishda.${R}`);
-      say('Kutilgan: 123456789, -1001234567890 yoki @kanal_nomi');
-      blank();
-      process.exit(1);
+    // Bir nechta chat_id vergul yoki bo'shliq bilan berilishi mumkin
+    const ids = chatArg.split(/[,;\s]+/).filter(Boolean);
+    for (const id of ids) {
+      if (!telegram.isChatId(id)) {
+        say(`${RED}chat_id noto'g'ri ko'rinishda: ${id}${R}`);
+        say('Kutilgan: 123456789, -1001234567890 yoki @kanal_nomi');
+        blank();
+        process.exit(1);
+      }
     }
-    await telegram.saveConfig({ chatId: chatArg });
-    say(`${GREEN}✓${R} chat_id saqlandi: ${chatArg}`);
+    // Mavjud ro'yxatga qo'shiladi (takrorlanganlar o'zi tashlab ketiladi)
+    const existing = telegram.getConfig().recipients;
+    await telegram.saveConfig({
+      recipients: [...existing, ...ids.map((chatId) => ({ chatId, label: '' }))],
+    });
+    const total = telegram.getConfig().recipients.length;
+    say(`${GREEN}✓${R} Xabar oluvchilar saqlandi: ${ids.join(', ')}  (jami ${total} ta)`);
   }
 
   const config = telegram.getConfig();
@@ -117,10 +126,10 @@ async function main() {
   }
   say(`${GREEN}✓${R} Bot topildi: ${B}@${me.result.username}${R} (${me.result.first_name})`);
 
-  /* ── chat_id yo'q: aniqlashga yordam beramiz ── */
-  if (!config.chatId) {
+  /* ── oluvchi yo'q: aniqlashga yordam beramiz ── */
+  if (config.recipients.length === 0) {
     blank();
-    say(`${YELLOW}chat_id hali kiritilmagan — murojaatlar qaysi chatga kelishi belgilanmagan.${R}`);
+    say(`${YELLOW}Xabar oluvchi hali kiritilmagan — murojaatlar qaysi chatga kelishi belgilanmagan.${R}`);
     blank();
     say(`${B}chat_id ni qanday aniqlash kerak:${R}`);
     say(`  ${B}A) Shaxsiy chat${R} — Telegramda @${me.result.username} botini oching va /start yuboring.`);
@@ -166,25 +175,35 @@ async function main() {
     }
     blank();
     say(`${B}Keraklisini tanlab, shu buyruqni bajaring:${R}`);
-    say(`  ${DIM}node server/tools/telegram-setup.mjs ${telegram.maskToken(config.botToken).replace('…', '<tokeningiz>')} <chat_id>${R}`);
-    say(`  ${DIM}yoki qisqacha: node server/tools/telegram-setup.mjs "" <chat_id>${R}`);
+    say(`  ${DIM}node server/tools/telegram-setup.mjs "" <chat_id>${R}`);
+    say(`  ${DIM}bir nechta oluvchi: node server/tools/telegram-setup.mjs "" "111,-100222,@kanal"${R}`);
     blank();
     process.exit(1);
   }
 
-  /* ── Chatni tekshirish ── */
-  say(`${DIM}Chat tekshirilmoqda…${R}`);
-  const chat = await telegram.callApi('getChat', { chat_id: config.chatId }, config);
-  if (chat.ok) {
-    const title = chat.result.title || chat.result.username || chat.result.first_name || '—';
-    say(`${GREEN}✓${R} Chat topildi: ${B}${title}${R} (${chat.result.type}, id ${chat.result.id})`);
-  } else {
-    say(`${RED}✗ Chat tekshirilmadi: ${chat.error}${R}`);
+  /* ── Har bir oluvchini tekshirish ── */
+  say(`${DIM}Xabar oluvchilar tekshirilmoqda (${config.recipients.length} ta)…${R}`);
+  let working = 0;
+  for (const entry of config.recipients) {
+    const suffix = entry.label ? ` — ${entry.label}` : '';
+    if (entry.disabled) {
+      say(`  ${YELLOW}⏸${R} ${entry.chatId}${suffix}  (vaqtincha o'chirilgan)`);
+      continue;
+    }
+    const chat = await telegram.callApi('getChat', { chat_id: entry.chatId }, config);
+    if (chat.ok) {
+      const title = chat.result.title || chat.result.username || chat.result.first_name || '—';
+      say(`  ${GREEN}✓${R} ${entry.chatId}${suffix}  → ${B}${title}${R} (${chat.result.type})`);
+      working += 1;
+    } else {
+      const explained = telegram.explainError(chat.error);
+      say(`  ${RED}✗${R} ${entry.chatId}${suffix}  → ${explained.reason}`);
+      say(`     ${DIM}${explained.fix}${R}`);
+    }
+  }
+  if (working === 0) {
     blank();
-    say('Sabablari:');
-    say('  • chat_id xato yozilgan');
-    say('  • bot guruhdan chiqarilgan yoki bloklangan');
-    say('  • kanalda bot administrator emas');
+    say(`${RED}Birorta ham ishlaydigan oluvchi yo'q.${R}`);
     blank();
     process.exit(1);
   }
@@ -229,7 +248,8 @@ function printNextSteps() {
 function printHelp() {
   say('node server/tools/telegram-setup.mjs <bot-tokeni>            — tokenni tekshirish va chat_id ni aniqlash');
   say('node server/tools/telegram-setup.mjs <bot-tokeni> <chat-id>  — saqlash va sinov xabari');
-  say('node server/tools/telegram-setup.mjs "" <chat-id>            — faqat chat_id ni saqlash');
+  say('node server/tools/telegram-setup.mjs "" <chat-id>            — xabar oluvchi qo\'shish');
+  say('node server/tools/telegram-setup.mjs "" "111,-100222"       — bir nechta oluvchi qo\'shish');
   say('node server/tools/telegram-setup.mjs --check                 — sozlamalarni tekshirish (xabar yubormasdan)');
   say('node server/tools/telegram-setup.mjs --test                  — sinov xabarini yuborish');
   blank();

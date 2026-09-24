@@ -14,12 +14,18 @@ export function lotPage(ctx, lot) {
   const areaType = content.lookup.areaTypes.get(String(lot.areaType));
   const masterplan = findMasterplanForLot(content, lot);
   const name = ctx.pick(lot.name) || lot.id;
-  const related = content.lots.filter((other) => other.id !== lot.id && other.district === lot.district).slice(0, 3);
+  // O'xshash lotlar: avval shu hududdagi, keyin shu tumandagi
+  const related = [
+    ...content.lots.filter((other) => other.id !== lot.id && lot.areaId && other.areaId === lot.areaId),
+    ...content.lots.filter((other) => other.id !== lot.id && other.areaId !== lot.areaId && other.district === lot.district),
+  ].slice(0, 3);
   const auction = lot.auction;
 
+  // Non yo'li lotning hududini ham ko'rsatadi — lot hudud ichida joylashadi
   const trail = breadcrumbs(ctx, [
     { label: t('nav.home'), href: ctx.url('home') },
     { label: t('nav.areas'), href: ctx.url('areas') },
+    ...(lot.area ? [{ label: ctx.pick(lot.area.name) || lot.area.id, href: ctx.url('areas', lot.area.slug) }] : []),
     { label: name },
   ]);
 
@@ -76,6 +82,13 @@ export function lotPage(ctx, lot) {
               ctx,
               [
                 { label: t('lot.number'), value: lot.lotNumber || '' },
+                {
+                  // Lot hudud ichida joylashadi — hududga havola beriladi
+                  label: t('lot.parentArea'),
+                  value: lot.area
+                    ? html`<a href="${ctx.url('areas', lot.area.slug)}">${ctx.pick(lot.area.name) || lot.area.id}</a>`
+                    : '',
+                },
                 { label: t('lot.district'), value: ctx.pick(district?.name) },
                 { label: t('lot.areaType'), value: ctx.pick(areaType?.name) },
                 { label: t('lot.location'), value: ctx.pick(lot.location), wide: true },
@@ -137,7 +150,11 @@ export function lotPage(ctx, lot) {
       )}
 
       <div class="container lot__back">
-        <a class="link-arrow link-arrow--back" href="${ctx.url('areas')}">${icon('arrowLeft', { size: 15 })}${t('lot.backToCatalog')}</a>
+        ${lot.area
+          ? html`<a class="link-arrow link-arrow--back" href="${ctx.url('areas', lot.area.slug)}">
+              ${icon('arrowLeft', { size: 15 })}${ctx.pick(lot.area.name) || t('lot.parentArea.open')}
+            </a>`
+          : html`<a class="link-arrow link-arrow--back" href="${ctx.url('areas')}">${icon('arrowLeft', { size: 15 })}${t('lot.backToCatalog')}</a>`}
       </div>
     </article>
   `;
@@ -156,7 +173,7 @@ export function lotPage(ctx, lot) {
   ];
 
   return {
-    section: 'areas',
+    section: 'lots',
     slug: lot.slug,
     title: name,
     description: ctx.pick(lot.shortDescription) || ctx.pick(lot.description),
@@ -374,7 +391,7 @@ function auctionBlock(ctx, lot, auction) {
 function relatedCard(ctx, lot) {
   const { t } = ctx;
   return html`
-    <a class="mini-card" href="${ctx.url('areas', lot.slug)}">
+    <a class="mini-card" href="${ctx.url('lots', lot.slug)}">
       <span class="mini-card__top">${statusBadge(ctx, lot.status, { size: 'sm' })}</span>
       <span class="mini-card__title">${ctx.pick(lot.name)}</span>
       ${when(

@@ -37,38 +37,98 @@ function readFileConfig() {
   }
 }
 
+/* ─────────────────────── Xabar oluvchilar ───────────────────────
+ * Murojaat bir nechta chatga yuborilishi mumkin: rahbar, mas'ul xodim,
+ * umumiy guruh. Har biri alohida yozuv — o'zining nomi, chat_id si, forum
+ * mavzusi va vaqtincha o'chirish bayrog'i bilan.
+ *
+ * Eski sozlama (bitta `chatId` maydoni) avtomatik ravishda bitta oluvchiga
+ * aylantiriladi — yangilashdan keyin sozlamani qaytadan kiritish shart emas.
+ */
+
+const CHAT_ID_RE = /^(-?\d{1,20}|@[A-Za-z][\w]{4,31})$/;
+
+export const isChatId = (value) => CHAT_ID_RE.test(String(value ?? '').trim());
+
+/** Ro'yxatni tartibga soladi: bir xil chat_id takrorlanmaydi. */
+function normalizeRecipients(list) {
+  const out = [];
+  const seen = new Set();
+  for (const entry of Array.isArray(list) ? list : []) {
+    const source = typeof entry === 'string' ? { chatId: entry } : entry || {};
+    const chatId = String(source.chatId ?? '').trim();
+    if (!isChatId(chatId)) continue;
+    const threadId = String(source.threadId ?? '').trim();
+    const key = `${chatId}|${threadId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      chatId,
+      threadId: /^\d{1,20}$/.test(threadId) ? threadId : '',
+      label: String(source.label ?? '').trim().slice(0, 80),
+      disabled: source.disabled === true,
+    });
+  }
+  return out;
+}
+
+/** Muhit o'zgaruvchisidan oluvchilar: vergul yoki bo'shliq bilan ajratiladi. */
+function recipientsFromEnv() {
+  const raw = String(process.env.TELEGRAM_CHAT_ID || '').trim();
+  if (raw === '') return null;
+  const threadId = String(process.env.TELEGRAM_THREAD_ID || '').trim();
+  const parts = raw.split(/[,;\s]+/).filter(Boolean);
+  return normalizeRecipients(
+    parts.map((chatId, index) => ({ chatId, threadId: index === 0 ? threadId : '', label: '.env' })),
+  );
+}
+
 /** Amaldagi sozlamalarni qaytaradi. */
 export function getConfig() {
   const file = readFileConfig();
   const botToken = String(process.env.TELEGRAM_BOT_TOKEN || file.botToken || '').trim();
-  const chatId = String(process.env.TELEGRAM_CHAT_ID || file.chatId || '').trim();
-  const threadId = String(process.env.TELEGRAM_THREAD_ID || file.threadId || '').trim();
   const apiBase = String(process.env.TELEGRAM_API_BASE || file.apiBase || DEFAULT_API_BASE).replace(/\/$/, '');
   const disabled = process.env.TELEGRAM_DISABLED === '1' || file.disabled === true;
 
+  const envRecipients = recipientsFromEnv();
+  // Eski format bilan moslik: bitta chatId maydoni ham qabul qilinadi
+  const fileRecipients = normalizeRecipients(
+    Array.isArray(file.recipients) && file.recipients.length > 0
+      ? file.recipients
+      : file.chatId
+        ? [{ chatId: file.chatId, threadId: file.threadId, label: '' }]
+        : [],
+  );
+  const recipients = envRecipients ?? fileRecipients;
+  const active = recipients.filter((item) => !item.disabled);
+
   return {
     botToken,
-    chatId,
-    threadId,
+    recipients,
+    active,
     apiBase,
     disabled,
-    enabled: Boolean(botToken && chatId) && !disabled,
+    enabled: Boolean(botToken) && active.length > 0 && !disabled,
     source: {
       botToken: process.env.TELEGRAM_BOT_TOKEN ? 'env' : file.botToken ? 'file' : null,
-      chatId: process.env.TELEGRAM_CHAT_ID ? 'env' : file.chatId ? 'file' : null,
+      recipients: envRecipients ? 'env' : fileRecipients.length > 0 ? 'file' : null,
     },
   };
 }
 
 /** Sozlamalarni faylga saqlaydi (boshqaruv paneli uchun). */
-export async function saveConfig({ botToken, chatId, threadId, disabled }) {
+export async function saveConfig({ botToken, recipients, disabled }) {
   await fsp.mkdir(DATA_DIR, { recursive: true });
   const current = readFileConfig();
   const next = { ...current };
 
   if (botToken !== undefined) next.botToken = String(botToken || '').trim();
-  if (chatId !== undefined) next.chatId = String(chatId || '').trim();
-  if (threadId !== undefined) next.threadId = String(threadId || '').trim();
+  if (recipients !== undefined) {
+    next.recipients = normalizeRecipients(recipients);
+    // Eski maydonlar endi ishlatilmaydi — chalkashmasligi uchun olib tashlanadi
+    delete next.chatId;
+    delete next.threadId;
+  }
   if (disabled !== undefined) next.disabled = Boolean(disabled);
   next.updatedAt = new Date().toISOString();
 
@@ -150,14 +210,42 @@ export async function sendMessage(text, options = {}) {
     };
   }
 
+  // Oluvchilar ro'yxati: options.recipients berilsa faqat shularga yuboriladi
+  // (yetkazilmaganlarni qayta yuborishda shu ishlatiladi).
+  const targets = options.recipients?.length ? normalizeRecipients(options.recipients) : config.active;
+  if (targets.length === 0) return { delivered: false, attempts: 0, error: 'chat_id_yoq', skipped: true };
+
+  const body = truncate(text, MAX_MESSAGE_LENGTH);
+  const results = [];
+
+  for (const target of targets) {
+    const result = await sendToOne(body, target, config, options);
+    results.push({ chatId: target.chatId, label: target.label || '', ...result });
+  }
+
+  const delivered = results.some((item) => item.delivered);
+  return {
+    delivered,
+    allDelivered: results.every((item) => item.delivered),
+    attempts: Math.max(...results.map((item) => item.attempts || 0), 0),
+    recipients: results,
+    // Umumiy xatolik matni — yetkazilmaganlardan birinchisi
+    error: delivered ? null : results.find((item) => item.error)?.error || 'nomalum xatolik',
+    permanent: !delivered && results.every((item) => item.permanent),
+    messageId: results.find((item) => item.delivered)?.messageId ?? null,
+  };
+}
+
+/** Bitta chatga yuborish — qayta urinishlar bilan. */
+async function sendToOne(body, target, config, options = {}) {
   const payload = {
-    chat_id: config.chatId,
-    text: truncate(text, MAX_MESSAGE_LENGTH),
+    chat_id: target.chatId,
+    text: body,
     parse_mode: 'HTML',
     link_preview_options: { is_disabled: true },
     disable_notification: Boolean(options.silent),
   };
-  if (config.threadId) payload.message_thread_id = Number(config.threadId);
+  if (target.threadId) payload.message_thread_id = Number(target.threadId);
   if (options.replyMarkup) payload.reply_markup = options.replyMarkup;
 
   let lastError = 'nomalum xatolik';
@@ -277,23 +365,29 @@ export function buildReplyMarkup(record, adminUrl) {
 
 /**
  * Murojaat haqida botga xabar beradi.
+ * @param {object} record murojaat yozuvi
+ * @param {{ adminUrl?: string, recipients?: object[] }} options
+ *        recipients berilsa — faqat shu oluvchilarga yuboriladi (qayta yuborish)
  * @returns {Promise<object>} yetkazilish holati — murojaat yozuviga saqlanadi
  */
-export async function notifyContact(record, { adminUrl } = {}) {
+export async function notifyContact(record, { adminUrl, recipients } = {}) {
   const config = getConfig();
   const result = await sendMessage(formatContactMessage(record), {
     config,
+    recipients,
     replyMarkup: buildReplyMarkup(record, adminUrl),
   });
 
   return {
     delivered: result.delivered,
+    allDelivered: Boolean(result.allDelivered),
     attempts: result.attempts,
     messageId: result.messageId ?? null,
     error: result.error ?? null,
     permanent: Boolean(result.permanent),
     skipped: Boolean(result.skipped),
-    chatId: config.chatId || null,
+    // Har bir oluvchi uchun alohida holat — panelda kim olgani ko'rinadi
+    recipients: result.recipients ?? [],
     at: new Date().toISOString(),
   };
 }
@@ -452,15 +546,13 @@ export async function diagnose() {
     enabled: config.enabled,
     disabled: config.disabled,
     hasToken: Boolean(config.botToken),
-    hasChatId: Boolean(config.chatId),
     tokenMasked: maskToken(config.botToken),
-    chatId: config.chatId || null,
-    threadId: config.threadId || null,
     apiBase: config.apiBase,
     source: config.source,
     network: null,
     bot: null,
-    chat: null,
+    // Har bir oluvchi alohida tekshiriladi: biri ishlamasa, qolganlari ishlaydi
+    recipients: config.recipients.map((item) => ({ ...item, ok: null, title: null, type: null, problem: null })),
     canSend: false,
     problems: [],
   };
@@ -486,24 +578,40 @@ export async function diagnose() {
   }
   report.bot = { id: me.result.id, username: me.result.username, name: me.result.first_name };
 
-  // 3. Chat
-  if (!config.chatId) {
+  // 3. Oluvchilar — har biri alohida
+  if (config.recipients.length === 0) {
     add('chat_id_yoq');
     return report;
   }
-  const chat = await callApi('getChat', { chat_id: config.chatId }, config);
-  if (!chat.ok) {
-    add(chat.error);
-    return report;
+
+  for (const entry of report.recipients) {
+    if (entry.disabled) {
+      entry.ok = false;
+      entry.problem = { reason: 'Vaqtincha o\'chirilgan.', fix: 'Yonidagi belgini olib tashlasangiz, xabarlar shu chatga ham boradi.', raw: '' };
+      continue;
+    }
+    const chat = await callApi('getChat', { chat_id: entry.chatId }, config);
+    if (chat.ok) {
+      entry.ok = true;
+      entry.type = chat.result.type;
+      entry.title = chat.result.title || chat.result.username || chat.result.first_name || null;
+    } else {
+      entry.ok = false;
+      entry.problem = explainError(chat.error);
+    }
   }
-  report.chat = {
-    id: chat.result.id,
-    type: chat.result.type,
-    title: chat.result.title || chat.result.username || chat.result.first_name || null,
-  };
 
   if (config.disabled) {
     add('telegram_ochirilgan');
+    return report;
+  }
+
+  const working = report.recipients.filter((entry) => entry.ok === true);
+  if (working.length === 0) {
+    // Sabablarni umumiy ro'yxatga ham qo'shamiz
+    for (const entry of report.recipients) {
+      if (entry.problem) report.problems.push(entry.problem);
+    }
     return report;
   }
 

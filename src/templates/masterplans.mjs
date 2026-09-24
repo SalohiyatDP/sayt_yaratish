@@ -299,7 +299,7 @@ export function masterplanPage(ctx, plan) {
               <h2 class="block-title">${t('masterplan.relatedLots')}</h2>
               <ul class="bare-list bare-list--links">
                 ${lots.map(
-                  (lot) => html`<li><a href="${ctx.url('areas', lot.slug)}">${ctx.pick(lot.name)}${icon('chevronRight', { size: 14 })}</a></li>`,
+                  (lot) => html`<li><a href="${ctx.url('lots', lot.slug)}">${ctx.pick(lot.name)}${icon('chevronRight', { size: 14 })}</a></li>`,
                 )}
               </ul>
             </section>`,

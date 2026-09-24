@@ -675,3 +675,104 @@ export function explicationField(record, field) {
     el('button', { type: 'button', class: 'a-btn a-btn--sm', text: '+ Qator qo\'shish', onClick: () => { items.push({ no: String(items.length + 1), name: emptyI18n(), areaM2: null, capacity: '', note: emptyI18n() }); draw(); } }),
   ]);
 }
+
+
+/**
+ * Koordinata faylini (KMZ / KML / GeoJSON) yuklab, nuqta va chegarani
+ * avtomatik to'ldiradi.
+ *
+ * Geodeziya xizmati chegarani odatda KMZ ko'rinishida beradi — xodim
+ * koordinatalarni qo'lda ko'chirib yozmasligi kerak.
+ *
+ * @param {object} record tahrirlanayotgan yozuv
+ * @param {{ coordinatesPath: string, boundaryPath: string, onApplied?: function }} options
+ */
+export function geoFileField(record, options) {
+  const { coordinatesPath = 'coordinates', boundaryPath = 'boundary', onApplied } = options || {};
+
+  const status = el('div', { class: 'a-small', style: 'margin-top:0.5rem' });
+  const input = el('input', {
+    type: 'file',
+    accept: '.kmz,.kml,.geojson,.json',
+    style: 'display:none',
+  });
+
+  const setStatus = (kind, lines) => {
+    status.innerHTML = '';
+    status.style.color = kind === 'error' ? 'var(--a-danger)' : kind === 'ok' ? 'var(--a-success)' : 'inherit';
+    for (const line of [].concat(lines)) {
+      if (line) status.append(el('p', { text: line, style: 'margin:0.15rem 0' }));
+    }
+  };
+
+  const load = async (file) => {
+    if (!file) return;
+    setStatus('info', `${file.name} o'qilmoqda…`);
+    try {
+      const result = await api.parseGeoFile(file);
+
+      const applied = [];
+      if (result.coordinates) {
+        setPath(record, coordinatesPath, result.coordinates);
+        applied.push(`markaziy nuqta: ${result.coordinates.lat}, ${result.coordinates.lng}`);
+      }
+      if (result.boundary && boundaryPath) {
+        setPath(record, boundaryPath, result.boundary);
+        applied.push(`chegara: ${result.boundary.length} nuqta`);
+      }
+      if (applied.length === 0) {
+        setStatus('error', 'Faylda nuqta ham, chegara ham topilmadi.');
+        return;
+      }
+
+      setStatus('ok', [
+        `✓ ${result.format.toUpperCase()} fayldan olindi — ${applied.join(', ')}`,
+        result.name ? `Fayldagi nomi: ${result.name}` : null,
+        ...(result.notes || []),
+      ]);
+      toast('Koordinatalar fayldan olindi', 'success');
+      onApplied?.(result);
+    } catch (error) {
+      const messages = {
+        no_geometry: 'Faylda nuqta yoki chegara topilmadi.',
+        parse_failed: error.data?.message || 'Fayl o\'qilmadi.',
+        too_large: 'Fayl juda katta (12 MB dan oshmasligi kerak).',
+        empty: 'Fayl bo\'sh.',
+      };
+      setStatus('error', messages[error.data?.error] || `O'qilmadi: ${error.data?.message || error.message}`);
+    } finally {
+      input.value = '';
+    }
+  };
+
+  input.addEventListener('change', () => load(input.files?.[0]));
+
+  const zone = el('div', {
+    class: 'drop-zone',
+    onClick: () => input.click(),
+    onDragOver: (event) => {
+      event.preventDefault();
+      zone.classList.add('is-over');
+    },
+    onDragLeave: () => zone.classList.remove('is-over'),
+    onDrop: (event) => {
+      event.preventDefault();
+      zone.classList.remove('is-over');
+      load(event.dataTransfer?.files?.[0]);
+    },
+  }, [
+    el('strong', { text: 'Koordinata faylini yuklang' }),
+    el('span', { class: 'a-small', text: 'KMZ, KML yoki GeoJSON — bosing yoki faylni bu yerga tashlang' }),
+  ]);
+
+  return el('div', { class: 'a-field' }, [
+    el('span', { class: 'a-field__label', text: 'Fayldan olish (tavsiya etiladi)' }),
+    el('span', {
+      class: 'a-field__hint',
+      text: 'Geodeziya xizmati bergan KMZ faylni yuklasangiz, markaziy nuqta va chegara o\'zi to\'ldiriladi. Fayl saqlanmaydi — faqat koordinatalar olinadi.',
+    }),
+    zone,
+    input,
+    status,
+  ]);
+}

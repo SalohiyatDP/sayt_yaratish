@@ -64,8 +64,18 @@ Ikki yo'l bor — istalganini tanlang.
 
 1. `/admin/` ga kiring → chap menyuda **«Telegram»**.
 2. **Bot tokeni** maydoniga tokenni qo'ying.
-3. **«chat_id ni aniqlash»** tugmasini bosing — bot ko'rgan chatlar ro'yxati chiqadi.
-   Keraklisini bosing, `chat_id` avtomatik qo'yiladi.
+3. **«chat_id larni aniqlash»** tugmasini bosing — bot ko'rgan chatlar ro'yxati
+   chiqadi. Keraklisini bossangiz, **xabar oluvchilar** ro'yxatiga qo'shiladi.
+
+   **Bir nechta oluvchi.** Murojaat ro'yxatdagi barcha chatlarga yuboriladi:
+   rahbar, mas'ul xodim, umumiy guruh — 20 tagacha. Har biri uchun izoh
+   («direktor», «mas'ul xodim») yozib qo'yish mumkin, bu faqat panelda ko'rinadi.
+
+   Xodim ta'tilga chiqsa, uni ro'yxatdan o'chirmasdan **«Vaqtincha yubormaslik»**
+   bilan to'xtatib qo'yasiz.
+
+   Biriga xabar yetmasa, qolganlariga boradi. Murojaatlar ro'yxatida kim olgani
+   va kim olmagani alohida ko'rsatiladi.
 4. **«Saqlash va tekshirish»** tugmasini bosing.
 5. **«Sinov xabarini yuborish»** tugmasi bilan tekshirib ko'ring.
 
@@ -84,7 +94,8 @@ node server/tools/telegram-setup.mjs 1234567890:AAEhBOweik6ad9r_QXzR1_ABCdefGhIJ
 # Yordamchi topilgan chatlarni ko'rsatadi:
 #   chat_id: -1001234567890   guruh   Direksiya — murojaatlar
 
-# 2) chat_id ni saqlash va sinov xabarini yuborish
+# 2) xabar oluvchini saqlash va sinov xabarini yuborish
+#    bir nechtasini vergul bilan berish mumkin: "111,-1002222,@kanal"
 node server/tools/telegram-setup.mjs "" -1001234567890
 ```
 
@@ -222,7 +233,7 @@ uzatilishini ham shu matnga qo'shishni tavsiya etamiz.
 ## Muammolarni hal qilish
 
 **«Telegram: sozlanmagan» deb yozilmoqda**
-Token yoki `chat_id` kiritilmagan. `node server/tools/telegram-setup.mjs --check`
+Token yoki birorta xabar oluvchi kiritilmagan. `node server/tools/telegram-setup.mjs --check`
 bilan tekshiring.
 
 **`Unauthorized` (401)**

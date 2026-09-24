@@ -6,16 +6,18 @@ import {
   getPath, setPath, textField, numberField, dateField, checkboxField, selectField,
   multiSelectField, i18nField, i18nListField, coordinatesField, jsonField,
   mediaListField, documentListField, sheetListField, zoneListField, explicationField,
-  createDropZone,
+  createDropZone, geoFileField,
 } from './fields.js';
 
 const state = {
   user: null,
-  view: 'lots',
+  view: 'areas',
   taxonomies: null,
   cache: {},
   editing: null,
   dirty: false,
+  // «Ma'lumotnomalarda tahrirlash» orqali o'tilganda qaysi ro'yxatga siljish
+  taxonomyFocus: null,
 };
 
 /* ─────────────────────────── Kirish ─────────────────────────── */
@@ -214,7 +216,7 @@ async function saveContent(name) {
     state.dirty = false;
     if (result.rebuilt === false) {
       toast(
-        'Saqlandi, lekin saytni qurishda xatolik bo\'ldi. «Sayt holati va zaxira» bo\'limiga kirib xabarni ko\'ring.',
+        'Saqlandi, lekin saytni qurishda xatolik bo\'ldi. «Sayt sozlamalari» bo\'limining pastidagi «Sayt holati» blokiga kirib xabarni ko\'ring.',
         'error',
         9000,
       );
@@ -239,7 +241,10 @@ const options = (list) => (list || []).map((item) => ({ value: item.id, label: p
 
 async function refreshCounts() {
   try {
-    const [lots, masterplans, news] = await Promise.all([loadContent('lots'), loadContent('masterplans'), loadContent('news')]);
+    const [areas, lots, masterplans, news] = await Promise.all([
+      loadContent('areas'), loadContent('lots'), loadContent('masterplans'), loadContent('news'),
+    ]);
+    setCount('areas', (areas.items || []).length);
     setCount('lots', (lots.items || []).length);
     setCount('masterplans', (masterplans.items || []).length);
     setCount('news', (news.items || []).length);
@@ -247,8 +252,18 @@ async function refreshCounts() {
     if (inbox) {
       const list = inbox.items || [];
       setCount('inbox', list.filter((item) => item.status === 'new').length);
-      // Telegramga yetkazilmagan murojaatlar soni
-      setCount('telegram', list.filter((item) => item.telegram && !item.telegram.delivered && !item.telegram.skipped).length);
+      // Kamida bitta oluvchiga yetib bormagan murojaatlar soni
+      setCount(
+        'telegram',
+        list.filter((item) => {
+          const tg = item.telegram;
+          if (!tg || tg.skipped) return false;
+          if (Array.isArray(tg.recipients) && tg.recipients.length > 0) {
+            return !tg.recipients.every((entry) => entry.delivered);
+          }
+          return !tg.delivered;
+        }).length,
+      );
     }
   } catch (error) {
     /* e'tiborsiz */
@@ -276,6 +291,7 @@ async function render() {
   setMain(el('p', { class: 'a-loading', text: 'Yuklanmoqda…' }));
   try {
     const views = {
+      areas: () => renderCollection('areas', AREAS_VIEW),
       lots: () => renderCollection('lots', LOTS_VIEW),
       masterplans: () => renderCollection('masterplans', MASTERPLANS_VIEW),
       news: () => renderCollection('news', NEWS_VIEW),
@@ -285,11 +301,10 @@ async function render() {
       inbox: renderInboxView,
       telegram: renderTelegramView,
       files: renderFilesView,
-      build: renderBuildView,
       users: renderUsersView,
       account: renderAccountView,
     };
-    await (views[state.view] || views.lots)();
+    await (views[state.view] || views.areas)();
   } catch (error) {
     setMain(el('div', { class: 'a-alert a-alert--error' }, [el('strong', { text: 'Xatolik' }), el('p', { text: error.message })]));
   }
@@ -297,14 +312,144 @@ async function render() {
 
 /* ─────────────────────────── Kolleksiya ko'rinishlari ─────────────────────────── */
 
-const LOTS_VIEW = {
-  title: 'Hududlar va lotlar',
-  singular: 'lot',
-  idPrefix: 'lot',
+/* ── Hududlar ────────────────────────────────────────────────────────────
+ * Hudud — umumiy turistik-rekreatsion maydon. Lotlar hudud ICHIDA joylashadi
+ * va alohida bo'limda kiritiladi. Tuman, hudud turi, turizm yo'nalishlari va
+ * infratuzilma faqat shu yerda — hududda — kiritiladi, lotlar ularni meros
+ * qilib oladi. Shu tarzda bir xil ma'lumot ikki joyda saqlanmaydi.
+ */
+const AREAS_VIEW = {
+  title: 'Hududlar',
+  singular: 'hudud',
+  idPrefix: 'area',
   titleOf: (item) => pick(item.name) || item.id,
   metaOf: (item, tax) => [
     pick((tax.districts || []).find((d) => d.id === item.district)?.name),
     pick((tax.areaTypes || []).find((d) => d.id === item.areaType)?.name),
+    item.totalAreaHa != null ? `${item.totalAreaHa} ga` : null,
+    item.coordinates ? null : 'koordinata yo\'q',
+  ],
+  blank: () => ({
+    id: '',
+    slug: '',
+    name: emptyI18n(),
+    district: null,
+    areaType: null,
+    location: emptyI18n(),
+    coordinates: null,
+    boundary: null,
+    boundarySource: '',
+    totalAreaHa: null,
+    tourismDirections: [],
+    shortDescription: emptyI18n(),
+    description: emptyI18n(),
+    media: [],
+    access: emptyI18n(),
+    infrastructure: [],
+    masterplanId: null,
+    documents: [],
+    updatedAt: todayIso(),
+    published: true,
+    demo: false,
+  }),
+  form: async (record) => {
+    const tax = await ensureTaxonomies();
+    const masterplans = await loadContent('masterplans');
+    const lots = await loadContent('lots');
+    const ownLots = (lots.items || []).filter((lot) => lot.areaId && lot.areaId === record.id);
+
+    return [
+      el('div', { class: 'a-alert a-alert--info' }, [
+        el('strong', { text: 'Hudud — lotlarni o\'z ichiga oladigan umumiy maydon' }),
+        el('p', {
+          text: 'Bu yerda kiritilgan tuman, hudud turi, turizm yo\'nalishlari, infratuzilma va kirish '
+            + 'yo\'li hudud ichidagi BARCHA lotlarga tarqaladi — lotlarda qaytarib kiritilmaydi.',
+        }),
+        record.id && ownLots.length > 0
+          ? el('p', { text: `Hozir bu hududda ${ownLots.length} ta lot bor: ${ownLots.map((lot) => pick(lot.name) || lot.id).join(', ')}` })
+          : record.id
+            ? el('p', { text: 'Hozir bu hududda lot yo\'q. Lotlarni «Lotlar» bo\'limidan qo\'shasiz.' })
+            : null,
+      ]),
+
+      group('Asosiy ma\'lumotlar', [
+        i18nField(record, {
+          path: 'name',
+          label: 'Hudud nomi *',
+          onInput: (value) => syncSlug(record, value),
+        }),
+        el('div', { class: 'a-row' }, [
+          slugControl(record),
+          numberField(record, { path: 'totalAreaHa', label: 'Umumiy maydoni, gektar', step: '0.1', min: '0' }),
+        ]),
+        el('div', { class: 'a-row' }, [
+          selectField(record, { path: 'district', label: 'Tuman *' }, options(tax.districts)),
+          selectField(record, { path: 'areaType', label: 'Hudud turi *' }, options(tax.areaTypes)),
+        ]),
+        taxonomyMultiSelect(record, {
+          path: 'tourismDirections',
+          label: 'Turizm yo\'nalishlari',
+          taxonomyPath: 'tourismDirections',
+          items: tax.tourismDirections,
+        }),
+      ]),
+
+      group('Joylashuv va xarita', [
+        i18nField(record, { path: 'location', label: 'Joylashuv tavsifi', multiline: true }),
+        geoFileField(record, {
+          coordinatesPath: 'coordinates',
+          boundaryPath: 'boundary',
+          onApplied: () => {
+            state.dirty = true;
+            render();
+          },
+        }),
+        coordinatesField(record, { path: 'coordinates', label: 'Markaziy nuqta' }),
+        jsonField(record, {
+          path: 'boundary',
+          label: 'Hudud chegarasi konturi',
+          rows: 6,
+          placeholder: '[[41.0762, 71.8105], [41.0765, 71.8168], [41.0722, 71.8172]]',
+          hint: 'Odatda yuqoridagi KMZ fayl orqali to\'ldiriladi. Nuqtalar [kenglik, uzunlik] juftliklari. Kamida 3 nuqta.',
+        }),
+        textField(record, { path: 'boundarySource', label: 'Chegara manbasi', hint: 'Masalan: Kadastr palatasi ma\'lumoti, 2026-yil 12-mart' }),
+      ]),
+
+      group('Tavsif', [
+        i18nField(record, { path: 'shortDescription', label: 'Qisqa tavsif (kartochkada ko\'rinadi)', multiline: true, rows: 3 }),
+        i18nField(record, { path: 'description', label: 'To\'liq tavsif', multiline: true, rows: 8, hint: 'Oddiy matn yoki cheklangan HTML: <p> <strong> <em> <ul> <li> <a href>' }),
+      ]),
+
+      group('Tasvirlar', [mediaListField(record, { path: 'media', label: 'Fotosuratlar va vizualizatsiyalar', folder: 'areas' })]),
+
+      group('Umumiy infratuzilma', [
+        el('p', { class: 'group__note', text: 'Hududga umumiy tegishli infratuzilma va kirish yo\'li. Lotlar shu ma\'lumotni meros qilib oladi.' }),
+        i18nListField(record, { path: 'infrastructure', label: 'Mavjud muhandislik infratuzilmasi' }),
+        i18nField(record, { path: 'access', label: 'Kirish yo\'li', multiline: true, rows: 3 }),
+      ]),
+
+      group('Master-reja va hujjatlar', [
+        selectField(
+          record,
+          { path: 'masterplanId', label: 'Hududning master-rejasi' },
+          (masterplans.items || []).map((plan) => ({ value: plan.id, label: pick(plan.title) || plan.id })),
+        ),
+        documentListField(record, { path: 'documents', label: 'Yuklab olinadigan hujjatlar', folder: 'areas' }),
+      ]),
+
+      group('Nashr', [dateField(record, { path: 'updatedAt', label: 'Ma\'lumot yangilangan sana' })]),
+    ];
+  },
+};
+
+const LOTS_VIEW = {
+  title: 'Lotlar',
+  singular: 'lot',
+  idPrefix: 'lot',
+  titleOf: (item) => pick(item.name) || item.id,
+  metaOf: (item, tax, file, extra) => [
+    // Lot qaysi hududda — ro'yxatda darhol ko'rinishi kerak
+    extra?.areaName ? `📍 ${extra.areaName}` : '⚠ hudud tanlanmagan',
     item.areaHa != null ? `${item.areaHa} ga` : null,
     pick((tax.lotStatuses || []).find((d) => d.id === item.status)?.name),
     item.lotNumber ? `№ ${item.lotNumber}` : null,
@@ -312,26 +457,21 @@ const LOTS_VIEW = {
   blank: () => ({
     id: '',
     slug: '',
+    areaId: null,
     lotNumber: null,
     name: emptyI18n(),
-    district: null,
-    areaType: null,
-    location: emptyI18n(),
     coordinates: null,
     boundary: null,
+    boundarySource: '',
     cadastreNumber: '',
     areaHa: null,
     areaSotix: null,
-    tourismDirections: [],
     status: 'study',
     shortDescription: emptyI18n(),
     description: emptyI18n(),
     media: [],
-    masterplanId: null,
     plannedObjects: [],
     services: [],
-    access: emptyI18n(),
-    infrastructure: [],
     requirements: [],
     restrictions: [],
     auction: {
@@ -352,25 +492,23 @@ const LOTS_VIEW = {
   }),
   form: async (record) => {
     const tax = await ensureTaxonomies();
-    const masterplans = await loadContent('masterplans');
+    const areas = await loadContent('areas');
+    const areaItems = areas.items || [];
+    const parent = areaItems.find((area) => area.id === record.areaId) || null;
+
     return [
+      // Lot hudud ichida joylashadi — birinchi navbatda hudud tanlanadi
+      areaPicker(record, areaItems, tax),
+
       group('Asosiy ma\'lumotlar', [
         i18nField(record, {
           path: 'name',
-          label: 'Hudud / lot nomi *',
-          onInput: (value) => {
-            if (!record.slug) record.slug = slugify(pick(value));
-            const slugInput = qs('[data-slug-input]');
-            if (slugInput && !slugInput.dataset.touched) slugInput.value = record.slug;
-          },
+          label: 'Lot nomi *',
+          onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
           slugControl(record),
           textField(record, { path: 'lotNumber', label: 'Lot raqami', hint: 'Rasmiy hujjatdagi raqam' }),
-        ]),
-        el('div', { class: 'a-row' }, [
-          selectField(record, { path: 'district', label: 'Tuman *' }, options(tax.districts)),
-          selectField(record, { path: 'areaType', label: 'Hudud turi *' }, options(tax.areaTypes)),
           selectField(record, { path: 'status', label: 'Joriy holat *' }, options(tax.lotStatuses)),
         ]),
         el('div', { class: 'a-row' }, [
@@ -378,19 +516,33 @@ const LOTS_VIEW = {
           numberField(record, { path: 'areaSotix', label: 'Maydon, sotix', step: '0.01', min: '0' }),
           textField(record, { path: 'cadastreNumber', label: 'Kadastr raqami' }),
         ]),
-        multiSelectField(record, { path: 'tourismDirections', label: 'Turizm yo\'nalishlari' }, options(tax.tourismDirections)),
       ]),
 
-      group('Joylashuv va xarita', [
-        i18nField(record, { path: 'location', label: 'Joylashuv tavsifi', multiline: true }),
-        coordinatesField(record, { path: 'coordinates', label: 'Koordinatalar' }),
+      group('Lotning joylashuvi va chegarasi', [
+        el('p', {
+          class: 'group__note',
+          text: parent
+            ? `Tuman, hudud turi va turizm yo'nalishlari «${pick(parent.name) || parent.id}» hududidan olinadi.`
+            : 'Tuman, hudud turi va turizm yo\'nalishlari tanlangan hududdan olinadi.',
+        }),
+        geoFileField(record, {
+          coordinatesPath: 'coordinates',
+          boundaryPath: 'boundary',
+          onApplied: () => {
+            state.dirty = true;
+            // Maydonlar yangi qiymat bilan qaytadan chiziladi
+            render();
+          },
+        }),
+        coordinatesField(record, { path: 'coordinates', label: 'Lotning markaziy nuqtasi' }),
         jsonField(record, {
           path: 'boundary',
           label: 'Kadastr chegarasi konturi',
           rows: 6,
           placeholder: '[[41.0762, 71.8105], [41.0765, 71.8168], [41.0722, 71.8172]]',
-          hint: 'Nuqtalar [kenglik, uzunlik] juftliklari ko\'rinishida. Berilgan konturni o\'zgartirmang va soddalashtirmang. Kamida 3 nuqta kerak.',
+          hint: 'Nuqtalar [kenglik, uzunlik] juftliklari ko\'rinishida. Odatda yuqoridagi KMZ fayl orqali to\'ldiriladi. Berilgan konturni o\'zgartirmang va soddalashtirmang. Kamida 3 nuqta kerak.',
         }),
+        textField(record, { path: 'boundarySource', label: 'Chegara manbasi' }),
       ]),
 
       group('Tavsif', [
@@ -400,11 +552,9 @@ const LOTS_VIEW = {
 
       group('Tasvirlar', [mediaListField(record, { path: 'media', label: 'Fotosuratlar va vizualizatsiyalar', folder: 'lots' })]),
 
-      group('Rejalashtirilgan obyektlar va infratuzilma', [
+      group('Lotda rejalashtirilgan obyektlar', [
         i18nListField(record, { path: 'plannedObjects', label: 'Rejalashtirilgan turizm obyektlari' }),
         i18nListField(record, { path: 'services', label: 'Xizmat turlari' }),
-        i18nField(record, { path: 'access', label: 'Kirish yo\'li', multiline: true, rows: 3 }),
-        i18nListField(record, { path: 'infrastructure', label: 'Mavjud muhandislik infratuzilmasi' }),
       ]),
 
       group('Talablar va cheklovlar', [
@@ -412,12 +562,7 @@ const LOTS_VIEW = {
         i18nListField(record, { path: 'restrictions', label: 'Cheklovlar' }),
       ]),
 
-      group('Master-reja va hujjatlar', [
-        selectField(
-          record,
-          { path: 'masterplanId', label: 'Bog\'liq master-reja' },
-          (masterplans.items || []).map((plan) => ({ value: plan.id, label: pick(plan.title) || plan.id })),
-        ),
+      group('Hujjatlar', [
         documentListField(record, { path: 'documents', label: 'Yuklab olinadigan hujjatlar', folder: 'lots' }),
       ]),
 
@@ -429,6 +574,130 @@ const LOTS_VIEW = {
     ];
   },
 };
+
+/**
+ * Lot uchun hudud tanlash bloki.
+ * Hudud tanlanmagan lot saytda to'liq ko'rinmaydi, shuning uchun bu birinchi
+ * va eng ko'zga tashlanadigan maydon.
+ */
+function areaPicker(record, areaItems, tax) {
+  const host = el('div', {});
+
+  const draw = () => {
+    const parent = areaItems.find((area) => area.id === record.areaId) || null;
+    host.innerHTML = '';
+
+    if (areaItems.length === 0) {
+      host.append(
+        el('div', { class: 'a-alert a-alert--error' }, [
+          el('strong', { text: 'Avval hudud yaratish kerak' }),
+          el('p', { text: 'Lot hudud ichida joylashadi. «Hududlar» bo\'limiga o\'tib, hududni kiriting, so\'ng lot qo\'shasiz.' }),
+          el('button', {
+            type: 'button',
+            class: 'a-btn a-btn--sm',
+            text: 'Hududlar bo\'limiga o\'tish',
+            onClick: () => goToView('areas'),
+          }),
+        ]),
+      );
+      return;
+    }
+
+    const select = el('select', { class: 'a-input' });
+    select.append(el('option', { value: '', text: '— hududni tanlang —', selected: !record.areaId }));
+    for (const area of areaItems) {
+      select.append(
+        el('option', {
+          value: area.id,
+          text: `${pick(area.name) || area.id}${area.published === false ? ' (qoralama)' : ''}`,
+          selected: area.id === record.areaId,
+        }),
+      );
+    }
+    select.addEventListener('change', (event) => {
+      record.areaId = event.target.value || null;
+      state.dirty = true;
+      draw();
+    });
+
+    const districtName = pick((tax.districts || []).find((d) => d.id === parent?.district)?.name);
+    const areaTypeName = pick((tax.areaTypes || []).find((d) => d.id === parent?.areaType)?.name);
+    const directions = (parent?.tourismDirections || [])
+      .map((id) => pick((tax.tourismDirections || []).find((d) => d.id === id)?.name))
+      .filter(Boolean);
+
+    host.append(
+      el('div', { class: `publish-bar publish-bar--${parent ? 'live' : 'draft'}` }, [
+        el('div', { class: 'publish-bar__text' }, [
+          el('strong', { text: parent ? `Hudud: ${pick(parent.name) || parent.id}` : 'Hudud tanlanmagan' }),
+          el('span', {
+            class: 'a-small',
+            text: parent
+              ? [districtName, areaTypeName, directions.length ? `${directions.length} yo'nalish` : null]
+                  .filter(Boolean)
+                  .join(' · ') || 'Hududda tuman va tur kiritilmagan'
+              : 'Lot hudud ichida joylashadi. Hudud tanlanmasa, saytda tuman va yo\'nalishlar ko\'rinmaydi.',
+          }),
+        ]),
+        parent
+          ? el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm',
+              text: 'Hududni tahrirlash',
+              onClick: () => {
+                if (state.dirty && !confirmAction('Saqlanmagan o\'zgarishlar bor. Hududga o\'tasizmi?')) return;
+                const index = areaItems.findIndex((area) => area.id === parent.id);
+                state.dirty = false;
+                state.editing = { name: 'areas', index, record: clone(areaItems[index]), isNew: false };
+                goToView('areas');
+              },
+            })
+          : null,
+      ]),
+      el('label', { class: 'a-field' }, [
+        el('span', { class: 'a-field__label', text: 'Hudud *' }),
+        select,
+        el('span', { class: 'a-field__hint', text: 'Tuman, hudud turi, turizm yo\'nalishlari, infratuzilma va kirish yo\'li shu hududdan olinadi.' }),
+      ]),
+    );
+  };
+
+  draw();
+  return host;
+}
+
+/** Bo'limga o'tish (yon menyudagi belgini ham yangilaydi). */
+function goToView(view) {
+  state.view = view;
+  for (const link of qsa('.sidebar__link')) link.classList.toggle('is-active', link.dataset.view === view);
+  render();
+}
+
+/**
+ * Ma'lumotnomaga bog'langan ko'p tanlovli maydon.
+ * Yonida «Ro'yxatni tahrirlash» havolasi bo'ladi — xodim yangi yo'nalish
+ * qo'shish uchun qaysi bo'limga borishni izlab yurmaydi.
+ */
+function taxonomyMultiSelect(record, { path, label, taxonomyPath, items }) {
+  return el('div', {}, [
+    multiSelectField(record, { path, label }, options(items)),
+    el('p', { class: 'a-small a-muted', style: 'margin:-0.4rem 0 0.9rem' }, [
+      'Ro\'yxatda kerakli qiymat yo\'qmi? ',
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--sm',
+        text: 'Ma\'lumotnomalarda tahrirlash',
+        onClick: () => {
+          if (state.dirty && !confirmAction('Saqlanmagan o\'zgarishlar bor. Ma\'lumotnomalarga o\'tasizmi?')) return;
+          state.dirty = false;
+          state.editing = null;
+          state.taxonomyFocus = taxonomyPath;
+          goToView('taxonomies');
+        },
+      }),
+    ]),
+  ]);
+}
 
 function auctionGroup(record, tax) {
   if (!record.auction) record.auction = LOTS_VIEW.blank().auction;
@@ -754,6 +1023,9 @@ function syncSlug(record, nameValue) {
  * Ilgari bu oddiy katak shakl oxirida edi va e'tibordan chetda qolardi:
  * yozuv kiritilardi, lekin saytda ko'rinmasdi.
  */
+/** `viewer` roli faqat ko'radi — o'zgartiruvchi tugmalar unga ko'rsatilmaydi. */
+const canEdit = () => state.user?.role !== 'viewer';
+
 function publishBar(record) {
   const host = el('div', {});
   const draw = () => {
@@ -816,8 +1088,15 @@ async function renderCollection(name, view) {
     );
   }
 
+  // Lotlar ro'yxatida hudud nomini ko'rsatish uchun qo'shimcha ma'lumot
+  const areaNames = new Map();
+  if (name === 'lots') {
+    const areas = await loadContent('areas');
+    for (const area of areas.items || []) areaNames.set(area.id, pick(area.name) || area.id);
+  }
+
   file.items.forEach((item, index) => {
-    const meta = (view.metaOf(item, tax, file) || []).filter(Boolean);
+    const meta = (view.metaOf(item, tax, file, { areaName: areaNames.get(item.areaId) }) || []).filter(Boolean);
     list.append(
       el('article', { class: `rec${item.published === false ? ' rec--unpublished' : ''}` }, [
         el('p', { class: 'rec__title' }, [
@@ -1071,7 +1350,11 @@ async function renderSiteView() {
   form.addEventListener('input', () => { state.dirty = true; });
   form.addEventListener('change', () => { state.dirty = true; });
 
-  setMain(el('div', { class: 'page-bar' }, [el('h1', { text: 'Sayt sozlamalari' })]), form);
+  setMain(
+    el('div', { class: 'page-bar' }, [el('h1', { text: 'Sayt sozlamalari' })]),
+    form,
+    ...(await maintenanceGroups()),
+  );
 }
 
 /** Rahbariyat ro'yxati. */
@@ -1543,7 +1826,7 @@ async function renderPagesView() {
     el('div', { class: 'page-bar' }, [el('h1', { text: 'Sahifa matnlari' })]),
     el('div', { class: 'a-alert a-alert--info' }, [
       el('p', { text: 'Har bir matn to\'rt tilda kiritiladi. Til tugmalari (ЎЗ / UZ / РУ / EN) yonidagi yashil nuqta — shu tilda matn borligini bildiradi.' }),
-      el('p', { class: 'a-small', text: 'Har saqlashdan oldin serverda avtomatik zaxira nusxa olinadi. Kerak bo\'lsa «Sayt holati va zaxira» bo\'limidan tiklash mumkin.' }),
+      el('p', { class: 'a-small', text: 'Har saqlashdan oldin serverda avtomatik zaxira nusxa olinadi. Kerak bo\'lsa «Sayt sozlamalari» bo\'limining pastidan tiklash mumkin.' }),
     ]),
     tabBar,
     form,
@@ -1698,18 +1981,50 @@ function telegramStatusLine(item) {
   if (!tg) {
     return el('p', { class: 'a-small a-muted', text: '📨 Telegram: yuborilmagan (bot sozlanmagan bo\'lishi mumkin)' });
   }
-  if (tg.delivered) {
-    return el('p', { class: 'a-small', style: 'color:var(--a-success)' }, [
-      `📨 Telegramga yuborildi${tg.attempts > 1 ? ` (${tg.attempts}-urinishda)` : ''} · ${formatDateTime(tg.at)}`,
-    ]);
-  }
   if (tg.skipped) {
     return el('p', { class: 'a-small a-muted', text: `📨 Telegram: o'tkazib yuborildi — ${tg.error}` });
   }
+
+  const list = Array.isArray(tg.recipients) ? tg.recipients : [];
+  const okCount = list.filter((entry) => entry.delivered).length;
+  const allOk = list.length > 0 ? okCount === list.length : tg.delivered === true;
+
+  // Oluvchilar ro'yxati — kim olgani va kim olmagani
+  const perRecipient = list.length > 1
+    ? el(
+        'ul',
+        { style: 'margin:0.2rem 0 0;padding-left:1.1rem' },
+        list.map((entry) =>
+          el('li', {
+            style: `color:var(--a-${entry.delivered ? 'success' : 'danger'})`,
+            text: `${entry.delivered ? '✓' : '✕'} ${entry.label || entry.chatId}${
+              entry.delivered ? '' : ` — ${entry.explained?.reason || entry.error || 'yuborilmadi'}`
+            }`,
+          }),
+        ),
+      )
+    : null;
+
+  if (allOk) {
+    return el('div', { class: 'a-small', style: 'color:var(--a-success)' }, [
+      el('p', {
+        text: `📨 Telegramga yuborildi${list.length > 1 ? ` — ${okCount} ta oluvchi` : ''}${
+          tg.attempts > 1 ? ` (${tg.attempts}-urinishda)` : ''
+        } · ${formatDateTime(tg.at)}`,
+      }),
+      perRecipient,
+    ]);
+  }
+
   // Xatolik sababi va yechimi server tomonidan tushunarli tilga o'girilgan
   return el('div', { class: 'a-small', style: 'color:var(--a-danger)' }, [
-    el('p', { text: `📨 Telegramga yuborilmadi — ${tg.explained?.reason || tg.error || 'nomalum xatolik'}` }),
-    tg.explained?.fix ? el('p', { text: tg.explained.fix }) : null,
+    el('p', {
+      text: list.length > 1 && okCount > 0
+        ? `📨 Telegramga qisman yuborildi — ${okCount}/${list.length} oluvchi`
+        : `📨 Telegramga yuborilmadi — ${tg.explained?.reason || tg.error || 'nomalum xatolik'}`,
+    }),
+    perRecipient,
+    !perRecipient && tg.explained?.fix ? el('p', { text: tg.explained.fix }) : null,
     tg.rounds ? el('p', { text: `Qayta urinishlar: ${tg.rounds} ta${tg.permanent ? ' · sozlama tuzatilmaguncha to\'xtatildi' : ''}` }) : null,
   ]);
 }
@@ -1835,53 +2150,113 @@ async function renderFilesView() {
   const data = await api.uploads();
   const items = data.items || [];
 
+  const removeFile = async (item) => {
+    const inUse = (item.usedIn || []).length > 0;
+    const question = inUse
+      ? `"${item.src}" fayli quyidagi joylarda ishlatilmoqda:\n\n${item.usedIn.join(', ')}\n\n`
+        + 'O\'chirsangiz, o\'sha joylarda rasm ko\'rinmay qoladi. Davom etasizmi?'
+      : `"${item.src}" o'chirilsinmi? Bu amalni qaytarib bo'lmaydi.`;
+    if (!confirmAction(question)) return;
+    try {
+      await api.deleteUpload(item.src, inUse);
+      toast('Fayl o\'chirildi', 'success');
+      render();
+    } catch (error) {
+      if (error.data?.error === 'in_use') {
+        toast(`Fayl ishlatilmoqda: ${(error.data.usedIn || []).join(', ')}`, 'error', 8000);
+        return;
+      }
+      toast(`O'chirilmadi: ${error.data?.error || error.message}`, 'error', 7000);
+    }
+  };
+
   const table = el('table', { class: 'a-table' }, [
-    el('thead', {}, [el('tr', {}, [el('th', { text: 'Fayl' }), el('th', { text: 'Hajmi' }), el('th', { text: 'Sana' }), el('th', { text: '' })])]),
+    el('thead', {}, [
+      el('tr', {}, [
+        el('th', { text: 'Fayl' }),
+        el('th', { text: 'Holati' }),
+        el('th', { text: 'Hajmi' }),
+        el('th', { text: 'Sana' }),
+        el('th', { text: '' }),
+      ]),
+    ]),
     el(
       'tbody',
       {},
       items.length === 0
-        ? [el('tr', {}, [el('td', { colspan: '4', class: 'a-muted', text: 'Fayl yuklanmagan.' })])]
+        ? [el('tr', {}, [el('td', { colspan: '5', class: 'a-muted', text: 'Fayl yuklanmagan.' })])]
         : items.map((item) =>
             el('tr', {}, [
               el('td', {}, [el('a', { href: item.src, target: '_blank', rel: 'noopener', text: item.src })]),
+              el('td', {}, [
+                (item.usedIn || []).length > 0
+                  ? el('span', { class: 'a-tag a-tag--success', text: item.usedIn.join(', ') })
+                  : el('span', { class: 'a-tag', text: 'ishlatilmagan' }),
+              ]),
               el('td', { text: formatBytes(item.sizeBytes) }),
               el('td', { text: formatDateTime(item.modifiedAt) }),
               el('td', {}, [
-                el('button', {
-                  type: 'button',
-                  class: 'a-btn a-btn--sm',
-                  text: 'Manzilni nusxalash',
-                  onClick: () => {
-                    navigator.clipboard?.writeText(item.src);
-                    toast('Nusxalandi', 'success');
-                  },
-                }),
+                el('div', { style: 'display:flex;gap:0.3rem;flex-wrap:wrap' }, [
+                  el('button', {
+                    type: 'button',
+                    class: 'a-btn a-btn--sm',
+                    text: 'Manzilni nusxalash',
+                    onClick: () => {
+                      navigator.clipboard?.writeText(item.src);
+                      toast('Nusxalandi', 'success');
+                    },
+                  }),
+                  canEdit()
+                    ? el('button', {
+                        type: 'button',
+                        class: 'a-btn a-btn--sm a-btn--danger',
+                        text: 'O\'chirish',
+                        onClick: () => removeFile(item),
+                      })
+                    : null,
+                ]),
               ]),
             ]),
           ),
     ),
   ]);
 
+  const unusedCount = items.filter((item) => (item.usedIn || []).length === 0).length;
+
   setMain(
-    el('div', { class: 'page-bar' }, [el('h1', { text: 'Fayllar' }), el('span', { class: 'a-tag', text: `${items.length} ta` })]),
+    el('div', { class: 'page-bar' }, [
+      el('h1', { text: 'Fayllar' }),
+      el('div', { class: 'page-bar__actions' }, [
+        el('span', { class: 'a-tag', text: `${items.length} ta` }),
+        unusedCount > 0 ? el('span', { class: 'a-tag a-tag--warning', text: `${unusedCount} tasi ishlatilmagan` }) : null,
+      ]),
+    ]),
     el('div', { class: 'group' }, [
       el('h2', { class: 'group__title', text: 'Yangi fayl yuklash' }),
-      el('p', { class: 'group__note', text: 'Ruxsat etilgan turlar: JPG, PNG, WEBP, AVIF, SVG, PDF, ZIP. Eng katta hajm: 25 MB.' }),
+      el('p', { class: 'group__note', text: 'Ruxsat etilgan turlar: JPG, PNG, WEBP, AVIF, SVG, PDF, ZIP, KMZ, KML. Eng katta hajm: 25 MB.' }),
       createDropZone({ folder: 'general', onUploaded: () => render() }),
+    ]),
+    el('p', { class: 'a-small a-muted' }, [
+      '«Holati» ustunida fayl qaysi bo\'limda ishlatilayotgani ko\'rinadi. ',
+      '«ishlatilmagan» deb belgilangan fayllarni xavfsiz o\'chirish mumkin.',
     ]),
     el('div', { class: 'a-table-wrap' }, [table]),
   );
 }
 
-/* ─────────────────────────── Sayt holati va zaxira ─────────────────────────── */
+/* ────────────────── Texnik xizmat (sayt sozlamalari ichida) ──────────────────
+ * Qurish avtomatik bajarilgani uchun alohida bo'lim kerak emas. Bu yerda
+ * faqat zarur hollarda ishlatiladigan narsalar qoldi: holat, ogohlantirishlar,
+ * qo'lda qurish va zaxira nusxalar.
+ */
 
-async function renderBuildView() {
+async function maintenanceGroups() {
   const info = await api.buildInfo().catch(() => ({ info: null }));
-  const logBox = el('pre', { class: 'a-log', text: 'Qurish jurnali shu yerda ko\'rinadi.' });
+  const logBox = el('pre', { class: 'a-log', hidden: true });
 
   const run = async (demo) => {
     if (demo && !confirmAction('DEMO rejimida qurishda saytga namunaviy ma\'lumotlar qo\'shiladi. Ishlab turgan saytda bu rejimni ishlatmang. Davom etasizmi?')) return;
+    logBox.hidden = false;
     logBox.textContent = 'Qurilmoqda…';
     try {
       const result = await api.build(demo);
@@ -1897,9 +2272,10 @@ async function renderBuildView() {
     ? el('div', { class: 'a-table-wrap' }, [
         el('table', { class: 'a-table' }, [
           el('tbody', {}, [
-            row('Oxirgi qurilish', `${info.info.isoDate} (${info.info.isoDateTime})`),
+            row('Oxirgi qurilish', formatDateTime(info.info.isoDateTime)),
             row('Rejim', info.info.demo ? 'DEMO — namunaviy ma\'lumotlar qo\'shilgan' : 'Faqat tasdiqlangan kontent'),
             row('Sahifalar', String(info.info.pages)),
+            row('Hududlar', String(info.info.areas ?? '—')),
             row('Lotlar', String(info.info.lots)),
             row('Master-rejalar', String(info.info.masterplans)),
             row('Yangiliklar', String(info.info.news)),
@@ -1910,44 +2286,40 @@ async function renderBuildView() {
 
   const warnings = (info.info?.warnings || []).length
     ? el('div', { class: 'a-alert a-alert--warning' }, [
-        el('strong', { text: `Oxirgi qurishdagi ogohlantirishlar (${info.info.warnings.length})` }),
+        el('strong', { text: `Saytda to'ldirilishi kerak bo'lgan joylar (${info.info.warnings.length})` }),
         el('ul', {}, info.info.warnings.map((message) => el('li', { text: message }))),
       ])
-    : null;
+    : el('div', { class: 'a-alert a-alert--success' }, [
+        el('p', { text: 'Ogohlantirish yo\'q — kontent to\'liq.' }),
+      ]);
 
-  setMain(
-    el('div', { class: 'page-bar' }, [el('h1', { text: 'Sayt holati va zaxira' })]),
-    el('div', { class: 'a-alert a-alert--success' }, [
-      el('strong', { text: 'Qurish avtomatik bajariladi' }),
-      el('p', { text: 'Har bir saqlashdan keyin sayt o\'zi qayta quriladi — bu bo\'limga kirish shart emas. Quyidagi tugmalar faqat zarur hollarda (masalan, fayl qo\'lda o\'zgartirilganda yoki xatolikdan keyin) kerak bo\'ladi.' }),
-    ]),
-    info.info?.demo
-      ? el('div', { class: 'a-alert a-alert--warning' }, [
-          el('strong', { text: 'Sayt hozir DEMO rejimida' }),
-          el('p', { text: 'Ommaviy foydalanishga topshirishdan oldin oddiy rejimda qayta quring.' }),
-        ])
-      : null,
-    warnings,
+  return [
     el('div', { class: 'group' }, [
-      el('h2', { class: 'group__title', text: 'Oxirgi qurilish' }),
+      el('h2', { class: 'group__title', text: 'Sayt holati' }),
+      el('p', { class: 'group__note', text: 'Sayt har saqlashdan keyin avtomatik qayta quriladi. Quyidagi tugmalar faqat zarur hollarda kerak.' }),
+      info.info?.demo
+        ? el('div', { class: 'a-alert a-alert--warning' }, [
+            el('strong', { text: 'Sayt hozir DEMO rejimida' }),
+            el('p', { text: 'Ommaviy foydalanishga topshirishdan oldin oddiy rejimda qayta quring.' }),
+          ])
+        : null,
+      warnings,
       details,
-    ]),
-    el('div', { class: 'group' }, [
-      el('h2', { class: 'group__title', text: 'Qo\'lda qurish' }),
-      el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem' }, [
-        el('button', { type: 'button', class: 'a-btn a-btn--primary', text: 'Saytni qurish', onClick: () => run(false) }),
-        el('button', { type: 'button', class: 'a-btn', text: 'DEMO rejimida qurish', onClick: () => run(true) }),
+      el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0' }, [
+        el('button', { type: 'button', class: 'a-btn', text: 'Saytni qayta qurish', onClick: () => run(false) }),
+        el('button', { type: 'button', class: 'a-btn a-btn--sm', text: 'DEMO rejimida qurish', onClick: () => run(true) }),
       ]),
       logBox,
     ]),
     await backupsGroup(),
-  );
+  ];
 }
 
 /** Kontentning avtomatik zaxira nusxalari — tiklash imkoniyati bilan. */
 async function backupsGroup() {
   const CONTENT_LABELS = {
-    lots: 'Hududlar va lotlar',
+    areas: 'Hududlar',
+    lots: 'Lotlar',
     masterplans: 'Master-rejalar',
     news: 'Yangiliklar',
     site: 'Sayt sozlamalari',
@@ -2034,6 +2406,10 @@ const TAXONOMY_GROUPS = [
 async function renderTaxonomiesView() {
   const tax = await loadContent('taxonomies');
   state.taxonomies = tax;
+  // Boshqa bo'limdan «Ma'lumotnomalarda tahrirlash» orqali kelingan bo'lsa,
+  // kerakli ro'yxatga o'zi siljiydi
+  const focus = state.taxonomyFocus;
+  state.taxonomyFocus = null;
 
   const groups = TAXONOMY_GROUPS.map((cfg) => {
     let items = getPath(tax, cfg.path);
@@ -2098,7 +2474,7 @@ async function renderTaxonomiesView() {
 
     draw();
 
-    return el('section', { class: 'group' }, [
+    return el('section', { class: 'group', dataset: { taxonomy: cfg.path } }, [
       el('h2', { class: 'group__title', text: cfg.label }),
       cfg.note ? el('p', { class: 'group__note', text: cfg.note }) : null,
       list,
@@ -2160,11 +2536,26 @@ async function renderTaxonomiesView() {
     el('div', { class: 'page-bar' }, [el('h1', { text: 'Ma\'lumotnomalar' })]),
     el('div', { class: 'a-alert a-alert--warning' }, [
       el('strong', { text: 'Ehtiyotkorlik bilan tahrirlang' }),
-      el('p', { text: 'Bu ro\'yxatlar lotlar, master-rejalar va saytdagi filtrlarda ishlatiladi. Identifikator (id) mavjud yozuvlarda o\'zgartirilmaydi, chunki lotlar unga bog\'langan. Nomlarni to\'rt tilda erkin tahrirlash mumkin.' }),
+      el('p', { text: 'Bu ro\'yxatlar hududlar, lotlar va saytdagi filtrlarda ishlatiladi. Identifikator (id) mavjud yozuvlarda o\'zgartirilmaydi, chunki hududlar unga bog\'langan. Nomlarni to\'rt tilda erkin tahrirlash mumkin.' }),
       el('p', { class: 'a-small', text: '«tizimli» deb belgilangan yozuvlar saytning ishlash mantig\'ida ishlatiladi — ularni o\'chirmaslik tavsiya etiladi.' }),
     ]),
     form,
   );
+
+  if (focus) {
+    const target = qs(`[data-taxonomy="${focus}"]`);
+    if (target) {
+      // setMain() sahifani tepaga qaytaradi, shuning uchun siljish keyingi
+      // kadrda bajariladi. `smooth` ba'zi brauzerlarda ishlamay qolgani uchun
+      // aniq qiymat bilan siljitamiz.
+      requestAnimationFrame(() => {
+        const top = target.getBoundingClientRect().top + window.scrollY - 20;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      });
+      target.classList.add('is-highlighted');
+      setTimeout(() => target.classList.remove('is-highlighted'), 4000);
+    }
+  }
 }
 
 /* ─────────────────────────── Foydalanuvchilar ─────────────────────────── */
@@ -2482,20 +2873,97 @@ async function renderTelegramView() {
     placeholder: r.hasToken ? `Saqlangan: ${r.tokenMasked}` : '1234567890:AAEhBOweik6ad9r_QXzR1_ABC…',
     autocomplete: 'off',
   });
-  const chatInput = el('input', {
-    type: 'text',
-    class: 'a-input',
-    value: r.chatId || '',
-    placeholder: '-1001234567890  yoki  @kanal_nomi',
-    autocomplete: 'off',
-  });
-  const threadInput = el('input', {
-    type: 'text',
-    class: 'a-input',
-    value: r.threadId || '',
-    placeholder: 'ixtiyoriy — forum guruhidagi mavzu raqami',
-    autocomplete: 'off',
-  });
+  /* ── Xabar oluvchilar ro'yxati ──
+   * Murojaat bir nechta chatga yuborilishi mumkin: rahbar, mas'ul xodim,
+   * umumiy guruh. Biri ishlamasa, qolganlariga xabar boradi.
+   */
+  const recipients = (r.recipients || []).map((item) => ({ ...item }));
+  const recipientsBox = el('div', { class: 'list-editor' });
+
+  const drawRecipients = () => {
+    recipientsBox.innerHTML = '';
+    if (recipients.length === 0) {
+      recipientsBox.append(
+        el('p', { class: 'a-muted a-small', text: 'Oluvchi qo\'shilmagan — murojaatlar hech kimga yuborilmaydi.' }),
+      );
+    }
+    recipients.forEach((item, index) => {
+      const statusTag = item.ok === true
+        ? el('span', { class: 'a-tag a-tag--success', text: `✓ ${item.type === 'private' ? 'shaxsiy' : item.type === 'channel' ? 'kanal' : 'guruh'}${item.title ? ` · ${item.title}` : ''}` })
+        : item.ok === false
+          ? el('span', { class: 'a-tag a-tag--warning', text: item.problem?.reason || 'tekshirilmadi' })
+          : null;
+
+      recipientsBox.append(
+        el('div', { class: 'list-item' }, [
+          el('div', { class: 'list-item__body' }, [
+            el('div', { class: 'a-row' }, [
+              el('label', { class: 'a-field' }, [
+                el('span', { class: 'a-field__label', text: 'chat_id *' }),
+                el('input', {
+                  type: 'text',
+                  class: 'a-input',
+                  value: item.chatId || '',
+                  placeholder: '-1001234567890  yoki  @kanal_nomi',
+                  autocomplete: 'off',
+                  onInput: (e) => { item.chatId = e.target.value.trim(); },
+                }),
+              ]),
+              el('label', { class: 'a-field' }, [
+                el('span', { class: 'a-field__label', text: 'Kim (izoh)' }),
+                el('input', {
+                  type: 'text',
+                  class: 'a-input',
+                  value: item.label || '',
+                  placeholder: 'Masalan: direktor, mas\'ul xodim, umumiy guruh',
+                  onInput: (e) => { item.label = e.target.value; },
+                }),
+              ]),
+              el('label', { class: 'a-field' }, [
+                el('span', { class: 'a-field__label', text: 'Forum mavzusi' }),
+                el('input', {
+                  type: 'text',
+                  class: 'a-input',
+                  value: item.threadId || '',
+                  placeholder: 'ixtiyoriy',
+                  onInput: (e) => { item.threadId = e.target.value.trim(); },
+                }),
+              ]),
+            ]),
+            statusTag,
+            item.ok === false && item.problem?.fix
+              ? el('p', { class: 'a-small a-muted', text: item.problem.fix })
+              : null,
+            el('label', { class: 'a-check' }, [
+              el('input', {
+                type: 'checkbox',
+                checked: item.disabled === true,
+                onChange: (e) => { item.disabled = e.target.checked; },
+              }),
+              el('span', { text: 'Vaqtincha yubormaslik' }),
+            ]),
+          ]),
+          el('div', { class: 'list-item__tools' }, [
+            el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm a-btn--danger',
+              text: '✕',
+              onClick: () => {
+                recipients.splice(index, 1);
+                drawRecipients();
+              },
+            }),
+          ]),
+        ]),
+      );
+    });
+  };
+  drawRecipients();
+
+  const addRecipient = (chatId = '', label = '') => {
+    recipients.push({ chatId, label, threadId: '', disabled: false, ok: null });
+    drawRecipients();
+  };
 
   const chatsBox = el('div', { class: 'a-small a-muted', style: 'margin-top:0.5rem' });
 
@@ -2504,10 +2972,8 @@ async function renderTelegramView() {
     class: 'a-btn a-btn--primary',
     text: 'Saqlash va tekshirish',
     onClick: async () => {
-      const payload = {};
+      const payload = { recipients: recipients.filter((item) => String(item.chatId || '').trim() !== '') };
       if (tokenInput.value.trim() !== '') payload.botToken = tokenInput.value.trim();
-      payload.chatId = chatInput.value.trim();
-      payload.threadId = threadInput.value.trim();
       saveButton.disabled = true;
       try {
         await api.telegramSave(payload);
@@ -2517,8 +2983,9 @@ async function renderTelegramView() {
       } catch (error) {
         const messages = {
           token_format: 'Bot tokeni noto\'g\'ri ko\'rinishda. @BotFather bergan tokenni to\'liq nusxalang.',
-          chat_id_format: 'chat_id noto\'g\'ri. Masalan: 123456789, -1001234567890 yoki @kanal_nomi',
+          chat_id_format: `chat_id noto'g'ri${error.data?.value ? `: «${error.data.value}»` : ''}. Masalan: 123456789, -1001234567890 yoki @kanal_nomi`,
           thread_id_format: 'Mavzu raqami faqat sondan iborat bo\'lishi kerak.',
+          too_many_recipients: 'Oluvchilar soni 20 tadan oshmasligi kerak.',
           admin_only: 'Bu amalni faqat admin roli bajaradi.',
         };
         toast(messages[error.data?.error] || `Saqlanmadi: ${error.message}`, 'error', 7000);
@@ -2531,7 +2998,7 @@ async function renderTelegramView() {
   const findChatsButton = el('button', {
     type: 'button',
     class: 'a-btn',
-    text: 'chat_id ni aniqlash',
+    text: 'chat_id larni aniqlash',
     onClick: async () => {
       chatsBox.textContent = 'Tekshirilmoqda…';
       try {
@@ -2549,10 +3016,14 @@ async function renderTelegramView() {
               type: 'button',
               class: 'a-btn a-btn--sm',
               style: 'margin:0.15rem 0.3rem 0.15rem 0',
-              text: `${chat.id} · ${kind} · ${chat.title || '—'}`,
+              text: `+ ${chat.id} · ${kind} · ${chat.title || '—'}`,
               onClick: () => {
-                chatInput.value = chat.id;
-                toast('chat_id qo\'yildi — «Saqlash va tekshirish» ni bosing', 'info');
+                if (recipients.some((item) => String(item.chatId) === String(chat.id))) {
+                  toast('Bu chat allaqachon ro\'yxatda', 'warning');
+                  return;
+                }
+                addRecipient(String(chat.id), chat.title || '');
+                toast('Oluvchi qo\'shildi — «Saqlash va tekshirish» ni bosing', 'info');
               },
             }),
           );
@@ -2623,8 +3094,18 @@ async function renderTelegramView() {
         ),
         row('Bot', r.bot ? `@${r.bot.username} (${r.bot.name})` : '— tekshirilmagan'),
         row('Bot tokeni', r.hasToken ? `${r.tokenMasked}  (manba: ${r.source?.botToken === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
-        row('Chat', r.chat ? `${r.chat.title || '—'} · ${r.chat.type} · ${r.chat.id}` : r.chatId ? `${r.chatId} (tekshirilmagan)` : '— kiritilmagan'),
-        row('Forum mavzusi', r.threadId || '—'),
+        row(
+          'Xabar oluvchilar',
+          (r.recipients || []).length === 0
+            ? '— kiritilmagan'
+            : r.recipients
+                .map((item) => {
+                  const who = item.label || item.title || '';
+                  const mark = item.disabled ? '⏸' : item.ok === true ? '✓' : item.ok === false ? '✕' : '?';
+                  return `${mark} ${item.chatId}${item.threadId ? `/${item.threadId}` : ''}${who ? ` — ${who}` : ''}`;
+                })
+                .join('\n'),
+        ),
         row('API manzili', r.apiBase || '—'),
         row('.env fayli', data.envFileLoaded ? 'yuklangan' : 'topilmadi (majburiy emas)'),
         row('Murojaat shakli', data.contactEndpoint ? `faol → ${data.contactEndpoint}` : 'faolsiz'),
@@ -2653,8 +3134,8 @@ async function renderTelegramView() {
           el('li', { text: 'Telegramda @BotFather ni oching va /newbot buyrug\'ini yuboring.' }),
           el('li', { text: 'Bot nomini va foydalanuvchi nomini kiriting (oxiri "bot" bilan tugashi shart).' }),
           el('li', { text: 'BotFather bergan tokenni quyidagi maydonga qo\'ying.' }),
-          el('li', { text: 'Murojaatlar keladigan guruhni yaratib, botni unga qo\'shing va guruhda biror xabar yozing.' }),
-          el('li', { text: '«chat_id ni aniqlash» tugmasini bosib, guruhni tanlang.' }),
+          el('li', { text: 'Xabar olishi kerak bo\'lgan har bir xodim botni ochib «Start» tugmasini bossin. Guruhga yuborish kerak bo\'lsa, botni guruhga qo\'shib, guruhda biror xabar yozing.' }),
+          el('li', { text: '«chat_id larni aniqlash» tugmasini bosib, kerakli chatlarni ro\'yxatga qo\'shing.' }),
         ]),
       ]),
       isAdmin
@@ -2664,17 +3145,22 @@ async function renderTelegramView() {
               tokenInput,
               el('span', { class: 'a-field__hint', text: r.hasToken ? 'Bo\'sh qoldirsangiz, saqlangan token o\'zgarmaydi.' : '@BotFather dan olingan token.' }),
             ]),
-            el('label', { class: 'a-field' }, [
-              el('span', { class: 'a-field__label', text: 'chat_id — murojaatlar keladigan chat' }),
-              chatInput,
+
+            el('h3', { class: 'group__subtitle', text: 'Xabar oluvchilar' }),
+            el('p', { class: 'group__note', text: 'Har bir murojaat quyidagi barcha chatlarga yuboriladi. Bir nechta xodim va guruhni qo\'shish mumkin — biriga yetmasa, qolganlariga boradi.' }),
+            recipientsBox,
+            el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.5rem 0' }, [
+              el('button', {
+                type: 'button',
+                class: 'a-btn a-btn--sm',
+                text: '+ Qo\'lda qo\'shish',
+                onClick: () => addRecipient(),
+              }),
+              findChatsButton,
             ]),
-            el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem' }, [findChatsButton]),
             chatsBox,
-            el('label', { class: 'a-field' }, [
-              el('span', { class: 'a-field__label', text: 'Forum mavzusi (ixtiyoriy)' }),
-              threadInput,
-            ]),
-            disableToggle,
+
+            el('div', { style: 'margin-top:1rem' }, [disableToggle]),
             el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap' }, [saveButton]),
           ])
         : el('p', { class: 'a-muted', text: 'Sizning rolingiz sozlamalarni o\'zgartirishga ruxsat bermaydi.' }),

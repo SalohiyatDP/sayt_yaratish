@@ -111,7 +111,7 @@ export function newsItemPage(ctx, item) {
             <h2 class="minor-title">${t('news.related')}</h2>
             <ul class="bare-list bare-list--links">
               ${relatedLots.map(
-                (lot) => html`<li><a href="${ctx.url('areas', lot.slug)}">${icon('pin', { size: 14 })}${ctx.pick(lot.name)}</a></li>`,
+                (lot) => html`<li><a href="${ctx.url('lots', lot.slug)}">${icon('pin', { size: 14 })}${ctx.pick(lot.name)}</a></li>`,
               )}
               ${relatedPlans.map(
                 (plan) => html`<li><a href="${ctx.url('masterplans', plan.slug)}">${icon('layers', { size: 14 })}${ctx.pick(plan.title)}</a></li>`,
