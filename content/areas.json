@@ -1,0 +1,42 @@
+{
+  "_note": "Turistik-rekreatsion HUDUDLAR. Hudud — umumiy maydon (masalan, «Chodak daryo bo'yi rekreatsion hududi»). Lotlar shu hudud ICHIDA joylashadi va content/lots.json faylida alohida kiritiladi. Soxta hudud, taxminiy chegara yoki tasdiqlanmagan maydon kiritish QAT'IYAN man etiladi.",
+
+  "_template": {
+    "id": "area-0001",
+    "slug": "hudud-nomi",
+    "name": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "district": "chortoq",
+    "areaType": "mountain",
+    "location": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "coordinates": null,
+    "boundary": null,
+    "boundarySource": "",
+    "totalAreaHa": null,
+    "tourismDirections": [],
+    "shortDescription": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "description": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "media": [],
+    "access": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "infrastructure": [],
+    "masterplanId": null,
+    "documents": [],
+    "updatedAt": "",
+    "published": false,
+    "demo": false
+  },
+
+  "_fieldGuide": {
+    "district": "content/taxonomies.json -> districts ro'yxatidagi id.",
+    "areaType": "content/taxonomies.json -> areaTypes ro'yxatidagi id.",
+    "coordinates": "{ \"lat\": 41.07, \"lng\": 71.81 } — hududning markaziy nuqtasi. Odatda KMZ fayl orqali to'ldiriladi.",
+    "boundary": "[[lat, lng], ...] — hududning umumiy chegarasi. Kamida 3 nuqta. KMZ fayldan olinadi.",
+    "totalAreaHa": "Hududning umumiy maydoni (gektar). Faqat rasmiy hujjatdagi qiymat.",
+    "tourismDirections": "Hudud bo'yicha umumiy yo'nalishlar. Lotlar shu ro'yxatni meros qilib oladi.",
+    "infrastructure": "Hududga umumiy tegishli infratuzilma: yo'l, elektr, suv, gaz.",
+    "masterplanId": "content/masterplans.json dagi master-reja id si. Bo'sh bo'lsa, bog'lanish ko'rsatilmaydi.",
+    "published": "false — qoralama, saytda ko'rinmaydi.",
+    "demo": "true — namunaviy yozuv, «DEMO» nishoni bilan chiqadi."
+  },
+
+  "items": []
+}

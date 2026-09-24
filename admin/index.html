@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Boshqaruv paneli — Direksiya sayti</title>
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+
+<!-- ─────────────── Kirish ekrani ─────────────── -->
+<section class="login" id="login-screen" hidden>
+  <form class="login__card" id="login-form" autocomplete="on">
+    <h1 class="login__title">Boshqaruv paneli</h1>
+    <p class="login__sub">Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi</p>
+
+    <div class="a-alert a-alert--error" id="login-error" hidden></div>
+
+    <label class="a-field">
+      <span class="a-field__label">Foydalanuvchi nomi</span>
+      <input type="text" name="username" id="login-username" autocomplete="username" required>
+    </label>
+    <label class="a-field">
+      <span class="a-field__label">Parol</span>
+      <input type="password" name="password" id="login-password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="a-btn a-btn--primary a-btn--block" id="login-submit">Kirish</button>
+    <p class="login__note">
+      Bu bo'lim faqat vakolatli xodimlar uchun. Seans 8 soatdan keyin avtomatik tugaydi.
+    </p>
+  </form>
+</section>
+
+<!-- ─────────────── Birinchi administratorni yaratish ─────────────── -->
+<section class="login" id="setup-screen" hidden>
+  <form class="login__card login__card--wide" id="setup-form" autocomplete="off">
+    <h1 class="login__title">Birinchi administrator</h1>
+    <p class="login__sub">Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi</p>
+
+    <div class="a-alert a-alert--info">
+      <strong>Panel hali sozlanmagan</strong>
+      <p>
+        Xavfsizlik uchun bir martalik kalit talab qilinadi. Kalit serverda
+        quyidagi faylda turadi — uni hosting fayl menejeri orqali oching:
+      </p>
+      <code id="setup-key-file">server/data/setup-key.txt</code>
+      <p class="small">
+        Kalitni Node.js ilovasining jurnalidan (log) ham ko'rish mumkin.
+        Administrator yaratilgach kalit avtomatik o'chiriladi.
+      </p>
+    </div>
+
+    <div class="a-alert a-alert--warning" id="setup-key-missing" hidden>
+      <strong>Kalit fayli topilmadi</strong>
+      <p>Serverni qayta ishga tushiring — kalit avtomatik yaratiladi.</p>
+    </div>
+
+    <div class="a-alert a-alert--error" id="setup-error" hidden></div>
+
+    <label class="a-field">
+      <span class="a-field__label">Bir martalik kalit</span>
+      <input type="text" id="setup-key" placeholder="NRS-XXXX-XXXX-XXXX-XXXX"
+             autocomplete="off" spellcheck="false" required>
+      <span class="a-field__hint">Katta-kichik harf va chiziqchalar farqi yo'q.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Foydalanuvchi nomi</span>
+      <input type="text" id="setup-username" autocomplete="off" spellcheck="false"
+             pattern="[A-Za-z0-9._\-]{3,40}" required>
+      <span class="a-field__hint">3–40 belgi: lotin harflari, raqam, nuqta, chiziqcha.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">To'liq ism (ixtiyoriy)</span>
+      <input type="text" id="setup-name" autocomplete="off">
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Parol</span>
+      <input type="password" id="setup-password" autocomplete="new-password" minlength="12" required>
+      <span class="a-field__hint">Kamida 12 belgi. Foydalanuvchi nomini takrorlamasin.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Parolni takrorlang</span>
+      <input type="password" id="setup-password2" autocomplete="new-password" minlength="12" required>
+    </label>
+
+    <button type="submit" class="a-btn a-btn--primary a-btn--block" id="setup-submit">
+      Administratorni yaratish
+    </button>
+    <p class="login__note">
+      Bu shakl faqat bir marta — hech qanday foydalanuvchi bo'lmaganda ishlaydi.
+      Keyingi xodimlarni panelning «Foydalanuvchilar» bo'limidan qo'shasiz.
+    </p>
+  </form>
+</section>
+
+<!-- ─────────────── Asosiy interfeys ─────────────── -->
+<div class="shell" id="app-shell" hidden>
+  <aside class="sidebar">
+    <div class="sidebar__head">
+      <span class="sidebar__logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="32" height="32"><rect width="64" height="64" rx="12" fill="#0b2e4f"/><path d="M10 44 L24 22 L33 36 L38 28 L54 44 Z" fill="#fff"/></svg>
+      </span>
+      <div>
+        <p class="sidebar__title">Boshqaruv paneli</p>
+        <p class="sidebar__user" id="current-user"></p>
+      </div>
+    </div>
+
+    <nav class="sidebar__nav" aria-label="Bo'limlar">
+      <button type="button" class="sidebar__link is-active" data-view="areas">Hududlar<span class="sidebar__count" data-count="areas"></span></button>
+      <button type="button" class="sidebar__link" data-view="lots">Lotlar<span class="sidebar__count" data-count="lots"></span></button>
+      <button type="button" class="sidebar__link" data-view="masterplans">Master-rejalar<span class="sidebar__count" data-count="masterplans"></span></button>
+      <button type="button" class="sidebar__link" data-view="news">Yangiliklar<span class="sidebar__count" data-count="news"></span></button>
+      <hr>
+      <button type="button" class="sidebar__link" data-view="site">Sayt sozlamalari</button>
+      <button type="button" class="sidebar__link" data-view="pages">Sahifa matnlari</button>
+      <button type="button" class="sidebar__link" data-view="taxonomies">Ma'lumotnomalar</button>
+      <hr>
+      <button type="button" class="sidebar__link" data-view="inbox">Murojaatlar<span class="sidebar__count" data-count="inbox"></span></button>
+      <button type="button" class="sidebar__link" data-view="telegram">Telegram<span class="sidebar__count" data-count="telegram"></span></button>
+      <button type="button" class="sidebar__link" data-view="files">Fayllar</button>
+      <hr>
+      <button type="button" class="sidebar__link" data-view="users">Foydalanuvchilar</button>
+      <button type="button" class="sidebar__link" data-view="account">Mening parolim</button>
+    </nav>
+
+    <div class="sidebar__foot">
+      <a class="a-btn a-btn--ghost a-btn--sm" href="/" target="_blank" rel="noopener">Saytni ochish ↗</a>
+      <button type="button" class="a-btn a-btn--ghost a-btn--sm" id="logout">Chiqish</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main-view">
+    <p class="a-loading">Yuklanmoqda…</p>
+  </main>
+</div>
+
+<div class="toast-stack" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module" src="/admin/app.js"></script>
+<noscript>
+  <p style="padding:2rem;font-family:system-ui">Boshqaruv panelida ishlash uchun JavaScript yoqilgan bo'lishi kerak.</p>
+</noscript>
+</body>
+</html>

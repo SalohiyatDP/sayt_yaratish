@@ -1,22 +1,33 @@
 # Qurilgan statik sayt (build natijasi)
 /dist/
 
+# Hostingga yuklash uchun yasalgan to'plamlar
+/release/
+
 # Mahalliy sozlamalar va maxfiy ma'lumotlar
 .env
 .env.local
 server/data/session-secret
 server/data/admin-users.json
+server/data/setup-key.txt
+
+# Telegram bot sozlamalari (bot tokeni maxfiy!)
+server/data/telegram.json
 
 # Kontentning avtomatik zaxira nusxalari (serverda saqlanadi)
 server/data/backups/
 
-# Murojaatlar qutisi (shaxsiy ma'lumotlar saqlanadi — hech qachon repozitoriyga tushmasligi kerak)
-/content/inbox/
+# Murojaatlar qutisi (shaxsiy ma'lumotlar saqlanadi — hech qachon repozitoriyaga tushmasligi kerak)
+/content/inbox/*
 !/content/inbox/.gitkeep
 
 # Boshqaruv paneli orqali yuklangan fayllar (og'ir media)
 /assets/uploads/*
 !/assets/uploads/.gitkeep
+
+# Vaqtinchalik ish fayllari
+.commit-msg.tmp
+scripts/_tmp-*
 
 # Tizim fayllari
 .DS_Store

@@ -1,0 +1,144 @@
+{
+  "$schema": "./_schema/site.schema.json",
+  "_note": "Bu fayl saytning umumiy ma'lumotlarini saqlaydi. Qiymati null yoki bo'sh bo'lgan maydonlar saytda 'Ma'lumot hozircha joylashtirilmagan' holatida ko'rsatiladi. Hech qanday maydonni taxminiy ma'lumot bilan to'ldirmang.",
+  "institution": {
+    "name": {
+      "uz-cyrl": "Наманган вилояти ҳокимлиги ҳузуридаги «Наманган туристик-рекреацион ҳудудларини ривожлантириш дирекцияси» давлат муассасаси",
+      "uz": "Namangan viloyati hokimligi huzuridagi «Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi» davlat muassasasi",
+      "ru": "Государственное учреждение «Дирекция по развитию туристско-рекреационных территорий Намангана» при хокимияте Наманганской области",
+      "en": "State Institution \"Directorate for the Development of Tourist and Recreational Areas of Namangan\" under the Khokimiyat of Namangan Region"
+    },
+    "shortName": {
+      "uz-cyrl": "Туристик-рекреацион ҳудудларни ривожлантириш дирекцияси",
+      "uz": "Turistik-rekreatsion hududlarni rivojlantirish direksiyasi",
+      "ru": "Дирекция по развитию туристско-рекреационных территорий",
+      "en": "Tourist and Recreational Areas Development Directorate"
+    },
+    "abbr": {
+      "uz-cyrl": "Дирекция",
+      "uz": "Direksiya",
+      "ru": "Дирекция",
+      "en": "Directorate"
+    },
+    "_translationNote": "Rus va ingliz tilidagi nomlar dastlabki tarjima. Muassasa nizomidagi rasmiy tarjima bilan solishtirib tasdiqlang.",
+    "legalBasis": [
+      {
+        "code": "PQ-220",
+        "title": {
+          "uz-cyrl": "Ўзбекистон Республикаси Президентининг қарори (ПҚ-220)",
+          "uz": "O'zbekiston Respublikasi Prezidentining qarori (PQ-220)",
+          "ru": "Постановление Президента Республики Узбекистан (ПП-220)",
+          "en": "Resolution of the President of the Republic of Uzbekistan (PQ-220)"
+        },
+        "url": "https://lex.uz/docs/8263817",
+        "note": {
+          "uz-cyrl": "Дирекция шу қарорга асосан ташкил этилган. Ҳужжат матни Ўзбекистон Республикаси қонун ҳужжатлари маълумотлари миллий базасида (lex.uz) эълон қилинган.",
+          "uz": "Direksiya shu qarorga asosan tashkil etilgan. Hujjat matni O'zbekiston Respublikasi qonun hujjatlari ma'lumotlari milliy bazasida (lex.uz) e'lon qilingan.",
+          "ru": "Дирекция создана на основании данного постановления. Текст документа опубликован в Национальной базе данных законодательства Республики Узбекистан (lex.uz).",
+          "en": "The Directorate was established pursuant to this resolution. The text of the document is published in the National Database of Legislation of the Republic of Uzbekistan (lex.uz)."
+        }
+      }
+    ]
+  },
+  "mission": {
+    "uz-cyrl": "Наманган вилоятининг тоғли ҳудудлари, дарё бўйлари ва сув омборлари атрофидаги ер майдонларини ўрганиш, уларнинг туристик-рекреацион салоҳиятини баҳолаш, мастер-режалар ишлаб чиқиш ҳамда тайёрланган лотларни расмий электрон аукцион орқали тадбиркорларга тақдим этиш.",
+    "uz": "Namangan viloyatining tog'li hududlari, daryo bo'ylari va suv omborlari atrofidagi yer maydonlarini o'rganish, ularning turistik-rekreatsion salohiyatini baholash, master-rejalar ishlab chiqish hamda tayyorlangan lotlarni rasmiy elektron auksion orqali tadbirkorlarga taqdim etish.",
+    "ru": "Изучение земельных участков в горных районах, вдоль рек и вокруг водохранилищ Наманганской области, оценка их туристско-рекреационного потенциала, разработка мастер-планов и представление подготовленных лотов предпринимателям через официальную электронную аукционную платформу.",
+    "en": "Studying land plots in the mountainous areas, river valleys and around reservoirs of the Namangan region, assessing their tourist and recreational potential, developing master plans, and offering prepared lots to entrepreneurs through the official electronic auction platform."
+  },
+  "slogan": {
+    "uz-cyrl": "Лойиҳалаштирамиз. Яратамиз. Ривожлантирамиз.",
+    "uz": "Loyihalashtiramiz. Yaratamiz. Rivojlantiramiz.",
+    "ru": "Проектируем. Создаём. Развиваем.",
+    "en": "We design. We create. We develop."
+  },
+  "contacts": {
+    "_note": "Faqat tasdiqlangan rasmiy rekvizitlarni kiriting. Bo'sh qoldirilgan maydonlar saytda ko'rsatilmaydi.",
+    "address": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
+    "postalCode": "",
+    "coordinates": null,
+    "phones": [],
+    "emails": [],
+    "website": "",
+    "workingHours": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
+    "receptionHours": {
+      "uz-cyrl": "",
+      "uz": "",
+      "ru": "",
+      "en": ""
+    },
+    "social": [],
+    "mapEmbedNote": {
+      "uz-cyrl": "Дирекция манзили тасдиқлангандан сўнг харитада кўрсатилади.",
+      "uz": "Direksiya manzili tasdiqlangandan so'ng xaritada ko'rsatiladi.",
+      "ru": "Адрес Дирекции будет отображён на карте после подтверждения.",
+      "en": "The Directorate's address will be shown on the map once confirmed."
+    }
+  },
+  "eauction": {
+    "_note": "platformUrl — E-auksion platformasining umumiy manzili. Har bir lotning aniq havolasi lotning o'zida (auction.lotUrl) saqlanadi. Umumiy manzilni hech qachon muayyan lot havolasi sifatida ko'rsatmang.",
+    "platformName": "E-auksion",
+    "platformUrl": "https://e-auksion.uz",
+    "notice": {
+      "uz-cyrl": "Аукционда иштирок этиш, ариза топшириш, кафолат тўловини амалга ошириш ва шартнома тузиш тартиби E-auksion электрон савдо платформасида белгиланган қоидалар асосида амалга оширилади. Дирекция веб-сайти аукцион савдоларини ўтказмайди ва тўловларни қабул қилмайди.",
+      "uz": "Auksionda ishtirok etish, ariza topshirish, kafolat to'lovini amalga oshirish va shartnoma tuzish tartibi E-auksion elektron savdo platformasida belgilangan qoidalar asosida amalga oshiriladi. Direksiya veb-sayti auksion savdolarini o'tkazmaydi va to'lovlarni qabul qilmaydi.",
+      "ru": "Участие в аукционе, подача заявки, внесение гарантийного платежа и заключение договора осуществляются в соответствии с правилами, установленными на электронной торговой платформе E-auksion. Веб-сайт Дирекции не проводит аукционные торги и не принимает платежи.",
+      "en": "Participation in the auction, submission of applications, payment of the guarantee deposit and conclusion of contracts are carried out in accordance with the rules established on the E-auksion electronic trading platform. The Directorate's website does not conduct auctions and does not accept payments."
+    }
+  },
+  "statistics": {
+    "_note": "Statistik ko'rsatkichlar faqat tasdiqlangan hujjat asosida kiritiladi. Ro'yxat bo'sh bo'lsa, bosh sahifada statistika bloki umuman ko'rsatilmaydi. Taxminiy yoki 'chiroyli' raqamlar kiritish qat'iyan man etiladi.",
+    "verified": false,
+    "source": "",
+    "asOfDate": "",
+    "items": []
+  },
+  "leadership": {
+    "_note": "Rahbariyat ma'lumotlari faqat kadrlar bo'limi tasdiqlagan ro'yxat asosida to'ldiriladi.",
+    "items": []
+  },
+  "structure": {
+    "_note": "Muassasa tuzilmasi tasdiqlangan shtat jadvali asosida to'ldiriladi.",
+    "items": []
+  },
+  "documents": {
+    "_note": "Me'yoriy hujjatlar ro'yxati. Har bir yozuvda title, url (yoki file) va sana bo'lishi kerak.",
+    "items": []
+  },
+  "media": {
+    "_note": "Brend va bosh sahifa tasvirlari. logo — rasmiy logotip fayli (SVG tavsiya etiladi); u joylashtirilmaguncha saytda neytral vaqtinchalik belgi ko'rinadi. heroImage — FAQAT Namangan viloyatining haqiqiy fotosurati bo'lishi kerak; u bo'lmasa bosh ekranda fotosurat o'rniga abstrakt geometrik bezak ishlatiladi.",
+    "logo": "",
+    "logoDark": "",
+    "heroImage": null,
+    "ogImage": ""
+  },
+  "features": {
+    "_note": "Sayt funksiyalarini yoqish/o'chirish. contactFormEndpoint null bo'lsa, murojaat shakli 'qabul qilish tizimi ulanmagan' holatini ochiq ko'rsatadi va soxta muvaffaqiyat xabari chiqarmaydi.",
+    "contactFormEndpoint": "/api/contact",
+    "contactFormFallbackEmail": "",
+    "mapTileUrl": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "mapTileAttribution": "© OpenStreetMap",
+    "analyticsSnippet": "",
+    "showDemoBanner": true
+  },
+  "seo": {
+    "canonicalOrigin": "https://namresort.uz",
+    "defaultLocale": "uz-cyrl",
+    "locales": [
+      "uz-cyrl",
+      "uz",
+      "ru",
+      "en"
+    ]
+  }
+}

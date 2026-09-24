@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Direksiya">
+  <!--
+    VAQTINCHALIK BELGI.
+    Bu Direksiyaning rasmiy logotipi EMAS — u faqat rasmiy logotip fayli
+    joylashtirilmaguncha ishlatiladigan neytral geometrik belgi.
+    Rasmiy logotip berilgach, assets/img/logo.svg fayli qo'shiladi va
+    bu fayl ham unga mos ravishda almashtiriladi.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b2e4f"/>
+      <stop offset="1" stop-color="#0d7d8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#bg)"/>
+  <path d="M10 44 L24 22 L33 36 L38 28 L54 44 Z" fill="#ffffff" fill-opacity="0.94"/>
+  <path d="M10 50c5 0 5 3 10 3s5-3 10-3 5 3 10 3 5-3 10-3" fill="none" stroke="#7fd4de" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="45" cy="18" r="4.5" fill="#5fbf8c"/>
+</svg>

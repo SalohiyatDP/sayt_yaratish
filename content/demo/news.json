@@ -1,0 +1,99 @@
+{
+  "_note": "NAMUNAVIY MA'LUMOTLAR. Faqat demo rejimida ko'rinadi. Bu yozuvlar haqiqatda bo'lib o'tgan voqealarni aks ettirmaydi.",
+
+  "items": [
+    {
+      "id": "demo-news-1",
+      "slug": "demo-namuna-yangilik-hududlarni-organish",
+      "category": "study",
+      "date": "2026-08-18",
+      "title": {
+        "uz-cyrl": "Намуна янгилик: ҳудудларни ўрганиш ишлари ҳақида",
+        "uz": "Namuna yangilik: hududlarni o'rganish ishlari haqida",
+        "ru": "Образцовая новость: о работах по изучению территорий",
+        "en": "Sample news: on the area survey work"
+      },
+      "lead": {
+        "uz-cyrl": "Бу — намунавий янгилик. Ҳақиқий сайтда бу бўлимда фақат ҳақиқатда бўлиб ўтган ишлар ва расмий эълонлар ёритилади.",
+        "uz": "Bu — namunaviy yangilik. Haqiqiy saytda bu bo'limda faqat haqiqatda bo'lib o'tgan ishlar va rasmiy e'lonlar yoritiladi.",
+        "ru": "Это образцовая новость. На реальном сайте в этом разделе публикуются только фактически проведённые работы и официальные объявления.",
+        "en": "This is a sample news item. On the live site, this section publishes only work that has actually taken place and official announcements."
+      },
+      "body": {
+        "uz-cyrl": "<p>Намунавий матн. Ҳақиқий янгиликда ишларнинг мазмуни, иштирокчилар ва натижалар расмий маълумотлар асосида баён этилади.</p><p>Сохта янгилик, сана ёки учрашув яратиш қатъиян ман этилади.</p>",
+        "uz": "<p>Namunaviy matn. Haqiqiy yangilikda ishlarning mazmuni, ishtirokchilar va natijalar rasmiy ma'lumotlar asosida bayon etiladi.</p><p>Soxta yangilik, sana yoki uchrashuv yaratish qat'iyan man etiladi.</p>",
+        "ru": "<p>Образцовый текст. В реальной новости содержание работ, участники и результаты излагаются на основе официальных данных.</p><p>Создание вымышленных новостей, дат или встреч категорически запрещено.</p>",
+        "en": "<p>Sample text. In a real news item, the substance of the work, the participants and the results are described on the basis of official information.</p><p>Fabricating news, dates or meetings is strictly prohibited.</p>"
+      },
+      "cover": null,
+      "gallery": [],
+      "relatedLotIds": ["demo-lot-1"],
+      "relatedMasterplanIds": [],
+      "sourceUrl": "",
+      "published": true,
+      "demo": true
+    },
+    {
+      "id": "demo-news-2",
+      "slug": "demo-namuna-yangilik-auksion-elon",
+      "category": "auction",
+      "date": "2026-08-01",
+      "title": {
+        "uz-cyrl": "Намуна янгилик: аукцион эълони қандай кўринади",
+        "uz": "Namuna yangilik: auksion e'loni qanday ko'rinadi",
+        "ru": "Образцовая новость: как выглядит объявление об аукционе",
+        "en": "Sample news: what an auction announcement looks like"
+      },
+      "lead": {
+        "uz-cyrl": "Аукцион эълонлари шу рукнда чиқади ва ҳар доим E-auksion платформасидаги расмий эълонга ҳавола қилинади.",
+        "uz": "Auksion e'lonlari shu ruknda chiqadi va har doim E-auksion platformasidagi rasmiy e'longa havola qilinadi.",
+        "ru": "Объявления об аукционах публикуются в этой рубрике и всегда содержат ссылку на официальное объявление на платформе E-auksion.",
+        "en": "Auction announcements appear in this category and always link to the official announcement on the E-auksion platform."
+      },
+      "body": {
+        "uz-cyrl": "<p>Намунавий матн. Ҳақиқий эълонда лот рақами, санаси, бошланғич нархи ва ҳуқуқ тури расмий ҳужжатдан олинади.</p>",
+        "uz": "<p>Namunaviy matn. Haqiqiy e'londa lot raqami, sanasi, boshlang'ich narxi va huquq turi rasmiy hujjatdan olinadi.</p>",
+        "ru": "<p>Образцовый текст. В реальном объявлении номер лота, дата, начальная цена и вид права берутся из официального документа.</p>",
+        "en": "<p>Sample text. In a real announcement, the lot number, date, starting price and type of right are taken from the official document.</p>"
+      },
+      "cover": null,
+      "gallery": [],
+      "relatedLotIds": ["demo-lot-1"],
+      "relatedMasterplanIds": ["demo-mp-1"],
+      "sourceUrl": "",
+      "published": true,
+      "demo": true
+    },
+    {
+      "id": "demo-news-3",
+      "slug": "demo-namuna-yangilik-master-reja-taqdimoti",
+      "category": "masterplan",
+      "date": "2026-07-10",
+      "title": {
+        "uz-cyrl": "Намуна янгилик: мастер-режа тақдимоти",
+        "uz": "Namuna yangilik: master-reja taqdimoti",
+        "ru": "Образцовая новость: презентация мастер-плана",
+        "en": "Sample news: master plan presentation"
+      },
+      "lead": {
+        "uz-cyrl": "Мастер-режалар тақдимотлари ҳақидаги хабарлар шу рукнда эълон қилинади.",
+        "uz": "Master-rejalar taqdimotlari haqidagi xabarlar shu ruknda e'lon qilinadi.",
+        "ru": "Сообщения о презентациях мастер-планов публикуются в этой рубрике.",
+        "en": "Reports on master plan presentations are published in this category."
+      },
+      "body": {
+        "uz-cyrl": "<p>Намунавий матн.</p>",
+        "uz": "<p>Namunaviy matn.</p>",
+        "ru": "<p>Образцовый текст.</p>",
+        "en": "<p>Sample text.</p>"
+      },
+      "cover": null,
+      "gallery": [],
+      "relatedLotIds": [],
+      "relatedMasterplanIds": ["demo-mp-1"],
+      "sourceUrl": "",
+      "published": true,
+      "demo": true
+    }
+  ]
+}

@@ -1,0 +1,576 @@
+{
+  "_note": "Saytning matnli bo'limlari. Bu matnlar Direksiya faoliyatining rasmiy tavsifiga asoslangan. Har qanday raqam, sana yoki majburiyat qo'shishdan oldin uni rasmiy hujjat bilan tasdiqlang.",
+  "home": {
+    "hero": {
+      "title": {
+        "uz-cyrl": "Наманганнинг табиий салоҳияти — туризм учун янги имкониятлар",
+        "uz": "Namanganning tabiiy salohiyati — turizm uchun yangi imkoniyatlar",
+        "ru": "Природный потенциал Намангана — новые возможности для туризма",
+        "en": "The natural potential of Namangan — new opportunities for tourism"
+      },
+      "lead": {
+        "uz-cyrl": "Тоғли ҳудудлар, дарё бўйлари ва сув омборлари атрофидаги майдонларни ўрганамиз, мастер-режалар ишлаб чиқамиз ва туризм лойиҳаларини тадбиркорларга тақдим этамиз.",
+        "uz": "Tog'li hududlar, daryo bo'ylari va suv omborlari atrofidagi maydonlarni o'rganamiz, master-rejalar ishlab chiqamiz va turizm loyihalarini tadbirkorlarga taqdim etamiz.",
+        "ru": "Мы изучаем участки в горных районах, вдоль рек и вокруг водохранилищ, разрабатываем мастер-планы и представляем туристические проекты предпринимателям.",
+        "en": "We study plots in mountainous areas, along rivers and around reservoirs, develop master plans and present tourism projects to entrepreneurs."
+      }
+    },
+    "workflowIntro": {
+      "title": {
+        "uz-cyrl": "Дирекциянинг иш босқичлари",
+        "uz": "Direksiyaning ish bosqichlari",
+        "ru": "Этапы работы Дирекции",
+        "en": "How the Directorate works"
+      },
+      "lead": {
+        "uz-cyrl": "Ҳар бир ҳудуд бешта босқичдан ўтади. Лот фақат ҳужжатлари тўлиқ шакллантирилгандан сўнг расмий электрон аукционга чиқарилади.",
+        "uz": "Har bir hudud beshta bosqichdan o'tadi. Lot faqat hujjatlari to'liq shakllantirilgandan so'ng rasmiy elektron auksionga chiqariladi.",
+        "ru": "Каждая территория проходит пять этапов. Лот выставляется на официальный электронный аукцион только после полного формирования документов.",
+        "en": "Every area passes through five stages. A lot is placed on the official electronic auction only after its documentation has been fully prepared."
+      }
+    },
+    "featuredTitle": {
+      "uz-cyrl": "Танланган ҳудудлар",
+      "uz": "Tanlangan hududlar",
+      "ru": "Избранные территории",
+      "en": "Featured areas"
+    },
+    "investorTeaser": {
+      "title": {
+        "uz-cyrl": "Инвесторлар учун қисқа йўриқнома",
+        "uz": "Investorlar uchun qisqa yo'riqnoma",
+        "ru": "Краткая инструкция для инвесторов",
+        "en": "A short guide for investors"
+      },
+      "lead": {
+        "uz-cyrl": "Ҳудудни танлашдан расмий аукционга ўтишгача бўлган йўлни беш қадамда кўриб чиқинг.",
+        "uz": "Hududni tanlashdan rasmiy auksionga o'tishgacha bo'lgan yo'lni besh qadamda ko'rib chiqing.",
+        "ru": "Пройдите путь от выбора территории до перехода к официальному аукциону в пять шагов.",
+        "en": "Review the path from selecting an area to reaching the official auction in five steps."
+      }
+    }
+  },
+  "about": {
+    "title": {
+      "uz-cyrl": "Дирекция ҳақида",
+      "uz": "Direksiya haqida",
+      "ru": "О Дирекции",
+      "en": "About the Directorate"
+    },
+    "lead": {
+      "uz-cyrl": "Дирекция Наманган вилоятининг табиий салоҳиятини туризм мақсадларида тизимли ва ҳужжатлаштирилган тартибда ўзлаштиришга масъул давлат муассасасидир.",
+      "uz": "Direksiya Namangan viloyatining tabiiy salohiyatini turizm maqsadlarida tizimli va hujjatlashtirilgan tartibda o'zlashtirishga mas'ul davlat muassasasidir.",
+      "ru": "Дирекция — государственное учреждение, ответственное за системное и документально оформленное освоение природного потенциала Наманганской области в туристических целях.",
+      "en": "The Directorate is a state institution responsible for the systematic and fully documented development of the natural potential of the Namangan region for tourism purposes."
+    },
+    "purposeTitle": {
+      "uz-cyrl": "Муассасанинг мақсади",
+      "uz": "Muassasaning maqsadi",
+      "ru": "Цель учреждения",
+      "en": "Purpose of the institution"
+    },
+    "purpose": {
+      "uz-cyrl": "Вилоятнинг тоғли ҳудудлари, дарё бўйлари ва сув омборлари атрофидаги ер майдонларини туристик-рекреацион мақсадларда фойдаланишга тайёрлаш, ҳудудларнинг салоҳиятини холисона баҳолаш, мастер-режалар асосида объектларни жойлаштириш ечимларини ишлаб чиқиш ҳамда тайёрланган лотларни шаффоф, электрон тарзда тадбиркорларга тақдим этиш.",
+      "uz": "Viloyatning tog'li hududlari, daryo bo'ylari va suv omborlari atrofidagi yer maydonlarini turistik-rekreatsion maqsadlarda foydalanishga tayyorlash, hududlarning salohiyatini xolisona baholash, master-rejalar asosida obyektlarni joylashtirish yechimlarini ishlab chiqish hamda tayyorlangan lotlarni shaffof, elektron tarzda tadbirkorlarga taqdim etish.",
+      "ru": "Подготовка земельных участков в горных районах, вдоль рек и вокруг водохранилищ области к использованию в туристско-рекреационных целях, объективная оценка потенциала территорий, разработка решений по размещению объектов на основе мастер-планов, а также прозрачное электронное представление подготовленных лотов предпринимателям.",
+      "en": "Preparing land plots in the region's mountainous areas, river valleys and reservoir surroundings for tourist and recreational use, objectively assessing the potential of these areas, developing facility placement solutions based on master plans, and transparently offering prepared lots to entrepreneurs in electronic form."
+    },
+    "activitiesTitle": {
+      "uz-cyrl": "Фаолият йўналишлари",
+      "uz": "Faoliyat yo'nalishlari",
+      "ru": "Направления деятельности",
+      "en": "Areas of activity"
+    },
+    "activities": [
+      {
+        "title": {
+          "uz-cyrl": "Ҳудудларни ўрганиш ва ҳисобга олиш",
+          "uz": "Hududlarni o'rganish va hisobga olish",
+          "ru": "Изучение и учёт территорий",
+          "en": "Studying and registering areas"
+        },
+        "text": {
+          "uz-cyrl": "Тоғли ҳудудлар, дарё бўйлари ва сув омборлари атрофидаги ер майдонлари жойида ўрганилади, кадастр ҳолати ва мавжуд чекловлар аниқланади.",
+          "uz": "Tog'li hududlar, daryo bo'ylari va suv omborlari atrofidagi yer maydonlari joyida o'rganiladi, kadastr holati va mavjud cheklovlar aniqlanadi.",
+          "ru": "Земельные участки в горных районах, вдоль рек и вокруг водохранилищ изучаются на месте, определяются кадастровое состояние и существующие ограничения.",
+          "en": "Land plots in mountainous areas, along rivers and around reservoirs are studied on site; cadastral status and existing restrictions are identified."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Туристик-рекреацион салоҳиятни баҳолаш",
+          "uz": "Turistik-rekreatsion salohiyatni baholash",
+          "ru": "Оценка туристско-рекреационного потенциала",
+          "en": "Assessing tourist and recreational potential"
+        },
+        "text": {
+          "uz-cyrl": "Ҳудуднинг табиий шароитлари, транспорт йўллари ва инфратузилма имкониятлари таҳлил қилиниб, унга мос туризм йўналишлари белгиланади.",
+          "uz": "Hududning tabiiy sharoitlari, transport yo'llari va infratuzilma imkoniyatlari tahlil qilinib, unga mos turizm yo'nalishlari belgilanadi.",
+          "ru": "Анализируются природные условия, транспортная доступность и инфраструктурные возможности территории, определяются подходящие направления туризма.",
+          "en": "The natural conditions, transport access and infrastructure capacity of an area are analysed, and suitable tourism directions are identified."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Мастер-режалар ишлаб чиқиш",
+          "uz": "Master-rejalar ishlab chiqish",
+          "ru": "Разработка мастер-планов",
+          "en": "Developing master plans"
+        },
+        "text": {
+          "uz-cyrl": "Туризм объектларини жойлаштириш бўйича мастер-режалар тайёрланади: функционал зоналар, объектлар экспликацияси, йўллар ва кўкаламзорлаштириш ечимлари.",
+          "uz": "Turizm obyektlarini joylashtirish bo'yicha master-rejalar tayyorlanadi: funksional zonalar, obyektlar eksplikatsiyasi, yo'llar va ko'kalamzorlashtirish yechimlari.",
+          "ru": "Готовятся мастер-планы размещения объектов туризма: функциональные зоны, экспликация объектов, дороги и решения по озеленению.",
+          "en": "Master plans for the placement of tourism facilities are prepared: functional zones, schedules of facilities, roads and landscaping solutions."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Лотларни шакллантириш ва ҳужжатлаштириш",
+          "uz": "Lotlarni shakllantirish va hujjatlashtirish",
+          "ru": "Формирование и документальное оформление лотов",
+          "en": "Forming and documenting lots"
+        },
+        "text": {
+          "uz-cyrl": "Ҳудуд лотларга ажратилади; ҳар бир лот учун ҳужжатлар тўплами, талаблар, чекловлар ва тақдим этиладиган ҳуқуқ тури расмий ҳужжатларга мувофиқ белгиланади.",
+          "uz": "Hudud lotlarga ajratiladi; har bir lot uchun hujjatlar to'plami, talablar, cheklovlar va taqdim etiladigan huquq turi rasmiy hujjatlarga muvofiq belgilanadi.",
+          "ru": "Территория делится на лоты; для каждого лота в соответствии с официальными документами определяются комплект документов, требования, ограничения и вид предоставляемого права.",
+          "en": "An area is divided into lots; for each lot the documentation package, requirements, restrictions and the type of right granted are determined in accordance with official documents."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Расмий электрон аукцион орқали тақдим этиш",
+          "uz": "Rasmiy elektron auksion orqali taqdim etish",
+          "ru": "Представление через официальный электронный аукцион",
+          "en": "Offering through the official electronic auction"
+        },
+        "text": {
+          "uz-cyrl": "Тайёрланган лотлар E-auksion платформасида эълон қилинади. Савдо ва тўлов жараёни ўша платформа қоидалари асосида кечади.",
+          "uz": "Tayyorlangan lotlar E-auksion platformasida e'lon qilinadi. Savdo va to'lov jarayoni o'sha platforma qoidalari asosida kechadi.",
+          "ru": "Подготовленные лоты публикуются на платформе E-auksion. Торги и оплата проходят по правилам этой платформы.",
+          "en": "Prepared lots are published on the E-auksion platform. Bidding and payment follow the rules of that platform."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Тадбиркорлар ва инвесторлар билан ишлаш",
+          "uz": "Tadbirkorlar va investorlar bilan ishlash",
+          "ru": "Работа с предпринимателями и инвесторами",
+          "en": "Working with entrepreneurs and investors"
+        },
+        "text": {
+          "uz-cyrl": "Лотлар, мастер-режалар ва ҳужжатлар бўйича тушунтириш берилади, мурожаатлар кўриб чиқилади.",
+          "uz": "Lotlar, master-rejalar va hujjatlar bo'yicha tushuntirish beriladi, murojaatlar ko'rib chiqiladi.",
+          "ru": "Предоставляются разъяснения по лотам, мастер-планам и документам, рассматриваются обращения.",
+          "en": "Clarifications on lots, master plans and documents are provided, and enquiries are reviewed."
+        }
+      }
+    ],
+    "approachTitle": {
+      "uz-cyrl": "Ҳудудларни ривожлантиришга ёндашув",
+      "uz": "Hududlarni rivojlantirishga yondashuv",
+      "ru": "Подход к развитию территорий",
+      "en": "Approach to area development"
+    },
+    "approach": [
+      {
+        "title": {
+          "uz-cyrl": "Ҳужжатга асосланганлик",
+          "uz": "Hujjatga asoslanganlik",
+          "ru": "Опора на документы",
+          "en": "Document-based"
+        },
+        "text": {
+          "uz-cyrl": "Сайтда эълон қилинадиган ҳар бир майдон, чегара, рақам ва ҳуқуқ тури расмий ҳужжатдан олинади. Тасдиқланмаган маълумот эълон қилинмайди.",
+          "uz": "Saytda e'lon qilinadigan har bir maydon, chegara, raqam va huquq turi rasmiy hujjatdan olinadi. Tasdiqlanmagan ma'lumot e'lon qilinmaydi.",
+          "ru": "Каждая площадь, граница, цифра и вид права, публикуемые на сайте, берутся из официального документа. Неподтверждённая информация не публикуется.",
+          "en": "Every area figure, boundary, number and type of right published on this site is taken from an official document. Unverified information is not published."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Шаффофлик",
+          "uz": "Shaffoflik",
+          "ru": "Прозрачность",
+          "en": "Transparency"
+        },
+        "text": {
+          "uz-cyrl": "Лотнинг ҳолати — ўрганишдан аукцион якунигача — сайтда очиқ кўрсатилади. Барча савдолар расмий электрон платформада ўтказилади.",
+          "uz": "Lotning holati — o'rganishdan auksion yakunigacha — saytda ochiq ko'rsatiladi. Barcha savdolar rasmiy elektron platformada o'tkaziladi.",
+          "ru": "Статус лота — от изучения до завершения аукциона — открыто отображается на сайте. Все торги проводятся на официальной электронной платформе.",
+          "en": "A lot's status — from study to the completion of the auction — is shown openly on the site. All bidding takes place on the official electronic platform."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Табиатни асраш",
+          "uz": "Tabiatni asrash",
+          "ru": "Бережное отношение к природе",
+          "en": "Environmental care"
+        },
+        "text": {
+          "uz-cyrl": "Мастер-режаларда ҳудуднинг табиий ҳолати, сув манбалари ва ландшафт хусусиятлари ҳисобга олинади; чекловлар лот ҳужжатларида аниқ кўрсатилади.",
+          "uz": "Master-rejalarda hududning tabiiy holati, suv manbalari va landshaft xususiyatlari hisobga olinadi; cheklovlar lot hujjatlarida aniq ko'rsatiladi.",
+          "ru": "В мастер-планах учитываются природное состояние территории, водные источники и особенности ландшафта; ограничения чётко указываются в документах лота.",
+          "en": "Master plans take into account the natural state of the area, water sources and landscape features; restrictions are clearly stated in the lot documentation."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Аниқ ажратилган ҳолатлар",
+          "uz": "Aniq ajratilgan holatlar",
+          "ru": "Четкое разделение статусов",
+          "en": "Clearly separated statuses"
+        },
+        "text": {
+          "uz-cyrl": "Лойиҳа концепцияси, ишлаб чиқилаётган режа ва тасдиқланган мастер-режа сайтда ҳар доим бир-биридан ажратиб кўрсатилади. Визуализация қуриб битказилган объект сифатида тақдим этилмайди.",
+          "uz": "Loyiha konsepsiyasi, ishlab chiqilayotgan reja va tasdiqlangan master-reja saytda har doim bir-biridan ajratib ko'rsatiladi. Vizualizatsiya qurib bitkazilgan obyekt sifatida taqdim etilmaydi.",
+          "ru": "Концепция проекта, разрабатываемый план и утверждённый мастер-план всегда разграничиваются на сайте. Визуализация не представляется как построенный объект.",
+          "en": "Project concepts, plans under development and approved master plans are always clearly distinguished on the site. A visualisation is never presented as a completed facility."
+        }
+      }
+    ]
+  },
+  "investors": {
+    "title": {
+      "uz-cyrl": "Инвесторларга",
+      "uz": "Investorlarga",
+      "ru": "Инвесторам",
+      "en": "For investors"
+    },
+    "lead": {
+      "uz-cyrl": "Ҳудудни танлашдан расмий аукционда иштирок этишгача бўлган тартиб қуйида кетма-кет баён этилган.",
+      "uz": "Hududni tanlashdan rasmiy auksionda ishtirok etishgacha bo'lgan tartib quyida ketma-ket bayon etilgan.",
+      "ru": "Ниже последовательно описан порядок действий от выбора территории до участия в официальном аукционе.",
+      "en": "The procedure from selecting an area to participating in the official auction is set out step by step below."
+    },
+    "steps": [
+      {
+        "title": {
+          "uz-cyrl": "Ўзига мос ҳудуд ва лотни танлаш",
+          "uz": "O'ziga mos hudud va lotni tanlash",
+          "ru": "Выбор подходящей территории и лота",
+          "en": "Select a suitable area and lot"
+        },
+        "text": {
+          "uz-cyrl": "«Ҳудудлар ва лотлар» бўлимида туман, ҳудуд тури, ер майдони, туризм йўналиши ва лотнинг жорий ҳолати бўйича саралаб, харита ёки карточкалар кўринишида кўриб чиқинг.",
+          "uz": "«Hududlar va lotlar» bo'limida tuman, hudud turi, yer maydoni, turizm yo'nalishi va lotning joriy holati bo'yicha saralab, xarita yoki karlochkalar ko'rinishida ko'rib chiqing.",
+          "ru": "В разделе «Территории и лоты» отфильтруйте объекты по району, типу территории, площади, направлению туризма и текущему статусу лота и просмотрите их на карте или в виде карточек.",
+          "en": "In the \"Areas and lots\" section, filter by district, area type, plot size, tourism direction and current lot status, and review the results on the map or as cards."
+        },
+        "linkTo": "areas"
+      },
+      {
+        "title": {
+          "uz-cyrl": "Мастер-режа ва лот ҳужжатлари билан танишиш",
+          "uz": "Master-reja va lot hujjatlari bilan tanishish",
+          "ru": "Изучение мастер-плана и документов лота",
+          "en": "Study the master plan and lot documents"
+        },
+        "text": {
+          "uz-cyrl": "Лот саҳифасида мастер-режа, объектлар экспликацияси, режалаштирилган хизмат турлари ва юклаб олиш учун мавжуд ҳужжатлар келтирилади.",
+          "uz": "Lot sahifasida master-reja, obyektlar eksplikatsiyasi, rejalashtirilgan xizmat turlari va yuklab olish uchun mavjud hujjatlar keltiriladi.",
+          "ru": "На странице лота представлены мастер-план, экспликация объектов, планируемые виды услуг и доступные для скачивания документы.",
+          "en": "The lot page provides the master plan, the schedule of facilities, the planned types of services and the documents available for download."
+        },
+        "linkTo": "masterplans"
+      },
+      {
+        "title": {
+          "uz-cyrl": "Инфратузилма, талаблар ва иштирок шартларини ўрганиш",
+          "uz": "Infratuzilma, talablar va ishtirok shartlarini o'rganish",
+          "ru": "Изучение инфраструктуры, требований и условий участия",
+          "en": "Review infrastructure, requirements and participation conditions"
+        },
+        "text": {
+          "uz-cyrl": "Кириш йўли, мавжуд муҳандислик инфратузилмаси, ҳужжатлардаги талаблар ва чекловлар ҳар бир лот саҳифасида алоҳида кўрсатилади. Иштирок шартлари E-auksion’даги расмий эълонда белгиланади.",
+          "uz": "Kirish yo'li, mavjud muhandislik infratuzilmasi, hujjatlardagi talablar va cheklovlar har bir lot sahifasida alohida ko'rsatiladi. Ishtirok shartlari E-auksion'dagi rasmiy e'londa belgilanadi.",
+          "ru": "Подъездные пути, имеющаяся инженерная инфраструктура, требования и ограничения из документов указываются на странице каждого лота. Условия участия определяются в официальном объявлении на E-auksion.",
+          "en": "Access roads, available engineering infrastructure, and the requirements and restrictions stated in the documents are shown on each lot page. Participation conditions are set out in the official announcement on E-auksion."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "E-auksion’даги расмий эълонга ўтиш",
+          "uz": "E-auksion'dagi rasmiy e'longa o'tish",
+          "ru": "Переход к официальному объявлению на E-auksion",
+          "en": "Proceed to the official announcement on E-auksion"
+        },
+        "text": {
+          "uz-cyrl": "Лот аукционга чиқарилган бўлса, лот саҳифасидаги тугма айнан шу лотнинг E-auksion’даги расмий саҳифасига олиб боради. Ариза топшириш, кафолат тўлови ва шартнома тузиш шу платформада амалга оширилади.",
+          "uz": "Lot auksionga chiqarilgan bo'lsa, lot sahifasidagi tugma aynan shu lotning E-auksion'dagi rasmiy sahifasiga olib boradi. Ariza topshirish, kafolat to'lovi va shartnoma tuzish shu platformada amalga oshiriladi.",
+          "ru": "Если лот выставлен на аукцион, кнопка на странице лота ведёт на официальную страницу именно этого лота на E-auksion. Подача заявки, гарантийный платёж и заключение договора осуществляются на этой платформе.",
+          "en": "If a lot has been placed at auction, the button on the lot page leads to the official page of that specific lot on E-auksion. Application submission, the guarantee payment and contract conclusion take place on that platform."
+        }
+      },
+      {
+        "title": {
+          "uz-cyrl": "Қўшимча саволлар бўйича дирекцияга мурожаат қилиш",
+          "uz": "Qo'shimcha savollar bo'yicha direksiyaga murojaat qilish",
+          "ru": "Обращение в Дирекцию по дополнительным вопросам",
+          "en": "Contact the Directorate with further questions"
+        },
+        "text": {
+          "uz-cyrl": "Ҳудуд, мастер-режа ёки ҳужжатлар бўйича саволларингизни «Боғланиш» бўлимидаги мурожаат шакли орқали юборинг.",
+          "uz": "Hudud, master-reja yoki hujjatlar bo'yicha savollaringizni «Bog'lanish» bo'limidagi murojaat shakli orqali yuboring.",
+          "ru": "Вопросы по территории, мастер-плану или документам направляйте через форму обращения в разделе «Контакты».",
+          "en": "Send your questions about an area, master plan or documents through the enquiry form in the \"Contact\" section."
+        },
+        "linkTo": "contact"
+      }
+    ],
+    "disclaimerTitle": {
+      "uz-cyrl": "Муҳим эслатма",
+      "uz": "Muhim eslatma",
+      "ru": "Важное примечание",
+      "en": "Important notice"
+    },
+    "disclaimer": {
+      "uz-cyrl": "Дирекция веб-сайти солиқ имтиёзлари, ижара муддатлари, инвестиция мажбуриятлари ёки даромад миқдори бўйича ваъда бермайди ва кафолат тақдим этмайди. Барча шартлар айнан шу лотнинг расмий ҳужжатлари ҳамда E-auksion платформасидаги эълон билан белгиланади. Сайтдаги маълумот ҳужжат ўрнини босмайди.",
+      "uz": "Direksiya veb-sayti soliq imtiyozlari, ijara muddatlari, investitsiya majburiyatlari yoki daromad miqdori bo'yicha va'da bermaydi va kafolat taqdim etmaydi. Barcha shartlar aynan shu lotning rasmiy hujjatlari hamda E-auksion platformasidagi e'lon bilan belgilanadi. Saytdagi ma'lumot hujjat o'rnini bosmaydi.",
+      "ru": "Веб-сайт Дирекции не даёт обещаний и не предоставляет гарантий в отношении налоговых льгот, сроков аренды, инвестиционных обязательств или размера дохода. Все условия определяются официальными документами конкретного лота и объявлением на платформе E-auksion. Информация на сайте не заменяет документ.",
+      "en": "The Directorate's website makes no promises and provides no guarantees regarding tax incentives, lease terms, investment obligations or income levels. All conditions are determined by the official documents of the specific lot and by the announcement on the E-auksion platform. Information on this site does not replace official documents."
+    },
+    "faqTitle": {
+      "uz-cyrl": "Кўп сўраладиган саволлар",
+      "uz": "Ko'p so'raladigan savollar",
+      "ru": "Часто задаваемые вопросы",
+      "en": "Frequently asked questions"
+    },
+    "faq": [
+      {
+        "q": {
+          "uz-cyrl": "Ўзимга мос лотни қандай топаман?",
+          "uz": "O'zimga mos lotni qanday topaman?",
+          "ru": "Как найти подходящий лот?",
+          "en": "How do I find a suitable lot?"
+        },
+        "a": {
+          "uz-cyrl": "«Ҳудудлар ва лотлар» бўлимидаги филтрлардан фойдаланинг: туман, ҳудуд тури (тоғли ҳудуд, дарё бўйи, сув омбори атрофи), ер майдони, туризм йўналиши ва лотнинг жорий ҳолати. Саралаш натижаси ҳаволада сақланади — уни ҳамкорларингизга юборишингиз мумкин.",
+          "uz": "«Hududlar va lotlar» bo'limidagi filtrlardan foydalaning: tuman, hudud turi (tog'li hudud, daryo bo'yi, suv ombori atrofi), yer maydoni, turizm yo'nalishi va lotning joriy holati. Saralash natijasi havolada saqlanadi — uni hamkorlaringizga yuborishingiz mumkin.",
+          "ru": "Используйте фильтры в разделе «Территории и лоты»: район, тип территории (горная территория, побережье реки, зона водохранилища), площадь, направление туризма и текущий статус лота. Результат фильтрации сохраняется в ссылке — её можно отправить партнёрам.",
+          "en": "Use the filters in the \"Areas and lots\" section: district, area type (mountain area, riverside, reservoir surroundings), plot size, tourism direction and current lot status. The filter state is stored in the URL, so you can share it with your partners."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Аукционда қандай иштирок этилади?",
+          "uz": "Auksionda qanday ishtirok etiladi?",
+          "ru": "Как принять участие в аукционе?",
+          "en": "How do I take part in an auction?"
+        },
+        "a": {
+          "uz-cyrl": "Иштирок E-auksion электрон савдо платформасида амалга оширилади. Лот аукционга чиқарилган бўлса, лот саҳифасидаги тугма орқали ўша лотнинг расмий эълонига ўтасиз ва платформа қоидаларига мувофиқ ариза топширасиз. Дирекция веб-сайти савдо ўтказмайди ва тўлов қабул қилмайди.",
+          "uz": "Ishtirok E-auksion elektron savdo platformasida amalga oshiriladi. Lot auksionga chiqarilgan bo'lsa, lot sahifasidagi tugma orqali o'sha lotning rasmiy e'loniga o'tasiz va platforma qoidalariga muvofiq ariza topshirasiz. Direksiya veb-sayti savdo o'tkazmaydi va to'lov qabul qilmaydi.",
+          "ru": "Участие осуществляется на электронной торговой платформе E-auksion. Если лот выставлен на аукцион, кнопка на странице лота ведёт к официальному объявлению этого лота, где заявка подаётся по правилам платформы. Веб-сайт Дирекции не проводит торги и не принимает платежи.",
+          "en": "Participation takes place on the E-auksion electronic trading platform. If a lot is at auction, the button on the lot page takes you to that lot's official announcement, where you submit an application under the platform's rules. The Directorate's website does not conduct bidding and does not accept payments."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Лот бўйича қандай ҳуқуқ тақдим этилади?",
+          "uz": "Lot bo'yicha qanday huquq taqdim etiladi?",
+          "ru": "Какое право предоставляется по лоту?",
+          "en": "What kind of right is granted for a lot?"
+        },
+        "a": {
+          "uz-cyrl": "Ҳуқуқ тури — ер участкаси, ижара ҳуқуқи ёки бошқа тур — ҳар бир лот учун унинг расмий ҳужжатларида белгиланади ва лот саҳифасида айнан шу ҳужжатдаги ибора билан келтирилади. Барча лотларга нисбатан умумий «ер сотилади» ибораси ишлатилмайди.",
+          "uz": "Huquq turi — yer uchastkasi, ijara huquqi yoki boshqa tur — har bir lot uchun uning rasmiy hujjatlarida belgilanadi va lot sahifasida aynan shu hujjatdagi ibora bilan keltiriladi. Barcha lotlarga nisbatan umumiy «yer sotiladi» iborasi ishlatilmaydi.",
+          "ru": "Вид права — земельный участок, право аренды или иной вид — определяется для каждого лота его официальными документами и приводится на странице лота именно в той формулировке, что в документе. Общая формулировка «продаётся земля» в отношении всех лотов не используется.",
+          "en": "The type of right — a land plot, a lease right or another type — is determined for each lot by its official documents and is stated on the lot page using the exact wording from that document. A blanket phrase such as \"land for sale\" is not used for all lots."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Солиқ имтиёзлари ёки кафолатланган даромад мавжудми?",
+          "uz": "Soliq imtiyozlari yoki kafolatlangan daromad mavjudmi?",
+          "ru": "Есть ли налоговые льготы или гарантированный доход?",
+          "en": "Are there tax incentives or guaranteed income?"
+        },
+        "a": {
+          "uz-cyrl": "Дирекция сайти бу мавзуларда ваъда бермайди. Солиқ ва имтиёзлар масаласи амалдаги қонун ҳужжатлари ҳамда ваколатли давлат органлари томонидан белгиланади. Кафолатланган даромад тақдим этилмайди. Аниқ шартлар учун лотнинг ҳужжатлари ва расмий эълонга таянинг.",
+          "uz": "Direksiya sayti bu mavzularda va'da bermaydi. Soliq va imtiyozlar masalasi amaldagi qonun hujjatlari hamda vakolatli davlat organlari tomonidan belgilanadi. Kafolatlangan daromad taqdim etilmaydi. Aniq shartlar uchun lotning hujjatlari va rasmiy e'longa tayaning.",
+          "ru": "Сайт Дирекции не даёт обещаний по этим вопросам. Налоги и льготы определяются действующим законодательством и уполномоченными государственными органами. Гарантированный доход не предоставляется. Точные условия смотрите в документах лота и официальном объявлении.",
+          "en": "The Directorate's site makes no promises on these matters. Taxation and incentives are determined by applicable legislation and by the authorised state bodies. No guaranteed income is offered. For precise conditions, refer to the lot's documents and the official announcement."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Ижара муддати қанча?",
+          "uz": "Ijara muddati qancha?",
+          "ru": "Каков срок аренды?",
+          "en": "What is the lease term?"
+        },
+        "a": {
+          "uz-cyrl": "Муддат ҳар бир лот учун алоҳида, унинг расмий ҳужжатлари ва аукцион эълонида кўрсатилади. Сайтда бу маълумот фақат тасдиқланган бўлса чиқарилади; акс ҳолда «Маълумот ҳозирча жойлаштирилмаган» ҳолати кўринади.",
+          "uz": "Muddat har bir lot uchun alohida, uning rasmiy hujjatlari va auksion e'lonida ko'rsatiladi. Saytda bu ma'lumot faqat tasdiqlangan bo'lsa chiqariladi; aks holda «Ma'lumot hozircha joylashtirilmagan» holati ko'rinadi.",
+          "ru": "Срок указывается индивидуально для каждого лота в его официальных документах и в объявлении об аукционе. На сайте эта информация публикуется только при её подтверждении; в противном случае отображается статус «Информация пока не размещена».",
+          "en": "The term is specified individually for each lot in its official documents and in the auction announcement. On this site the information is published only once confirmed; otherwise the status \"Information not yet published\" is shown."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Мастер-режадаги ечимларни ўзгартириш мумкинми?",
+          "uz": "Master-rejadagi yechimlarni o'zgartirish mumkinmi?",
+          "ru": "Можно ли изменять решения мастер-плана?",
+          "en": "Can the master plan solutions be changed?"
+        },
+        "a": {
+          "uz-cyrl": "Мастер-режа ҳудудда объектларни жойлаштириш бўйича ечимларни белгилайди. Инвесторга қўйиладиган талаблар ва чекловлар лотнинг расмий ҳужжатларида келтирилади. Ўзгартириш имконияти ва тартиби шу ҳужжатлар ҳамда ваколатли органлар қарорига боғлиқ.",
+          "uz": "Master-reja hududda obyektlarni joylashtirish bo'yicha yechimlarni belgilaydi. Investorga qo'yiladigan talablar va cheklovlar lotning rasmiy hujjatlarida keltiriladi. O'zgartirish imkoniyati va tartibi shu hujjatlar hamda vakolatli organlar qaroriga bog'liq.",
+          "ru": "Мастер-план определяет решения по размещению объектов на территории. Требования и ограничения для инвестора приводятся в официальных документах лота. Возможность и порядок изменений зависят от этих документов и решений уполномоченных органов.",
+          "en": "The master plan sets out the solutions for placing facilities within an area. The requirements and restrictions imposed on an investor are stated in the lot's official documents. Whether and how changes are possible depends on those documents and on decisions of the authorised bodies."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Лойиҳа визуализациялари қуриб битказилган объектми?",
+          "uz": "Loyiha vizualizatsiyalari qurib bitkazilgan obyektmi?",
+          "ru": "Визуализации проекта — это построенные объекты?",
+          "en": "Are the project visualisations completed facilities?"
+        },
+        "a": {
+          "uz-cyrl": "Йўқ. Сайтдаги барча визуализациялар «Лойиҳа концепцияси» деб белгиланади ва улар қуриб битказилган объектни акс эттирмайди. Ҳудуднинг ҳақиқий ҳолати эса фотосуратлар билан алоҳида кўрсатилади.",
+          "uz": "Yo'q. Saytdagi barcha vizualizatsiyalar «Loyiha konsepsiyasi» deb belgilanadi va ular qurib bitkazilgan obyektni aks ettirmaydi. Hududning haqiqiy holati esa fotosuratlar bilan alohida ko'rsatiladi.",
+          "ru": "Нет. Все визуализации на сайте помечаются как «Концепция проекта» и не отображают построенные объекты. Фактическое состояние территории показывается отдельно — фотографиями.",
+          "en": "No. All visualisations on this site are labelled \"Project concept\" and do not depict completed facilities. The actual condition of an area is shown separately, through photographs."
+        }
+      },
+      {
+        "q": {
+          "uz-cyrl": "Ҳужжатларни қандай юклаб оламан?",
+          "uz": "Hujjatlarni qanday yuklab olaman?",
+          "ru": "Как скачать документы?",
+          "en": "How do I download the documents?"
+        },
+        "a": {
+          "uz-cyrl": "Мастер-режа, экспликация ва бошқа мавжуд ҳужжатлар лот ҳамда мастер-режа саҳифаларидаги «Юклаб олиш» бўлимида жойлаштирилади. Файл ҳали юкланмаган бўлса, бу ҳолат очиқ ёзилади.",
+          "uz": "Master-reja, eksplikatsiya va boshqa mavjud hujjatlar lot hamda master-reja sahifalaridagi «Yuklab olish» bo'limida joylashtiriladi. Fayl hali yuklanmagan bo'lsa, bu holat ochiq yoziladi.",
+          "ru": "Мастер-план, экспликация и другие доступные документы размещаются в разделе «Скачать» на страницах лота и мастер-плана. Если файл ещё не загружен, об этом сообщается открыто.",
+          "en": "The master plan, the schedule of facilities and other available documents are placed in the \"Download\" section on the lot and master plan pages. If a file has not yet been uploaded, this is stated openly."
+        }
+      }
+    ]
+  },
+  "areas": {
+    "title": {
+      "uz-cyrl": "Ҳудудлар ва лотлар",
+      "uz": "Hududlar va lotlar",
+      "ru": "Территории и лоты",
+      "en": "Areas and lots"
+    },
+    "lead": {
+      "uz-cyrl": "Ҳудудлар ва улар ичидаги лотлар. Аввал ҳудудни танлаб, умумий маълумот билан танишинг — сўнг ҳудуд ичидаги аниқ лотга ўтинг. Барча лотлар бўйича саралаш ва харита ҳам мавжуд.",
+      "uz": "Hududlar va ular ichidagi lotlar. Avval hududni tanlab, umumiy ma'lumot bilan tanishing — so'ng hudud ichidagi aniq lotga o'ting. Barcha lotlar bo'yicha saralash va xarita ham mavjud.",
+      "ru": "Территории и расположенные в них лоты. Сначала выберите территорию и ознакомьтесь с общими сведениями, затем перейдите к конкретному лоту. Доступны также фильтры и карта по всем лотам.",
+      "en": "Areas and the lots located within them. Start with an area to see the general information, then open a specific lot. Filters and a map covering all lots are available too."
+    }
+  },
+  "masterplans": {
+    "title": {
+      "uz-cyrl": "Мастер-режалар",
+      "uz": "Master-rejalar",
+      "ru": "Мастер-планы",
+      "en": "Master plans"
+    },
+    "lead": {
+      "uz-cyrl": "Лойиҳалар ҳудудлар кесимида тақдим этилган. Ҳар бир материалнинг ҳолати — концепция, ишлаб чиқилаётган режа ёки тасдиқланган мастер-режа — сарлавҳа ёнида кўрсатилган.",
+      "uz": "Loyihalar hududlar kesimida taqdim etilgan. Har bir materialning holati — konsepsiya, ishlab chiqilayotgan reja yoki tasdiqlangan master-reja — sarlavha yonida ko'rsatilgan.",
+      "ru": "Проекты представлены в разрезе территорий. Статус каждого материала — концепция, разрабатываемый план или утверждённый мастер-план — указан рядом с заголовком.",
+      "en": "Projects are presented by area. The status of each material — concept, plan under development or approved master plan — is shown next to its title."
+    }
+  },
+  "news": {
+    "title": {
+      "uz-cyrl": "Янгиликлар",
+      "uz": "Yangiliklar",
+      "ru": "Новости",
+      "en": "News"
+    },
+    "lead": {
+      "uz-cyrl": "Ҳудудларни ўрганиш ишлари, мастер-режалар тақдимотлари, тадбиркорлар билан учрашувлар ва аукцион эълонлари.",
+      "uz": "Hududlarni o'rganish ishlari, master-rejalar taqdimotlari, tadbirkorlar bilan uchrashuvlar va auksion e'lonlari.",
+      "ru": "Работы по изучению территорий, презентации мастер-планов, встречи с предпринимателями и объявления об аукционах.",
+      "en": "Area survey work, master plan presentations, meetings with entrepreneurs and auction announcements."
+    }
+  },
+  "contact": {
+    "title": {
+      "uz-cyrl": "Боғланиш",
+      "uz": "Bog'lanish",
+      "ru": "Контакты",
+      "en": "Contact"
+    },
+    "lead": {
+      "uz-cyrl": "Ҳудудлар, мастер-режалар ва лот ҳужжатлари бўйича саволларингизни юборинг.",
+      "uz": "Hududlar, master-rejalar va lot hujjatlari bo'yicha savollaringizni yuboring.",
+      "ru": "Направляйте вопросы по территориям, мастер-планам и документам лотов.",
+      "en": "Send your questions about areas, master plans and lot documents."
+    },
+    "privacyNotice": {
+      "uz-cyrl": "Мурожаат шаклидаги шахсий маълумотлар фақат сўровингизни кўриб чиқиш учун ишлатилади ва сайтнинг оммавий саҳифаларида эълон қилинмайди.",
+      "uz": "Murojaat shaklidagi shaxsiy ma'lumotlar faqat so'rovingizni ko'rib chiqish uchun ishlatiladi va saytning ommaviy sahifalarida e'lon qilinmaydi.",
+      "ru": "Персональные данные из формы обращения используются только для рассмотрения вашего запроса и не публикуются на общедоступных страницах сайта.",
+      "en": "Personal data submitted through the enquiry form is used solely to process your request and is never published on the public pages of this site."
+    }
+  },
+  "accessibility": {
+    "title": {
+      "uz-cyrl": "Қулайлик ва имкониятлар",
+      "uz": "Qulaylik va imkoniyatlar",
+      "ru": "Доступность",
+      "en": "Accessibility"
+    },
+    "lead": {
+      "uz-cyrl": "Сайт барча фойдаланувчилар учун қулай бўлиши мақсадида қуйидаги ечимлар қўлланилган.",
+      "uz": "Sayt barcha foydalanuvchilar uchun qulay bo'lishi maqsadida quyidagi yechimlar qo'llanilgan.",
+      "ru": "Для удобства всех пользователей на сайте реализованы следующие решения.",
+      "en": "The following solutions have been implemented to make the site convenient for all users."
+    },
+    "items": [
+      {
+        "uz-cyrl": "Барча интерактив элементлар клавиатура орқали бошқарилади; фокус ҳар доим кўринади.",
+        "uz": "Barcha interaktiv elementlar klaviatura orqali boshqariladi; fokus har doim ko'rinadi.",
+        "ru": "Все интерактивные элементы управляются с клавиатуры; фокус всегда видим.",
+        "en": "All interactive elements can be operated from the keyboard; focus is always visible."
+      },
+      {
+        "uz-cyrl": "Матн ва фон ранглари орасидаги контраст WCAG 2.1 AA даражасига мувофиқ.",
+        "uz": "Matn va fon ranglari orasidagi kontrast WCAG 2.1 AA darajasiga muvofiq.",
+        "ru": "Контраст между текстом и фоном соответствует уровню WCAG 2.1 AA.",
+        "en": "The contrast between text and background meets WCAG 2.1 level AA."
+      },
+      {
+        "uz-cyrl": "Ҳар бир расм учун матнли изоҳ (alt) берилади; фақат безак вазифасини бажарган тасвирлар экран ўқувчиларидан яширилади.",
+        "uz": "Har bir rasm uchun matnli izoh (alt) beriladi; faqat bezak vazifasini bajargan tasvirlar ekran o'quvchilaridan yashiriladi.",
+        "ru": "Для каждого изображения предоставляется текстовое описание (alt); исключительно декоративные изображения скрыты от программ чтения экрана.",
+        "en": "Every image has a text alternative; purely decorative images are hidden from screen readers."
+      },
+      {
+        "uz-cyrl": "Ҳаракатни камайтириш сўровига (prefers-reduced-motion) риоя қилинади — анимациялар ўчирилади.",
+        "uz": "Harakatni kamaytirish so'roviga (prefers-reduced-motion) rioya qilinadi — animatsiyalar o'chiriladi.",
+        "ru": "Учитывается запрос на уменьшение анимации (prefers-reduced-motion) — анимации отключаются.",
+        "en": "The prefers-reduced-motion setting is respected — animations are disabled."
+      },
+      {
+        "uz-cyrl": "Асосий мазмунга тезкор ўтиш ҳаволаси, семантик белгилар ва ARIA атрибутлари қўлланилган.",
+        "uz": "Asosiy mazmunga tezkor o'tish havolasi, semantik belgilar va ARIA atributlari qo'llanilgan.",
+        "ru": "Реализованы ссылка быстрого перехода к основному содержанию, семантическая разметка и ARIA-атрибуты.",
+        "en": "A skip link to the main content, semantic markup and ARIA attributes are used."
+      },
+      {
+        "uz-cyrl": "Харита ва интерактив блоклар ишламаса, маълумот матн кўринишида ҳам тақдим этилади.",
+        "uz": "Xarita va interaktiv bloklar ishlamasa, ma'lumot matn ko'rinishida ham taqdim etiladi.",
+        "ru": "Если карта или интерактивные блоки не работают, информация также предоставляется в текстовом виде.",
+        "en": "If the map or interactive blocks fail to load, the information is also provided in text form."
+      },
+      {
+        "uz-cyrl": "Сайт тўрт тилда: ўзбек (лотин), ўзбек (кирилл), рус ва инглиз.",
+        "uz": "Sayt to'rt tilda: o'zbek (lotin), o'zbek (kirill), rus va ingliz.",
+        "ru": "Сайт доступен на четырёх языках: узбекский (латиница), узбекский (кириллица), русский и английский.",
+        "en": "The site is available in four languages: Uzbek (Latin), Uzbek (Cyrillic), Russian and English."
+      }
+    ]
+  }
+}
