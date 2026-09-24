@@ -158,6 +158,17 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteInbox: (id) => request(`/api/admin/inbox/${id}`, { method: 'DELETE' }),
+  resendInbox: (id) => request(`/api/admin/inbox/${id}/resend`, { method: 'POST' }),
+
+  telegram: () => request('/api/admin/telegram'),
+  telegramChats: () => request('/api/admin/telegram/chats'),
+  telegramSave: (payload) =>
+    request('/api/admin/telegram/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  telegramTest: () => request('/api/admin/telegram/test', { method: 'POST' }),
 
   uploads: () => request('/api/admin/uploads'),
   upload: (file, folder) =>

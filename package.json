@@ -15,7 +15,10 @@
     "dev": "node server/server.mjs --dev",
     "serve": "node server/server.mjs --public-only",
     "check": "node src/check.mjs",
-    "admin:password": "node server/tools/hash-password.mjs"
+    "admin:password": "node server/tools/hash-password.mjs",
+    "telegram:setup": "node server/tools/telegram-setup.mjs",
+    "telegram:check": "node server/tools/telegram-setup.mjs --check",
+    "telegram:test": "node server/tools/telegram-setup.mjs --test"
   },
   "dependencies": {},
   "devDependencies": {},

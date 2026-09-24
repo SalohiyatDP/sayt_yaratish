@@ -7,6 +7,9 @@
 server/data/session-secret
 server/data/admin-users.json
 
+# Telegram bot sozlamalari (bot tokeni maxfiy!)
+server/data/telegram.json
+
 # Kontentning avtomatik zaxira nusxalari (serverda saqlanadi)
 server/data/backups/
 

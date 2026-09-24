@@ -34,6 +34,8 @@ Sayt ikki vazifani bajaradi:
 
 ## 2. Tezkor boshlash
 
+Faqat **Node.js 20.11+** o'rnatilgan bo'lishi kerak: <https://nodejs.org> → LTS versiyasi.
+
 ```bash
 # 1. Saytni qurish (faqat tasdiqlangan kontent bilan)
 npm run build
@@ -52,6 +54,42 @@ Boshqaruv paneliga kirish uchun avval foydalanuvchi yarating:
 ```bash
 npm run admin:password -- direksiya 'Kuchli-Parol-Kamida-12-Belgi' admin
 ```
+
+### 🪟 Windows foydalanuvchilari uchun
+
+Agar PowerShell'da quyidagi xatolik chiqsa:
+
+```
+npm : Невозможно загрузить файл C:\Program Files\nodejs\npm.ps1,
+так как выполнение сценариев отключено в этой системе.
+```
+
+Bu loyihaning xatoligi emas — Windows sukut bo'yicha PowerShell skriptlarini
+taqiqlaydi. Uchta yechim bor:
+
+**1) `windows\` katalogidagi tayyor fayllarni ikki marta bosish (eng oson):**
+
+| Fayl | Vazifasi |
+|---|---|
+| `windows\qurish.cmd` | Saytni qurish |
+| `windows\tekshirish.cmd` | Natijani tekshirish |
+| `windows\ishga-tushirish.cmd` | Serverni ishga tushirish |
+| `windows\parol-yaratish.cmd` | Panel foydalanuvchisini yaratish |
+| `windows\telegram-sozlash.cmd` | Telegram botni ulash |
+
+**2) `npm` o'rniga `npm.cmd` deb yozish:**
+
+```powershell
+npm.cmd run build
+```
+
+**3) Cheklovni bir marta yumshatish (administrator huquqi kerak emas):**
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+Batafsil: [`windows/README.md`](windows/README.md)
 
 ### Imkoniyatlarni ko'rish uchun demo rejimi
 
@@ -165,10 +203,11 @@ Logotipning shakli, proporsiyalari, ranglari va yozuvlari o'zgartirilmaydi — s
 
 ---
 
-## 6. Murojaat shaklini yoqish
+## 6. Murojaat shakli va Telegram bot
 
 Dastlab shakl **ataylab o'chirilgan**: qabul qilish tizimi ulanmagani ochiq yozilgan.
-Yoqish uchun:
+
+### Shaklni yoqish
 
 1. `content/site.json → features.contactFormEndpoint` ga `"/api/contact"` yozing
    (yoki boshqaruv panelidagi «Sayt sozlamalari» bo'limidan).
@@ -178,6 +217,36 @@ Yoqish uchun:
 Kelgan murojaatlar `content/inbox/` katalogiga JSON fayl sifatida yoziladi va boshqaruv
 panelidagi «Murojaatlar» bo'limida ko'rinadi. Bu katalog `.gitignore` da — shaxsiy
 ma'lumotlar repozitoriyaga tushmaydi.
+
+### Telegram botga ulash
+
+Murojaatlar Telegram guruhiga darhol yetib borishi uchun:
+
+```bash
+# 1. Botni @BotFather da yaratib, tokenni oling, so'ngra:
+npm run telegram:setup -- 1234567890:AAEhBOweik6ad9r_QXzR1_ABC…
+
+# Yordamchi chatlar ro'yxatini ko'rsatadi. Keraklisini tanlab:
+npm run telegram:setup -- "" -1001234567890
+```
+
+Yoki boshqaruv panelidagi **«Telegram»** bo'limidan — tokenni kiritib,
+«chat_id ni aniqlash» tugmasini bosasiz.
+
+```
+Shakl → server (diskka saqlaydi) → foydalanuvchiga javob → fonda Telegramga yuborish
+```
+
+Murojaat **avval diskka saqlanadi**, keyin botga yuboriladi. Shu sababli bot ishlamasa
+yoki internet uzilsa ham murojaat yo'qolmaydi — u «Murojaatlar» bo'limida ko'rinadi va
+u yerdan bir bosishda qayta yuborish mumkin. Vaqtinchalik xatoliklarda 3 martagacha
+avtomatik qayta uriniladi.
+
+Batafsil yo'riqnoma: [`docs/TELEGRAM.md`](docs/TELEGRAM.md)
+
+> ⚠️ Telegramga shaxsiy ma'lumotlar (ism, telefon, pochta) yuboriladi — chatga
+> faqat vakolatli xodimlar kirishi ta'minlanishi kerak. Bot tokeni parol bilan
+> teng: `.env` va `server/data/telegram.json` fayllari repozitoriyaga tushmaydi.
 
 ---
 
@@ -192,9 +261,15 @@ ma'lumotlar repozitoriyaga tushmaydi.
 | `npm run dev` | Xuddi shu, lekin cookie `Secure` bayrog'isiz (mahalliy sinov) |
 | `npm run serve` | Faqat statik sayt, boshqaruv paneli o'chirilgan |
 | `npm run admin:password -- <nom> <parol> [rol]` | Panel foydalanuvchisini yaratish/yangilash |
+| `npm run telegram:setup -- <token> [chat_id]` | Telegram botni ulash |
+| `npm run telegram:check` | Telegram sozlamalarini tekshirish (xabar yubormasdan) |
+| `npm run telegram:test` | Telegramga sinov xabarini yuborish |
 | `npm run clean` | `dist/` ni o'chirish |
 
 Rollar: `admin` (hammasi), `editor` (kontent va qurish), `viewer` (faqat ko'rish).
+
+Windows'da `npm` ishlamasa — `windows\` katalogidagi `.cmd` fayllardan foydalaning
+(2-bo'limga qaraysiz).
 
 ---
 
@@ -250,8 +325,11 @@ to'ldiring va kontent fayllariga shu til kalitini qo'shing.
 
 - [`docs/KONTENT.md`](docs/KONTENT.md) — maydonlar bo'yicha to'liq ma'lumotnoma
 - [`docs/BOSHQARUV-PANELI.md`](docs/BOSHQARUV-PANELI.md) — xodimlar uchun yo'riqnoma
+- [`docs/TELEGRAM.md`](docs/TELEGRAM.md) — murojaat shaklini Telegram botga ulash
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — serverga joylashtirish
 - [`docs/ARXITEKTURA.md`](docs/ARXITEKTURA.md) — texnik qarorlar va tuzilma
+- [`windows/README.md`](windows/README.md) — Windows uchun yordamchi skriptlar va
+  PowerShell cheklovini hal qilish
 
 ---
 

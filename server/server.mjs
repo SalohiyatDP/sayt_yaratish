@@ -22,8 +22,14 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { loadEnvFile } from './lib/env.mjs';
+import * as telegram from './notify/telegram.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+
+// `.env` faylini process.env ga yuklash (mavjud qiymatlar ustidan yozilmaydi)
+const ENV_RESULT = loadEnvFile(path.join(ROOT, '.env'));
 const DIST = path.join(ROOT, 'dist');
 const ADMIN_DIR = path.join(ROOT, 'admin');
 const CONTENT_DIR = path.join(ROOT, 'content');
@@ -338,7 +344,69 @@ async function handleContact(req, res) {
   }
 
   logLine(`Yangi murojaat qabul qilindi: ${id}`);
-  return sendJson(res, 201, { ok: true, id });
+
+  // Murojaat diskka yozilgani uchun foydalanuvchiga darhol javob beramiz.
+  // Telegramga yuborish esa fonda davom etadi — bot ishlamasa ham murojaat yo'qolmaydi.
+  sendJson(res, 201, { ok: true, id });
+
+  deliverToTelegram(stored).catch((error) => logLine('Telegram: kutilmagan xatolik —', error.message));
+  return undefined;
+}
+
+/**
+ * Murojaatni Telegram botga yuboradi va natijani murojaat yozuviga qo'shadi.
+ * Bu funksiya foydalanuvchiga javob berilgandan keyin ishlaydi.
+ */
+async function deliverToTelegram(record) {
+  const config = telegram.getConfig();
+  if (!config.enabled) {
+    const reason = config.disabled
+      ? 'yuborish vaqtincha o\'chirilgan'
+      : !config.botToken
+        ? 'bot tokeni kiritilmagan'
+        : 'chat_id kiritilmagan';
+    // Sababni yozuvga ham qo'shamiz — boshqaruv panelida ko'rinadi.
+    await patchInboxRecord(record.id, {
+      telegram: { delivered: false, skipped: true, attempts: 0, error: reason, at: new Date().toISOString() },
+    });
+    logLine(`Telegram: ${reason} — ${record.id} faqat murojaatlar qutisida saqlandi.`);
+    return;
+  }
+
+  const status = await telegram.notifyContact(record, { adminUrl: adminPanelUrl() });
+  await patchInboxRecord(record.id, { telegram: status });
+
+  if (status.delivered) {
+    logLine(`Telegram: ${record.id} yuborildi (chat ${status.chatId}, urinish ${status.attempts}).`);
+  } else {
+    logLine(`Telegram: ${record.id} YUBORILMADI — ${status.error}${status.permanent ? ' (qaytarib bo\'lmaydigan xatolik)' : ''}`);
+  }
+}
+
+/** Murojaat yozuvining bir qismini yangilaydi. */
+async function patchInboxRecord(id, patch) {
+  const file = path.join(INBOX_DIR, `${safeFileName(id)}.json`);
+  try {
+    const current = JSON.parse(await fsp.readFile(file, 'utf8'));
+    await fsp.writeFile(file, JSON.stringify({ ...current, ...patch }, null, 2), { mode: 0o600 });
+    return true;
+  } catch (error) {
+    logLine(`Murojaat yozuvi yangilanmadi (${id}): ${error.message}`);
+    return false;
+  }
+}
+
+/** Telegram xabaridagi tugma uchun boshqaruv paneli manzili. */
+function adminPanelUrl() {
+  const configured = String(process.env.SITE_ORIGIN || '').replace(/\/$/, '');
+  if (configured) return `${configured}/admin/`;
+  try {
+    const site = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, 'site.json'), 'utf8'));
+    const origin = String(site?.seo?.canonicalOrigin || '').replace(/\/$/, '');
+    return origin ? `${origin}/admin/` : null;
+  } catch (error) {
+    return null;
+  }
 }
 
 /* ─────────────────────────── Boshqaruv paneli API ─────────────────────────── */
@@ -501,6 +569,101 @@ async function handleAdminApi(req, res, url) {
       logLine(`Murojaat o'chirildi: ${inboxMatch[1]} (${session.sub})`);
       return sendJson(res, 200, { ok: true });
     }
+  }
+
+  // Murojaatni Telegramga qayta yuborish
+  const resendMatch = /^inbox\/([\w-]+)\/resend$/.exec(route);
+  if (resendMatch && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    const file = path.join(INBOX_DIR, `${safeFileName(resendMatch[1])}.json`);
+    const record = JSON.parse(await fsp.readFile(file, 'utf8').catch(() => 'null'));
+    if (!record) return sendJson(res, 404, { ok: false, error: 'not_found' });
+
+    const status = await telegram.notifyContact(record, { adminUrl: adminPanelUrl() });
+    await patchInboxRecord(record.id, { telegram: status });
+    logLine(`Telegram: ${record.id} qayta yuborildi (${session.sub}) — ${status.delivered ? 'muvaffaqiyatli' : status.error}`);
+    return sendJson(res, status.delivered ? 200 : 502, { ok: status.delivered, telegram: status });
+  }
+
+  /* ── Telegram sozlamalari ── */
+
+  if (route === 'telegram' && req.method === 'GET') {
+    const report = await telegram.diagnose();
+    let contactEndpoint = null;
+    try {
+      const site = JSON.parse(await fsp.readFile(path.join(CONTENT_DIR, 'site.json'), 'utf8'));
+      contactEndpoint = site?.features?.contactFormEndpoint ?? null;
+    } catch (error) {
+      contactEndpoint = null;
+    }
+    return sendJson(res, 200, { ok: true, report, contactEndpoint, envFileLoaded: ENV_RESULT.loaded });
+  }
+
+  if (route === 'telegram/config' && req.method === 'POST') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    let payload;
+    try {
+      payload = await readJsonBody(req, 16 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+
+    const patch = {};
+    if (typeof payload.botToken === 'string') {
+      const token = payload.botToken.trim();
+      if (token !== '' && !/^\d{6,}:[A-Za-z0-9_-]{30,}$/.test(token)) {
+        return sendJson(res, 422, { ok: false, error: 'token_format' });
+      }
+      patch.botToken = token;
+    }
+    if (typeof payload.chatId === 'string') {
+      const chatId = payload.chatId.trim();
+      if (chatId !== '' && !/^(-?\d{1,20}|@[A-Za-z][\w]{4,31})$/.test(chatId)) {
+        return sendJson(res, 422, { ok: false, error: 'chat_id_format' });
+      }
+      patch.chatId = chatId;
+    }
+    if (typeof payload.threadId === 'string') {
+      const threadId = payload.threadId.trim();
+      if (threadId !== '' && !/^\d{1,20}$/.test(threadId)) {
+        return sendJson(res, 422, { ok: false, error: 'thread_id_format' });
+      }
+      patch.threadId = threadId;
+    }
+    if (typeof payload.disabled === 'boolean') patch.disabled = payload.disabled;
+
+    await telegram.saveConfig(patch);
+    logLine(`Telegram sozlamalari yangilandi (${session.sub})`);
+    const report = await telegram.diagnose();
+    return sendJson(res, 200, { ok: true, report });
+  }
+
+  if (route === 'telegram/test' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    const result = await telegram.sendTestMessage(`Yuborgan xodim: ${session.sub}`);
+    logLine(`Telegram sinov xabari (${session.sub}) — ${result.delivered ? 'yuborildi' : result.error}`);
+    return sendJson(res, result.delivered ? 200 : 502, { ok: result.delivered, result });
+  }
+
+  if (route === 'telegram/chats' && req.method === 'GET') {
+    // getUpdates orqali oxirgi xabar yuborilgan chatlarni aniqlash — chat_id ni topish uchun
+    const config = telegram.getConfig();
+    if (!config.botToken) return sendJson(res, 400, { ok: false, error: 'bot_token_yoq' });
+    const updates = await telegram.callApi('getUpdates', { limit: 50, allowed_updates: ['message', 'channel_post'] }, config);
+    if (!updates.ok) return sendJson(res, 502, { ok: false, error: updates.error });
+
+    const chats = new Map();
+    for (const update of updates.result || []) {
+      const chat = update.message?.chat || update.channel_post?.chat;
+      if (chat && !chats.has(chat.id)) {
+        chats.set(chat.id, {
+          id: String(chat.id),
+          type: chat.type,
+          title: chat.title || chat.username || [chat.first_name, chat.last_name].filter(Boolean).join(' ') || null,
+        });
+      }
+    }
+    return sendJson(res, 200, { ok: true, chats: [...chats.values()] });
   }
 
   // Fayl yuklash: POST /api/admin/upload?name=fayl.jpg&folder=photos
@@ -685,6 +848,23 @@ server.listen(PORT, HOST, () => {
       console.log(`  Foydalanuvchilar:  ${users.length} ta`);
     }
   }
+  if (ENV_RESULT.loaded) {
+    console.log(`  .env fayli:        yuklandi (${ENV_RESULT.keys.length} ta o'zgaruvchi)`);
+  }
+
+  const tg = telegram.getConfig();
+  if (tg.enabled) {
+    console.log(`  Telegram:          ulangan → chat ${tg.chatId}${tg.threadId ? `, mavzu ${tg.threadId}` : ''}`);
+  } else if (tg.disabled) {
+    console.log('  Telegram:          vaqtincha o\'chirilgan');
+  } else if (!tg.botToken) {
+    console.log('  Telegram:          sozlanmagan (bot tokeni yo\'q)');
+    console.log('                     Sozlash: node server/tools/telegram-setup.mjs <token>');
+  } else {
+    console.log('  Telegram:          bot tokeni bor, lekin chat_id kiritilmagan');
+    console.log('                     Sozlash: node server/tools/telegram-setup.mjs');
+  }
+
   if (DEV) console.log('  Rejim:             DEV (cookie Secure bayrog\'isiz — faqat mahalliy sinov uchun)');
   console.log('');
 });

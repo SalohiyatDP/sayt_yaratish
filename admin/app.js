@@ -155,7 +155,12 @@ async function refreshCounts() {
     setCount('masterplans', (masterplans.items || []).length);
     setCount('news', (news.items || []).length);
     const inbox = await api.inbox().catch(() => null);
-    if (inbox) setCount('inbox', (inbox.items || []).filter((item) => item.status === 'new').length);
+    if (inbox) {
+      const list = inbox.items || [];
+      setCount('inbox', list.filter((item) => item.status === 'new').length);
+      // Telegramga yetkazilmagan murojaatlar soni
+      setCount('telegram', list.filter((item) => item.telegram && !item.telegram.delivered && !item.telegram.skipped).length);
+    }
   } catch (error) {
     /* e'tiborsiz */
   }
@@ -188,6 +193,7 @@ async function render() {
       site: renderSiteView,
       pages: renderPagesView,
       inbox: renderInboxView,
+      telegram: renderTelegramView,
       files: renderFilesView,
       build: renderBuildView,
     };
@@ -1025,6 +1031,25 @@ const STATUS_LABELS = {
   archived: 'Arxivlangan',
 };
 
+/** Murojaat yozuvi ostidagi Telegram yetkazilish holati. */
+function telegramStatusLine(item) {
+  const tg = item.telegram;
+  if (!tg) {
+    return el('p', { class: 'a-small a-muted', text: '📨 Telegram: yuborilmagan (bot sozlanmagan bo\'lishi mumkin)' });
+  }
+  if (tg.delivered) {
+    return el('p', { class: 'a-small', style: 'color:var(--a-success)' }, [
+      `📨 Telegramga yuborildi${tg.attempts > 1 ? ` (${tg.attempts}-urinishda)` : ''} · ${formatDateTime(tg.at)}`,
+    ]);
+  }
+  if (tg.skipped) {
+    return el('p', { class: 'a-small a-muted', text: `📨 Telegram: o'tkazib yuborildi — ${tg.error}` });
+  }
+  return el('p', { class: 'a-small', style: 'color:var(--a-danger)' }, [
+    `📨 Telegramga yuborilmadi: ${tg.error || 'nomalum xatolik'}${tg.permanent ? ' (sozlamalarni tekshiring)' : ''}`,
+  ]);
+}
+
 async function renderInboxView() {
   const data = await api.inbox();
   const items = data.items || [];
@@ -1062,6 +1087,7 @@ async function renderInboxView() {
           el('span', { text: `Til: ${item.locale || '—'}` }),
         ]),
         el('p', { class: 'inbox-item__msg', text: item.message || '' }),
+        telegramStatusLine(item),
         el('div', { class: 'inbox-item__tools' }, [
           statusSelect,
           el('button', {
@@ -1078,6 +1104,28 @@ async function renderInboxView() {
               }
             },
           }),
+          item.telegram?.delivered
+            ? null
+            : el('button', {
+                type: 'button',
+                class: 'a-btn a-btn--sm',
+                text: 'Telegramga yuborish',
+                onClick: async (event) => {
+                  const button = event.currentTarget;
+                  button.disabled = true;
+                  button.textContent = 'Yuborilmoqda…';
+                  try {
+                    await api.resendInbox(item.id);
+                    toast('Telegramga yuborildi', 'success');
+                    render();
+                    refreshCounts();
+                  } catch (error) {
+                    toast(`Yuborilmadi: ${error.data?.telegram?.error || error.message}`, 'error', 8000);
+                    button.disabled = false;
+                    button.textContent = 'Telegramga yuborish';
+                  }
+                },
+              }),
           state.user?.role === 'admin'
             ? el('button', {
                 type: 'button',
@@ -1227,6 +1275,249 @@ async function renderBuildView() {
 
 function row(label, value) {
   return el('tr', {}, [el('th', { text: label, scope: 'row' }), el('td', { text: value })]);
+}
+
+/* ─────────────────────────── Telegram ─────────────────────────── */
+
+async function renderTelegramView() {
+  const data = await api.telegram();
+  const r = data.report || {};
+  const isAdmin = state.user?.role === 'admin';
+
+  const statusBox = (() => {
+    if (r.enabled && r.bot && r.chat && (r.errors || []).length === 0) {
+      return el('div', { class: 'a-alert a-alert--success' }, [
+        el('strong', { text: 'Telegram ulangan' }),
+        el('p', { text: `Murojaatlar @${r.bot.username} boti orqali "${r.chat.title || r.chat.id}" chatiga yuboriladi.` }),
+      ]);
+    }
+    if (r.disabled) {
+      return el('div', { class: 'a-alert a-alert--warning' }, [
+        el('strong', { text: 'Telegramga yuborish vaqtincha o\'chirilgan' }),
+        el('p', { text: 'Murojaatlar qabul qilinadi va «Murojaatlar» bo\'limida saqlanadi, lekin botga yuborilmaydi.' }),
+      ]);
+    }
+    return el('div', { class: 'a-alert a-alert--warning' }, [
+      el('strong', { text: 'Telegram hali sozlanmagan' }),
+      el('p', { text: 'Quyida bot tokeni va chat identifikatorini kiriting. Murojaatlar shu paytgacha ham qabul qilinadi va «Murojaatlar» bo\'limida saqlanadi.' }),
+      (r.errors || []).length ? el('ul', {}, r.errors.map((e) => el('li', { text: e }))) : null,
+    ]);
+  })();
+
+  const endpointWarning = data.contactEndpoint
+    ? null
+    : el('div', { class: 'a-alert a-alert--error' }, [
+        el('strong', { text: 'Murojaat shakli saytda hali faolsiz' }),
+        el('p', { text: 'Telegram sozlangan bo\'lsa ham, shakl ishlashi uchun «Sayt sozlamalari» bo\'limidagi «Murojaatlarni qabul qilish manzili» maydoniga /api/contact yozilishi va sayt qayta qurilishi kerak.' }),
+        el('button', {
+          type: 'button',
+          class: 'a-btn a-btn--sm',
+          text: 'Sayt sozlamalariga o\'tish',
+          onClick: () => {
+            state.view = 'site';
+            for (const link of qsa('.sidebar__link')) link.classList.toggle('is-active', link.dataset.view === 'site');
+            render();
+          },
+        }),
+      ]);
+
+  // Sozlamalar shakli
+  const tokenInput = el('input', {
+    type: 'password',
+    class: 'a-input',
+    placeholder: r.hasToken ? `Saqlangan: ${r.tokenMasked}` : '1234567890:AAEhBOweik6ad9r_QXzR1_ABC…',
+    autocomplete: 'off',
+  });
+  const chatInput = el('input', {
+    type: 'text',
+    class: 'a-input',
+    value: r.chatId || '',
+    placeholder: '-1001234567890  yoki  @kanal_nomi',
+    autocomplete: 'off',
+  });
+  const threadInput = el('input', {
+    type: 'text',
+    class: 'a-input',
+    value: r.threadId || '',
+    placeholder: 'ixtiyoriy — forum guruhidagi mavzu raqami',
+    autocomplete: 'off',
+  });
+
+  const chatsBox = el('div', { class: 'a-small a-muted', style: 'margin-top:0.5rem' });
+
+  const saveButton = el('button', {
+    type: 'button',
+    class: 'a-btn a-btn--primary',
+    text: 'Saqlash va tekshirish',
+    onClick: async () => {
+      const payload = {};
+      if (tokenInput.value.trim() !== '') payload.botToken = tokenInput.value.trim();
+      payload.chatId = chatInput.value.trim();
+      payload.threadId = threadInput.value.trim();
+      saveButton.disabled = true;
+      try {
+        await api.telegramSave(payload);
+        tokenInput.value = '';
+        toast('Sozlamalar saqlandi', 'success');
+        render();
+      } catch (error) {
+        const messages = {
+          token_format: 'Bot tokeni noto\'g\'ri ko\'rinishda. @BotFather bergan tokenni to\'liq nusxalang.',
+          chat_id_format: 'chat_id noto\'g\'ri. Masalan: 123456789, -1001234567890 yoki @kanal_nomi',
+          thread_id_format: 'Mavzu raqami faqat sondan iborat bo\'lishi kerak.',
+          admin_only: 'Bu amalni faqat admin roli bajaradi.',
+        };
+        toast(messages[error.data?.error] || `Saqlanmadi: ${error.message}`, 'error', 7000);
+      } finally {
+        saveButton.disabled = false;
+      }
+    },
+  });
+
+  const findChatsButton = el('button', {
+    type: 'button',
+    class: 'a-btn',
+    text: 'chat_id ni aniqlash',
+    onClick: async () => {
+      chatsBox.textContent = 'Tekshirilmoqda…';
+      try {
+        const result = await api.telegramChats();
+        if (!result.chats || result.chats.length === 0) {
+          chatsBox.innerHTML = 'Hech qanday chat topilmadi. Botga (yoki bot qo\'shilgan guruhga) biror xabar yuboring va qaytadan bosing.';
+          return;
+        }
+        chatsBox.innerHTML = '';
+        chatsBox.append(el('p', { text: 'Topilgan chatlar — keraklisini bosing:' }));
+        for (const chat of result.chats) {
+          const kind = { private: 'shaxsiy chat', group: 'guruh', supergroup: 'guruh', channel: 'kanal' }[chat.type] || chat.type;
+          chatsBox.append(
+            el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm',
+              style: 'margin:0.15rem 0.3rem 0.15rem 0',
+              text: `${chat.id} · ${kind} · ${chat.title || '—'}`,
+              onClick: () => {
+                chatInput.value = chat.id;
+                toast('chat_id qo\'yildi — «Saqlash va tekshirish» ni bosing', 'info');
+              },
+            }),
+          );
+        }
+      } catch (error) {
+        chatsBox.textContent = `Aniqlanmadi: ${error.data?.error || error.message}`;
+      }
+    },
+  });
+
+  const testButton = el('button', {
+    type: 'button',
+    class: 'a-btn',
+    text: 'Sinov xabarini yuborish',
+    onClick: async () => {
+      testButton.disabled = true;
+      testButton.textContent = 'Yuborilmoqda…';
+      try {
+        await api.telegramTest();
+        toast('Sinov xabari yuborildi — Telegramni tekshiring', 'success', 6000);
+      } catch (error) {
+        toast(`Yuborilmadi: ${error.data?.result?.error || error.data?.error || error.message}`, 'error', 8000);
+      } finally {
+        testButton.disabled = false;
+        testButton.textContent = 'Sinov xabarini yuborish';
+      }
+    },
+  });
+
+  const disableToggle = el('label', { class: 'a-check' }, [
+    el('input', {
+      type: 'checkbox',
+      checked: Boolean(r.disabled),
+      onChange: async (event) => {
+        try {
+          await api.telegramSave({ disabled: event.target.checked });
+          toast(event.target.checked ? 'Yuborish o\'chirildi' : 'Yuborish yoqildi', 'success');
+          render();
+        } catch (error) {
+          toast(`O'zgartirilmadi: ${error.message}`, 'error');
+        }
+      },
+    }),
+    el('span', {}, [
+      'Telegramga yuborishni vaqtincha to\'xtatish',
+      el('span', { class: 'a-field__hint', text: 'Murojaatlar qabul qilinishda va qutida saqlanishda davom etadi.' }),
+    ]),
+  ]);
+
+  const details = el('div', { class: 'a-table-wrap' }, [
+    el('table', { class: 'a-table' }, [
+      el('tbody', {}, [
+        row('Bot', r.bot ? `@${r.bot.username} (${r.bot.name})` : '— tekshirilmagan'),
+        row('Bot tokeni', r.hasToken ? `${r.tokenMasked}  (manba: ${r.source?.botToken === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
+        row('Chat', r.chat ? `${r.chat.title || '—'} · ${r.chat.type} · ${r.chat.id}` : r.chatId ? `${r.chatId} (tekshirilmagan)` : '— kiritilmagan'),
+        row('Forum mavzusi', r.threadId || '—'),
+        row('API manzili', r.apiBase || '—'),
+        row('.env fayli', data.envFileLoaded ? 'yuklangan' : 'topilmadi (majburiy emas)'),
+        row('Murojaat shakli', data.contactEndpoint ? `faol → ${data.contactEndpoint}` : 'faolsiz'),
+      ]),
+    ]),
+  ]);
+
+  setMain(
+    el('div', { class: 'page-bar' }, [
+      el('h1', { text: 'Telegram' }),
+      el('div', { class: 'page-bar__actions' }, [testButton, el('button', { type: 'button', class: 'a-btn a-btn--sm', text: 'Yangilash', onClick: render })]),
+    ]),
+    statusBox,
+    endpointWarning,
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Joriy holat' }),
+      details,
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Sozlamalar' }),
+      el('p', { class: 'group__note', text: isAdmin ? 'Bot tokeni server/data/telegram.json faylida saqlanadi va repozitoriyaga tushmaydi. Bu sahifa faqat HTTPS orqali ochilishi kerak.' : 'Sozlamalarni faqat admin roliga ega xodim o\'zgartiradi.' }),
+      el('div', { class: 'a-alert a-alert--info' }, [
+        el('strong', { text: 'Bot qanday yaratiladi' }),
+        el('ol', {}, [
+          el('li', { text: 'Telegramda @BotFather ni oching va /newbot buyrug\'ini yuboring.' }),
+          el('li', { text: 'Bot nomini va foydalanuvchi nomini kiriting (oxiri "bot" bilan tugashi shart).' }),
+          el('li', { text: 'BotFather bergan tokenni quyidagi maydonga qo\'ying.' }),
+          el('li', { text: 'Murojaatlar keladigan guruhni yaratib, botni unga qo\'shing va guruhda biror xabar yozing.' }),
+          el('li', { text: '«chat_id ni aniqlash» tugmasini bosib, guruhni tanlang.' }),
+        ]),
+      ]),
+      isAdmin
+        ? el('div', {}, [
+            el('label', { class: 'a-field' }, [
+              el('span', { class: 'a-field__label', text: 'Bot tokeni' }),
+              tokenInput,
+              el('span', { class: 'a-field__hint', text: r.hasToken ? 'Bo\'sh qoldirsangiz, saqlangan token o\'zgarmaydi.' : '@BotFather dan olingan token.' }),
+            ]),
+            el('label', { class: 'a-field' }, [
+              el('span', { class: 'a-field__label', text: 'chat_id — murojaatlar keladigan chat' }),
+              chatInput,
+            ]),
+            el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem' }, [findChatsButton]),
+            chatsBox,
+            el('label', { class: 'a-field' }, [
+              el('span', { class: 'a-field__label', text: 'Forum mavzusi (ixtiyoriy)' }),
+              threadInput,
+            ]),
+            disableToggle,
+            el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap' }, [saveButton]),
+          ])
+        : el('p', { class: 'a-muted', text: 'Sizning rolingiz sozlamalarni o\'zgartirishga ruxsat bermaydi.' }),
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Muhim eslatmalar' }),
+      el('ul', {}, [
+        el('li', { text: 'Murojaatlar avval serverga saqlanadi, keyin botga yuboriladi. Bot ishlamasa ham murojaat yo\'qolmaydi — «Murojaatlar» bo\'limida ko\'rinadi va u yerdan qayta yuborish mumkin.' }),
+        el('li', { text: 'Telegramga shaxsiy ma\'lumotlar (ism, telefon, pochta) yuboriladi. Chatga faqat vakolatli xodimlar kirishi ta\'minlanishi kerak.' }),
+        el('li', { text: 'Bot tokeni oshkor bo\'lsa, @BotFather → /revoke orqali darhol bekor qilib, yangisini oling.' }),
+        el('li', { text: 'Sozlamalarni buyruq satridan ham kiritish mumkin: node server/tools/telegram-setup.mjs' }),
+      ]),
+    ]),
+  );
 }
 
 /* ─────────────────────────── Ishga tushirish ─────────────────────────── */
