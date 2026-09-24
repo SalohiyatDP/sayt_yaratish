@@ -150,6 +150,9 @@ TELEGRAM_CHAT_ID=...
 sudo -u direksiya node server/tools/hash-password.mjs direksiya '<kuchli-parol>' admin
 ```
 
+Yoki `/admin/` sahifasini ochib, «Birinchi administrator» shaklini to'ldirasiz —
+kalit `server/data/setup-key.txt` faylida va ishga tushish jurnalida bo'ladi.
+
 **5. Murojaat shaklini yoqish**
 
 `content/site.json` → `"features": { "contactFormEndpoint": "/api/contact" }`
@@ -437,13 +440,23 @@ bermagan va `PORT` ni qo'lda kiritish kerak.
 
 **5. Saqlash va perezapustit** tugmasini bosing.
 
-**6. Bir marta terminal orqali (panelning «Shell» bo'limi yoki SSH)**
+**6. Birinchi administratorni yaratish — terminal shart emas**
 
-```bash
-cd /var/www/<foydalanuvchi>/data/www/<domen>
-node server/tools/hash-password.mjs direksiya '<kuchli-parol>' admin
-node src/build.mjs
-```
+`https://<domen>/admin/` sahifasini ochsangiz «Birinchi administrator» shakli
+chiqadi. U bir martalik kalit so'raydi. Kalitni ikki joydan olasiz:
+
+- **Fayl menejeri:** `server/data/setup-key.txt`
+- **Jurnal:** ISPmanager → Node.js ilovasi → jurnal (log); kalit ishga
+  tushishda ramka ichida chiqadi
+
+Administrator yaratilgach kalit fayli avtomatik o'chiriladi.
+
+> Terminal («Shell» bo'limi yoki SSH) bor bo'lsa, xohishga ko'ra:
+> ```bash
+> cd /var/www/<foydalanuvchi>/data/www/<domen>
+> node server/tools/hash-password.mjs direksiya '<kuchli-parol>' admin
+> node src/build.mjs
+> ```
 
 **7. Tekshirish**
 
@@ -870,6 +883,7 @@ curl -s https://sayt-manzili.uz/api/health
 - [ ] Boshqaruv paneli faqat HTTPS orqali ochiladi
 - [ ] `/admin/` va `/api/admin/` IP bo'yicha yoki VPN orqali cheklangan
 - [ ] Panel paroli kuchli (12+ belgi) va faqat kerakli xodimlarda
+- [ ] `server/data/setup-key.txt` yo'q (administrator yaratilgach avtomatik o'chadi)
 - [ ] `.env` fayli `chmod 600`, `server/data/` `chmod 700`
 - [ ] `--dev` bayrog'i **ishlatilmayapti**
 - [ ] Bot tokeni repozitoriyaga yoki chatlarga tushmagan

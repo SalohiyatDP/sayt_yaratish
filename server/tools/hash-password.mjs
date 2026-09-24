@@ -83,6 +83,17 @@ else store.users[index] = { ...store.users[index], ...entry };
 
 fs.writeFileSync(USERS_FILE, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
 
+// Foydalanuvchi bor ekan, brauzerdan sozlash kaliti keraksiz — o'chiriladi
+const SETUP_KEY_FILE = path.join(DATA_DIR, 'setup-key.txt');
+if (fs.existsSync(SETUP_KEY_FILE)) {
+  try {
+    fs.unlinkSync(SETUP_KEY_FILE);
+    console.log('\n  Bir martalik sozlash kaliti o\'chirildi (endi kerak emas).');
+  } catch (error) {
+    console.error(`  Diqqat: ${SETUP_KEY_FILE} o'chirilmadi — ${error.message}`);
+  }
+}
+
 console.log(`
   Foydalanuvchi ${index === -1 ? 'yaratildi' : 'yangilandi'}: ${entry.username} (rol: ${role})
   Fayl: ${USERS_FILE}

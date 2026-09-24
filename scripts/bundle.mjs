@@ -45,6 +45,7 @@ const NEVER_COPY = new Set([
   'session-secret',
   'admin-users.json',
   'telegram.json',
+  'setup-key.txt',
 ]);
 
 function shouldSkip(name) {

@@ -16,12 +16,6 @@
     <h1 class="login__title">Boshqaruv paneli</h1>
     <p class="login__sub">Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi</p>
 
-    <div class="a-alert a-alert--warning" id="login-setup" hidden>
-      <strong>Foydalanuvchi yaratilmagan</strong>
-      <p>Serverda quyidagi buyruqni bajaring:</p>
-      <code>npm run admin:password -- &lt;foydalanuvchi&gt; &lt;parol&gt; admin</code>
-    </div>
-
     <div class="a-alert a-alert--error" id="login-error" hidden></div>
 
     <label class="a-field">
@@ -35,6 +29,72 @@
     <button type="submit" class="a-btn a-btn--primary a-btn--block" id="login-submit">Kirish</button>
     <p class="login__note">
       Bu bo'lim faqat vakolatli xodimlar uchun. Seans 8 soatdan keyin avtomatik tugaydi.
+    </p>
+  </form>
+</section>
+
+<!-- ─────────────── Birinchi administratorni yaratish ─────────────── -->
+<section class="login" id="setup-screen" hidden>
+  <form class="login__card login__card--wide" id="setup-form" autocomplete="off">
+    <h1 class="login__title">Birinchi administrator</h1>
+    <p class="login__sub">Namangan turistik-rekreatsion hududlarini rivojlantirish direksiyasi</p>
+
+    <div class="a-alert a-alert--info">
+      <strong>Panel hali sozlanmagan</strong>
+      <p>
+        Xavfsizlik uchun bir martalik kalit talab qilinadi. Kalit serverda
+        quyidagi faylda turadi — uni hosting fayl menejeri orqali oching:
+      </p>
+      <code id="setup-key-file">server/data/setup-key.txt</code>
+      <p class="small">
+        Kalitni Node.js ilovasining jurnalidan (log) ham ko'rish mumkin.
+        Administrator yaratilgach kalit avtomatik o'chiriladi.
+      </p>
+    </div>
+
+    <div class="a-alert a-alert--warning" id="setup-key-missing" hidden>
+      <strong>Kalit fayli topilmadi</strong>
+      <p>Serverni qayta ishga tushiring — kalit avtomatik yaratiladi.</p>
+    </div>
+
+    <div class="a-alert a-alert--error" id="setup-error" hidden></div>
+
+    <label class="a-field">
+      <span class="a-field__label">Bir martalik kalit</span>
+      <input type="text" id="setup-key" placeholder="NRS-XXXX-XXXX-XXXX-XXXX"
+             autocomplete="off" spellcheck="false" required>
+      <span class="a-field__hint">Katta-kichik harf va chiziqchalar farqi yo'q.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Foydalanuvchi nomi</span>
+      <input type="text" id="setup-username" autocomplete="off" spellcheck="false"
+             pattern="[A-Za-z0-9._\-]{3,40}" required>
+      <span class="a-field__hint">3–40 belgi: lotin harflari, raqam, nuqta, chiziqcha.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">To'liq ism (ixtiyoriy)</span>
+      <input type="text" id="setup-name" autocomplete="off">
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Parol</span>
+      <input type="password" id="setup-password" autocomplete="new-password" minlength="12" required>
+      <span class="a-field__hint">Kamida 12 belgi. Foydalanuvchi nomini takrorlamasin.</span>
+    </label>
+
+    <label class="a-field">
+      <span class="a-field__label">Parolni takrorlang</span>
+      <input type="password" id="setup-password2" autocomplete="new-password" minlength="12" required>
+    </label>
+
+    <button type="submit" class="a-btn a-btn--primary a-btn--block" id="setup-submit">
+      Administratorni yaratish
+    </button>
+    <p class="login__note">
+      Bu shakl faqat bir marta — hech qanday foydalanuvchi bo'lmaganda ishlaydi.
+      Keyingi xodimlarni panelning «Foydalanuvchilar» bo'limidan qo'shasiz.
     </p>
   </form>
 </section>

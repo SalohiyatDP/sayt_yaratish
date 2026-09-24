@@ -49,7 +49,12 @@ npm start
 #    → http://localhost:8080/admin/
 ```
 
-Boshqaruv paneliga kirish uchun avval foydalanuvchi yarating:
+Boshqaruv paneliga birinchi kirishda **«Birinchi administrator»** shakli
+chiqadi. U bir martalik kalit so'raydi — kalit server ishga tushganda jurnalga
+yoziladi va `server/data/setup-key.txt` faylida saqlanadi. Administrator
+yaratilgach kalit o'chiriladi.
+
+Buyruq satridan yaratishni afzal ko'rsangiz:
 
 ```bash
 npm run admin:password -- direksiya 'Kuchli-Parol-Kamida-12-Belgi' admin

@@ -9,6 +9,7 @@
 .env.local
 server/data/session-secret
 server/data/admin-users.json
+server/data/setup-key.txt
 
 # Telegram bot sozlamalari (bot tokeni maxfiy!)
 server/data/telegram.json

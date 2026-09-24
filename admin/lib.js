@@ -134,6 +134,13 @@ async function request(url, options = {}) {
 
 export const api = {
   session: () => request('/api/admin/session'),
+  setupState: () => request('/api/admin/setup'),
+  setup: (payload) =>
+    request('/api/admin/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
   login: (username, password) =>
     request('/api/admin/login', {
       method: 'POST',

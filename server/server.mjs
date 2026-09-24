@@ -193,6 +193,101 @@ const publicUser = (user) => ({
   updatedAt: user.updatedAt || null,
 });
 
+/* ──────────────── Birinchi ishga tushirish kaliti ────────────────
+ * Hostingda buyruq satri bo'lmasligi mumkin, shuning uchun birinchi
+ * administratorni brauzerdan ham yaratish mumkin. Sayt ochiq internetda
+ * turgani uchun bu jarayon bir martalik kalit bilan himoyalanadi: kalit
+ * serverda faylga yoziladi, uni faqat hosting egasi ko'radi (fayl menejeri
+ * yoki jurnal orqali). Foydalanuvchi yaratilgach kalit o'chiriladi.
+ */
+
+const SETUP_KEY_FILE = path.join(DATA_DIR, 'setup-key.txt');
+// Chalkashtirmaydigan alifbo: 0/O va 1/I/L belgilari yo'q
+const SETUP_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+const normalizeSetupKey = (value) => String(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+function generateSetupKey() {
+  const bytes = crypto.randomBytes(16);
+  let out = '';
+  for (let i = 0; i < 16; i += 1) {
+    if (i > 0 && i % 4 === 0) out += '-';
+    out += SETUP_ALPHABET[bytes[i] % SETUP_ALPHABET.length];
+  }
+  return `NRS-${out}`;
+}
+
+/** Faylda saqlangan kalitni o'qiydi (izohli satrlar hisobga olinmaydi). */
+function readSetupKey() {
+  if (!fs.existsSync(SETUP_KEY_FILE)) return null;
+  try {
+    const text = fs.readFileSync(SETUP_KEY_FILE, 'utf8');
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (trimmed !== '' && !trimmed.startsWith('#')) return trimmed;
+    }
+    return null;
+  } catch (error) {
+    console.error(`setup-key.txt o'qilmadi: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Foydalanuvchi yo'q bo'lsa kalitni tayyorlaydi, bor bo'lsa kalitni o'chiradi.
+ * Har ishga tushishda chaqiriladi — holat doim mos bo'lib turadi.
+ */
+function syncSetupKey() {
+  const hasUsers = loadUsers().length > 0;
+  if (hasUsers) {
+    clearSetupKey();
+    return null;
+  }
+  const existing = readSetupKey();
+  if (existing) return existing;
+
+  const key = generateSetupKey();
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(
+      SETUP_KEY_FILE,
+      [
+        '# Boshqaruv panelining bir martalik sozlash kaliti.',
+        '# Uni /admin/ sahifasidagi "Birinchi administrator" shaklida kiriting.',
+        '# Administrator yaratilgach bu fayl avtomatik o\'chiriladi.',
+        '',
+        key,
+        '',
+      ].join('\n'),
+      { mode: 0o600 },
+    );
+  } catch (error) {
+    console.error(`setup-key.txt yozilmadi: ${error.message}`);
+    return null;
+  }
+  return key;
+}
+
+function clearSetupKey() {
+  if (!fs.existsSync(SETUP_KEY_FILE)) return;
+  try {
+    fs.unlinkSync(SETUP_KEY_FILE);
+  } catch (error) {
+    console.error(`setup-key.txt o'chirilmadi: ${error.message}`);
+  }
+}
+
+/** Kalitni vaqt bo'yicha tahlilga chidamli tarzda tekshiradi. */
+function setupKeyMatches(provided) {
+  const expected = normalizeSetupKey(readSetupKey());
+  const given = normalizeSetupKey(provided);
+  if (expected === '') return false;
+  // Uzunlik farq qilsa ham hisoblash bajariladi — javob vaqti bir xil qoladi
+  const a = Buffer.from(given.padEnd(expected.length, '\0').slice(0, expected.length));
+  const b = Buffer.from(expected);
+  return crypto.timingSafeEqual(a, b) && given.length === expected.length;
+}
+
 /* ─────────────────────────── Yordamchilar ─────────────────────────── */
 
 function send(res, status, body, headers = {}) {
@@ -584,6 +679,82 @@ function requireAdmin(req, res) {
 async function handleAdminApi(req, res, url) {
   const route = url.pathname.replace(/^\/api\/admin\/?/, '');
 
+  /* ── Birinchi administratorni yaratish ── */
+  if (route === 'setup' && req.method === 'GET') {
+    const needed = loadUsers().length === 0;
+    return sendJson(res, 200, {
+      ok: true,
+      needed,
+      // Kalitning o'zi hech qachon brauzerga yuborilmaydi — faqat qayerdan
+      // olish kerakligi ko'rsatiladi.
+      keyReady: needed ? readSetupKey() !== null : false,
+      keyFile: needed ? SETUP_KEY_FILE : null,
+    });
+  }
+
+  if (route === 'setup' && req.method === 'POST') {
+    const ip = clientIp(req);
+    // Umumiy suiiste'mol chegarasi — shaklni to'ldirishda xato qilish erkin
+    if (!rateLimit(`setup:${ip}`, 30, 30 * 60 * 1000)) {
+      return sendJson(res, 429, { ok: false, error: 'too_many_attempts' });
+    }
+    // Faqat bitta ham foydalanuvchi bo'lmaganda ishlaydi
+    if (loadUsers().length > 0) {
+      return sendJson(res, 409, { ok: false, error: 'already_configured' });
+    }
+    if (req.headers['x-requested-with'] !== 'direksiya-admin') {
+      return sendJson(res, 403, { ok: false, error: 'csrf' });
+    }
+    if (readSetupKey() === null) {
+      return sendJson(res, 503, { ok: false, error: 'key_missing', keyFile: SETUP_KEY_FILE });
+    }
+
+    let payload;
+    try {
+      payload = await readJsonBody(req, 8 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+
+    if (!setupKeyMatches(payload.key)) {
+      logLine(`Sozlash kaliti xato kiritildi (${ip})`);
+      // Kalitni taxmin qilishga alohida, qattiqroq chegara
+      if (!rateLimit(`setup-key:${ip}`, 6, 30 * 60 * 1000)) {
+        return sendJson(res, 429, { ok: false, error: 'too_many_attempts' });
+      }
+      return sendJson(res, 401, { ok: false, error: 'invalid_key' });
+    }
+
+    const username = sanitizeText(payload.username, 80).toLowerCase();
+    const password = String(payload.password || '');
+    const name = sanitizeText(payload.name, 120) || username;
+
+    if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+      return sendJson(res, 422, { ok: false, error: 'username_format' });
+    }
+    if (password.length < 12) {
+      return sendJson(res, 422, { ok: false, error: 'password_short' });
+    }
+    if (password.toLowerCase().includes(username)) {
+      return sendJson(res, 422, { ok: false, error: 'password_weak' });
+    }
+
+    const user = buildUser({ username, password, role: 'admin', name });
+    await saveUsers([user]);
+    clearSetupKey();
+
+    const token = signSession({
+      sub: user.username,
+      role: 'admin',
+      name: user.name,
+      exp: Date.now() + SESSION_TTL,
+    });
+    logLine(`Birinchi administrator yaratildi: ${username} (${ip})`);
+    return sendJson(res, 200, { ok: true, user: publicUser(user) }, {
+      'Set-Cookie': `direksiya_session=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${SESSION_TTL / 1000}${DEV ? '' : '; Secure'}`,
+    });
+  }
+
   /* ── Kirish ── */
   if (route === 'login' && req.method === 'POST') {
     const ip = clientIp(req);
@@ -641,6 +812,8 @@ async function handleAdminApi(req, res, url) {
       ok: true,
       authenticated: Boolean(session),
       configured: users.length > 0,
+      setupKeyReady: users.length === 0 && readSetupKey() !== null,
+      setupKeyFile: users.length === 0 ? SETUP_KEY_FILE : null,
       user: session ? { username: session.sub, name: session.name, role: session.role } : null,
     });
   }
@@ -1221,9 +1394,29 @@ const onListening = () => {
   } else {
     console.log(`  Boshqaruv paneli:  http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/admin/`);
     if (users.length === 0) {
-      console.log('  DIQQAT: boshqaruv paneli foydalanuvchisi yaratilmagan.');
-      console.log('          Yaratish uchun: npm run admin:password -- <foydalanuvchi> <parol>');
+      const key = syncSetupKey();
+      console.log('');
+      console.log('  ┌── BIRINCHI ADMINISTRATOR YARATILMAGAN ──────────────────');
+      if (key) {
+        console.log('  │  Brauzerdan yaratish (buyruq satri shart emas):');
+        console.log('  │    1) /admin/ sahifasini ochasiz');
+        console.log('  │    2) quyidagi bir martalik kalitni kiritasiz:');
+        console.log('  │');
+        console.log(`  │       ${key}`);
+        console.log('  │');
+        console.log('  │    3) foydalanuvchi nomi va parolni belgilaysiz');
+        console.log('  │');
+        console.log(`  │  Kalit fayl: ${SETUP_KEY_FILE}`);
+        console.log('  │  Administrator yaratilgach kalit avtomatik o\'chiriladi.');
+      } else {
+        console.log('  │  Kalit faylini yozish imkoni bo\'lmadi.');
+      }
+      console.log('  │');
+      console.log('  │  Buyruq satri orqali: npm run admin:password -- <nom> <parol> admin');
+      console.log('  └─────────────────────────────────────────────────────────');
     } else {
+      // Foydalanuvchi bor — ortda qolgan sozlash kaliti bo'lsa o'chiriladi
+      syncSetupKey();
       console.log(`  Foydalanuvchilar:  ${users.length} ta`);
     }
   }

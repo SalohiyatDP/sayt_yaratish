@@ -26,18 +26,21 @@ async function checkSession() {
     if (data.authenticated) {
       state.user = data.user;
       showApp();
+    } else if (!data.configured) {
+      // Hech qanday foydalanuvchi yo'q — birinchi administratorni yaratish ekrani
+      showSetup(data);
     } else {
-      showLogin(!data.configured);
+      showLogin();
     }
   } catch (error) {
-    showLogin(false, 'Server bilan aloqa yo\'q. Server ishlab turganini tekshiring.');
+    showLogin('Server bilan aloqa yo\'q. Server ishlab turganini tekshiring.');
   }
 }
 
-function showLogin(needsSetup, message) {
+function showLogin(message) {
+  qs('#setup-screen').hidden = true;
   qs('#app-shell').hidden = true;
   qs('#login-screen').hidden = false;
-  qs('#login-setup').hidden = !needsSetup;
   const errorBox = qs('#login-error');
   if (message) {
     errorBox.textContent = message;
@@ -48,8 +51,21 @@ function showLogin(needsSetup, message) {
   qs('#login-username').focus();
 }
 
+function showSetup(info = {}) {
+  qs('#login-screen').hidden = true;
+  qs('#app-shell').hidden = true;
+  qs('#setup-screen').hidden = false;
+  if (info.setupKeyFile) qs('#setup-key-file').textContent = info.setupKeyFile;
+  qs('#setup-key-missing').hidden = info.setupKeyReady !== false;
+  // preventScroll — shakl baland bo'lgani uchun oddiy focus() sahifani
+  // pastga surib yuboradi va foydalanuvchi tushuntirishni ko'rmay qoladi
+  qs('#setup-key').focus({ preventScroll: true });
+  window.scrollTo(0, 0);
+}
+
 function showApp() {
   qs('#login-screen').hidden = true;
+  qs('#setup-screen').hidden = true;
   qs('#app-shell').hidden = false;
   qs('#current-user').textContent = `${state.user.name || state.user.username} · ${state.user.role}`;
   render();
@@ -71,13 +87,77 @@ qs('#login-form').addEventListener('submit', async (event) => {
     const messages = {
       invalid_credentials: 'Foydalanuvchi nomi yoki parol xato.',
       too_many_attempts: 'Urinishlar soni oshib ketdi. 15 daqiqadan keyin qayta urinib ko\'ring.',
-      no_users: 'Serverda foydalanuvchi yaratilmagan.',
+      no_users: 'Serverda foydalanuvchi yaratilmagan — sozlash oynasiga o\'tilmoqda…',
     };
     errorBox.textContent = messages[error.data?.error] || `Kirish amalga oshmadi: ${error.message}`;
     errorBox.hidden = false;
+    // Foydalanuvchi yo'q bo'lsa birinchi administratorni yaratish ekraniga o'tamiz
+    if (error.data?.error === 'no_users') {
+      const info = await api.setupState().catch(() => ({}));
+      setTimeout(() => showSetup({ setupKeyReady: info.keyReady, setupKeyFile: info.keyFile }), 1200);
+    }
   } finally {
     button.disabled = false;
     button.textContent = 'Kirish';
+  }
+});
+
+qs('#setup-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = qs('#setup-submit');
+  const errorBox = qs('#setup-error');
+  const password = qs('#setup-password').value;
+  const repeat = qs('#setup-password2').value;
+  const username = qs('#setup-username').value.trim().toLowerCase();
+
+  const showError = (message) => {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+  };
+
+  // Brauzerda oldindan tekshirish — serverga keraksiz urinish yuborilmaydi
+  if (password !== repeat) return showError('Parollar bir-biriga mos kelmadi.');
+  if (password.length < 12) return showError('Parol kamida 12 belgidan iborat bo\'lishi kerak.');
+  if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+    return showError('Foydalanuvchi nomi 3–40 belgi: lotin harflari, raqam, nuqta, chiziqcha.');
+  }
+  if (password.toLowerCase().includes(username)) {
+    return showError('Parol foydalanuvchi nomini o\'z ichiga olmasligi kerak.');
+  }
+
+  errorBox.hidden = true;
+  button.disabled = true;
+  button.textContent = 'Yaratilmoqda…';
+  try {
+    const result = await api.setup({
+      key: qs('#setup-key').value.trim(),
+      username,
+      name: qs('#setup-name').value.trim(),
+      password,
+    });
+    state.user = result.user;
+    qs('#setup-password').value = '';
+    qs('#setup-password2').value = '';
+    qs('#setup-key').value = '';
+    toast('Administrator yaratildi. Panelga kirdingiz.', 'success');
+    showApp();
+  } catch (error) {
+    const messages = {
+      invalid_key: 'Kalit xato. Fayldagi qiymatni to\'liq nusxalab qo\'ying.',
+      key_missing: 'Serverda kalit fayli yo\'q. Node.js ilovasini qayta ishga tushiring.',
+      already_configured: 'Foydalanuvchi allaqachon mavjud. Kirish oynasiga o\'tildi.',
+      too_many_attempts: 'Urinishlar soni oshib ketdi. 30 daqiqadan keyin qayta urinib ko\'ring.',
+      username_format: 'Foydalanuvchi nomi talabga mos emas.',
+      password_short: 'Parol kamida 12 belgidan iborat bo\'lishi kerak.',
+      password_weak: 'Parol foydalanuvchi nomini o\'z ichiga olmasligi kerak.',
+      csrf: 'So\'rov rad etildi. Sahifani yangilab, qaytadan urinib ko\'ring.',
+    };
+    const code = error.data?.error;
+    showError(messages[code] || `Yaratish amalga oshmadi: ${error.message}`);
+    if (code === 'already_configured') setTimeout(() => showLogin(), 1500);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Administratorni yaratish';
   }
 });
 
@@ -86,13 +166,13 @@ qs('#logout').addEventListener('click', async () => {
   await api.logout().catch(() => undefined);
   state.user = null;
   state.dirty = false;
-  showLogin(false);
+  showLogin();
 });
 
 window.addEventListener('admin:unauthorized', () => {
   if (state.user) {
     state.user = null;
-    showLogin(false, 'Seans tugadi. Qaytadan kiring.');
+    showLogin('Seans tugadi. Qaytadan kiring.');
   }
 });
 

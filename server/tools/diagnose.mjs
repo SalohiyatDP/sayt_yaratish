@@ -441,17 +441,42 @@ async function main() {
   }
 
   const usersFile = path.join(ROOT, 'server', 'data', 'admin-users.json');
+  const setupKeyFile = path.join(ROOT, 'server', 'data', 'setup-key.txt');
+  const setupHint = 'Yoki /admin/ sahifasidagi «Birinchi administrator» shaklidan foydalaning';
+  const cliHint = 'Yaratish: node server/tools/hash-password.mjs <nom> <parol> admin';
+  let userCount = 0;
+
   if (fs.existsSync(usersFile)) {
     try {
       const data = JSON.parse(await fsp.readFile(usersFile, 'utf8'));
-      const count = Array.isArray(data.users) ? data.users.length : 0;
-      if (count > 0) ok(`Boshqaruv paneli foydalanuvchilari: ${count} ta`);
-      else bad('Foydalanuvchi ro\'yxati bo\'sh', 'Yaratish: node server/tools/hash-password.mjs <nom> <parol> admin');
+      userCount = Array.isArray(data.users) ? data.users.length : 0;
+      if (userCount > 0) ok(`Boshqaruv paneli foydalanuvchilari: ${userCount} ta`);
+      else bad('Foydalanuvchi ro\'yxati bo\'sh', `${cliHint}. ${setupHint}`);
     } catch (error) {
       bad('admin-users.json buzilgan');
     }
   } else {
-    warn('Boshqaruv paneli foydalanuvchisi yaratilmagan', 'Yaratish: node server/tools/hash-password.mjs <nom> <parol> admin');
+    warn('Boshqaruv paneli foydalanuvchisi yaratilmagan', `${cliHint}. ${setupHint}`);
+  }
+
+  // Bir martalik sozlash kaliti — faqat foydalanuvchi yo'q paytda bo'lishi kerak
+  if (fs.existsSync(setupKeyFile)) {
+    if (userCount > 0) {
+      warn(
+        'Bir martalik sozlash kaliti hali o\'chirilmagan',
+        `Foydalanuvchi bor ekan, kalit keraksiz — o'chiring: rm ${setupKeyFile}`,
+      );
+    } else {
+      const key = (await fsp.readFile(setupKeyFile, 'utf8').catch(() => ''))
+        .split(/\r?\n/).map((line) => line.trim())
+        .find((line) => line !== '' && !line.startsWith('#')) || '(o\'qilmadi)';
+      ok(`Sozlash kaliti tayyor: ${key}`, '/admin/ sahifasida shu kalitni kiriting');
+    }
+  } else if (userCount === 0) {
+    warn(
+      'Sozlash kaliti yo\'q',
+      'Serverni qayta ishga tushirsangiz kalit avtomatik yaratiladi',
+    );
   }
 
   /* ── 6. Telegram ── */

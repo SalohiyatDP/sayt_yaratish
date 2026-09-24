@@ -7,17 +7,48 @@ master-rejalar, yangiliklar, fayllar va murojaatlar bilan ishlanadi.
 
 ---
 
-## 1. Kirish
+## 1. Birinchi administratorni yaratish
+
+Yangi o'rnatilgan saytda hali hech qanday foydalanuvchi bo'lmaydi. `/admin/`
+sahifasini ochsangiz **«Birinchi administrator»** shakli chiqadi.
+
+Shakl bir martalik kalit bilan himoyalangan — sayt ochiq internetda turgani
+uchun begona odam o'zini administrator qilib yozib olmasligi kerak. Kalitni
+ikki joydan olish mumkin:
+
+| Qayerdan | Qanday |
+|---|---|
+| **Fayl** | `server/data/setup-key.txt` — hosting fayl menejeri orqali oching |
+| **Jurnal (log)** | Node.js ilovasi ishga tushganda kalit jurnalga chiroyli ramka ichida yoziladi |
+
+Kalit `NRS-XXXX-XXXX-XXXX-XXXX` ko'rinishida bo'ladi. Katta-kichik harf va
+chiziqchalar farqi yo'q — nusxalab qo'yish kifoya.
+
+So'ng foydalanuvchi nomi (3–40 belgi, lotin harflari) va parolni (kamida
+12 belgi) belgilaysiz. Tugallanganda:
+
+- foydalanuvchi `admin` roli bilan yaratiladi,
+- panelga darhol kirasiz,
+- **kalit fayli avtomatik o'chiriladi** — shakl boshqa ochilmaydi.
+
+Kalitni 6 marta xato kiritsangiz, 30 daqiqaga bloklanadi.
+
+> **Buyruq satri bor bo'lsa** shu ishni terminaldan ham qilish mumkin:
+> ```bash
+> npm run admin:password -- <foydalanuvchi> <parol> admin
+> ```
+> Bu buyruq ham sozlash kalitini o'chiradi.
+
+Keyingi xodimlarni panelning **«Foydalanuvchilar»** bo'limidan qo'shasiz —
+kalit endi kerak emas.
+
+---
+
+## 2. Kirish
 
 1. Foydalanuvchi nomi va parolni kiriting.
 2. Seans **8 soatdan** keyin avtomatik tugaydi.
 3. Parolni 8 marta xato kiritsangiz, 15 daqiqaga bloklanadi.
-
-Foydalanuvchi serverda yaratiladi (tizim administratori bajaradi):
-
-```bash
-npm run admin:password -- <foydalanuvchi> <parol> [admin|editor|viewer]
-```
 
 | Rol | Imkoniyatlari |
 |---|---|
@@ -29,7 +60,7 @@ npm run admin:password -- <foydalanuvchi> <parol> [admin|editor|viewer]
 
 ---
 
-## 2. Ish tartibi
+## 3. Ish tartibi
 
 ```
 Tahrirlash  →  Saqlash  →  «Saytni qurish»  →  Ommaviy saytda ko'rinadi
@@ -44,7 +75,7 @@ Har bir saqlashdan oldin server avtomatik zaxira nusxa oladi (oxirgi 20 versiya,
 
 ---
 
-## 3. Hududlar va lotlar
+## 4. Hududlar va lotlar
 
 ### Yangi lot qo'shish
 
@@ -92,7 +123,7 @@ O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar 
 
 ---
 
-## 4. Master-rejalar
+## 5. Master-rejalar
 
 - **Hujjat holatini** to'g'ri tanlang: sayt shu asosda ogohlantirish matnini o'zi qo'yadi
   («Loyiha konsepsiyasi» / «Ishlab chiqilayotgan reja» / «Tasdiqlangan master-reja»).
@@ -105,7 +136,7 @@ O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar 
 
 ---
 
-## 5. Yangiliklar
+## 6. Yangiliklar
 
 - Faqat **haqiqatda bo'lib o'tgan** ishlar va rasmiy e'lonlar kiritiladi.
 - Sana majburiy. Sana noma'lum bo'lsa yangilikni nashr etmang.
@@ -115,7 +146,7 @@ O'xshash lotlar uchun «Nusxalash» tugmasidan foydalaning — barcha maydonlar 
 
 ---
 
-## 6. Sayt sozlamalari
+## 7. Sayt sozlamalari
 
 - **Muassasa** — to'liq va qisqa nomlar, vazifa, shior.
 - **Bog'lanish rekvizitlari** — manzil, telefonlar, pochta, ish va qabul vaqtlari,
@@ -142,7 +173,7 @@ ko'rsatilmaydi — o'rniga «Ma'lumot hozircha joylashtirilmagan» chiqadi.
 
 ---
 
-## 7. Sahifa matnlari
+## 8. Sahifa matnlari
 
 Bosh sahifa, «Direksiya haqida», «Investorlarga» va boshqa bo'limlarning
 matnlari. Yuqorida beshta yorliq bor:
@@ -169,7 +200,7 @@ tanlansa, qadam ostida shu bo'limga o'tish havolasi chiqadi.
 
 ---
 
-## 7a. Ma'lumotnomalar
+## 9. Ma'lumotnomalar
 
 Tumanlar, hudud turlari, turizm yo'nalishlari, lot holatlari, master-reja
 holatlari, huquq turlari va ish bosqichlari ro'yxatlari. Bular lotlarda,
@@ -192,7 +223,7 @@ Xato bo'lsa saqlanmaydi va nimani tuzatish kerakligi aytiladi.
 
 ---
 
-## 8. Murojaatlar
+## 10. Murojaatlar
 
 - Kelgan murojaatlar ro'yxati, holati va ichki izoh.
 - Holatlar: *Yangi*, *Ko'rib chiqilmoqda*, *Javob berilgan*, *Arxivlangan*.
@@ -206,7 +237,7 @@ sayt qayta qurilganini tekshiring.
 
 ---
 
-## 9. Fayllar
+## 11. Fayllar
 
 - Ruxsat etilgan turlar: JPG, PNG, WEBP, AVIF, SVG, PDF, ZIP.
 - Eng katta hajm: 25 MB.
@@ -216,7 +247,7 @@ sayt qayta qurilganini tekshiring.
 
 ---
 
-## 9a. Telegram
+## 12. Telegram
 
 Murojaatlar Telegram guruhiga kelishi uchun shu bo'limda sozlanadi.
 
@@ -235,7 +266,7 @@ To'liq yo'riqnoma (bot yaratish, guruh tanlash): [`docs/TELEGRAM.md`](TELEGRAM.m
 
 ---
 
-## 9b. Foydalanuvchilar
+## 13. Foydalanuvchilar
 
 Faqat `admin` roli uchun.
 
@@ -266,7 +297,7 @@ node server/tools/hash-password.mjs <nom> '<yangi-parol>' admin
 
 ---
 
-## 10. Saytni qurish
+## 14. Saytni qurish
 
 - «Saytni qurish» — odatiy rejim, faqat tasdiqlangan kontent bilan.
 - «DEMO rejimida qurish» — namunaviy ma'lumotlar qo'shiladi (sinov uchun).
@@ -288,7 +319,7 @@ qaytarish mumkin. Tiklangandan keyin **saytni qayta qurish** kerak.
 
 ---
 
-## 11. Tez-tez uchraydigan savollar
+## 15. Tez-tez uchraydigan savollar
 
 **O'zgarishlar saytda ko'rinmayapti.**
 «Saytni qurish» bo'limidan qayta qurdingizmi? Qurmasdan o'zgarish ommaviy saytga chiqmaydi.
