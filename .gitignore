@@ -25,6 +25,10 @@ server/data/backups/
 /assets/uploads/*
 !/assets/uploads/.gitkeep
 
+# Vaqtinchalik ish fayllari
+.commit-msg.tmp
+scripts/_tmp-*
+
 # Tizim fayllari
 .DS_Store
 Thumbs.db
