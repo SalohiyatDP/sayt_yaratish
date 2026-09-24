@@ -12,9 +12,34 @@ PowerShell'ning skript cheklovlari (`PSSecurityException`) to'sqinlik qilmaydi.
 | `ishga-tushirish.cmd` | Serverni ishga tushirish (sayt + boshqaruv paneli) |
 | `parol-yaratish.cmd` | Panel foydalanuvchisini yaratish/parolini yangilash |
 | `telegram-sozlash.cmd` | Telegram botni ulash va sinash |
+| `tashxis.cmd` | Muammolarni aniqlash: nega server ishga tushmayapti? |
 
 Faqat **Node.js 20.11 yoki undan yuqori** versiyasi o'rnatilgan bo'lishi kerak:
 <https://nodejs.org> → «LTS» versiyasini yuklab olib o'rnatasiz.
+
+---
+
+## Server ishga tushmasa
+
+Avval **`tashxis.cmd`** faylini ikki marta bosing — u sababni topib, yechimni
+ko'rsatadi (Node versiyasi, port bo'sh-band, sayt qurilgani, yozish huquqlari,
+foydalanuvchilar, Telegram holati).
+
+Eng ko'p uchraydigan xatolik:
+
+```
+Error: listen EADDRINUSE: address already in use 0.0.0.0:8080
+```
+
+Ma'nosi: `8080`-port band. Ikki sababi bo'ladi — hosting paneli portni bermagan
+(shuning uchun odatiy `8080` ishlatildi) yoki eski jarayon to'xtamagan.
+To'liq yechim: `docs/DEPLOY.md` → «Muammolarni aniqlash» bo'limi.
+
+Boshqa portni tez sinab ko'rish:
+
+```cmd
+node server\server.mjs --port 8090
+```
 
 ---
 

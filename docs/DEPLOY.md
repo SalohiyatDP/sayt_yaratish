@@ -427,6 +427,88 @@ Node.js ga uzatish.
 
 6. **Restart** → `https://<domen>/api/health`.
 
+#### Muammolarni aniqlash: `EADDRINUSE` va boshqalar
+
+Server ishga tushmasa, **birinchi navbatda** tashxis vositasini ishga tushiring —
+u sababni topib, yechimni ko'rsatadi:
+
+```bash
+node server/tools/diagnose.mjs
+```
+
+Windows'da: `windows\tashxis.cmd` faylini ikki marta bosing.
+
+Vosita quyidagilarni tekshiradi: Node versiyasi, port bo'sh-band, sayt
+qurilgani, yozish huquqlari, panel foydalanuvchilari, Telegram sozlamalari,
+murojaat shakli holati va loyihaning boshqa ishlayotgan jarayonlari.
+
+##### `EADDRINUSE: address already in use 0.0.0.0:8080`
+
+Bu xatolikning **ikki sababi** bo'ladi:
+
+**1. Panel portni bermagan.** Server odatiy `8080` portni tanlaydi, u esa band
+bo'lib chiqadi. Jurnalda shunday yoziladi:
+
+```
+Port manbasi: odatiy qiymat (hech qanday o'zgaruvchi berilmagan)
+```
+
+*Yechim:* panelning «Переменная окружения» bo'limida `PORT` o'zgaruvchisini
+qo'shib, hosting shu sayt uchun ajratgan portni yozing. ISPmanager'da bu port
+odatda `10000` dan boshlanadi. Aniq qiymatni panelda yoki domen uchun yozilgan
+nginx sozlamasida ko'rish mumkin:
+
+```bash
+grep -r "proxy_pass" /etc/nginx/ | grep 127.0.0.1
+```
+
+**2. Eski jarayon to'xtamagan.** Panel ilovani qayta ishga tushirganda oldingi
+jarayon portni hali bo'shatmagan bo'lishi mumkin.
+
+*Yechim:*
+
+```bash
+# Portni kim band qilgan?
+ss -ltnp | grep :8080          # yoki: lsof -i :8080
+
+# Loyihaning jarayonlarini ko'rish
+ps aux | grep "server/server.mjs"
+
+# Hammasini to'xtatish
+pkill -f "server/server.mjs"
+```
+
+So'ngra panelda ilovani qaytadan ishga tushiring.
+
+> Server ataylab **avtomatik boshqa portga o'tmaydi**: nginx aniq bir portga
+> uzatadi, shuning uchun portni jimgina o'zgartirish saytni butunlay ishlamay
+> qolishiga olib keladi. Xatolik ochiq ko'rsatiladi.
+
+##### Portni qo'lda sinab ko'rish
+
+```bash
+node server/server.mjs --port 10000
+```
+
+Bu bayroq muhit o'zgaruvchilaridan ustun turadi — hostingda tez tekshirish uchun qulay.
+
+##### `EACCES: permission denied`
+
+1024 dan kichik port (80, 443) administrator huquqini talab qiladi. 1024 dan
+katta port ishlatib, oldiga nginx qo'yish kerak.
+
+##### Sayt ochiladi, lekin `502 Bad Gateway`
+
+nginx Node.js ga ulanolmayapti: ilova ishlamayapti yoki **boshqa portda**
+tinglayapti. Jurnaldagi «Manzil» qatorini nginx `proxy_pass` qiymati bilan
+solishtiring — ikkalasi bir xil port bo'lishi kerak.
+
+##### Boshqaruv panelidan saqlash ishlamaydi
+
+Yozish huquqi yo'q. Tashxis vositasi qaysi katalogda muammo borligini
+ko'rsatadi. Kerakli kataloglar: `content/`, `content/inbox/`,
+`assets/uploads/`, `server/data/`, `dist/`.
+
 #### Panel hostinglaridagi cheklovlar
 
 - Ba'zi umumiy (shared) hostinglar jarayonni faol bo'lmaganda to'xtatadi —

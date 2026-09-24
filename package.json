@@ -15,6 +15,7 @@
     "dev": "node server/server.mjs --dev",
     "serve": "node server/server.mjs --public-only",
     "check": "node src/check.mjs",
+    "diagnose": "node server/tools/diagnose.mjs",
     "admin:password": "node server/tools/hash-password.mjs",
     "telegram:setup": "node server/tools/telegram-setup.mjs",
     "telegram:check": "node server/tools/telegram-setup.mjs --check",

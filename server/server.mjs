@@ -50,7 +50,24 @@ const DEV = argv.includes('--dev');
  * tarqalgan nomni tekshiramiz va qaysi biri ishlatilganini jurnalga yozamiz —
  * bu hostingda sozlashni ancha osonlashtiradi.
  */
-function resolveListenTarget() {
+export function resolveListenTarget() {
+  // Buyruq satridagi --port va --host eng yuqori ustunlikka ega
+  const cliValue = (name) => {
+    const index = argv.indexOf(`--${name}`);
+    if (index !== -1 && argv[index + 1] && !argv[index + 1].startsWith('--')) return argv[index + 1];
+    const inline = argv.find((arg) => arg.startsWith(`--${name}=`));
+    return inline ? inline.slice(name.length + 3) : null;
+  };
+
+  const cliHost = cliValue('host');
+  const cliPort = cliValue('port');
+  if (cliPort) {
+    const port = Number(cliPort);
+    if (Number.isInteger(port) && port > 0 && port < 65536) {
+      return { kind: 'port', port, host: cliHost || process.env.HOST || '0.0.0.0', source: '--port bayrog\'i' };
+    }
+  }
+
   const CANDIDATES = ['PORT', 'SOCKET', 'NODE_PORT', 'APP_PORT', 'SERVER_PORT', 'HTTP_PORT'];
 
   for (const name of CANDIDATES) {
@@ -65,13 +82,13 @@ function resolveListenTarget() {
 
     const port = Number(value);
     if (Number.isInteger(port) && port > 0 && port < 65536) {
-      return { kind: 'port', port, host: process.env.HOST || '0.0.0.0', source: name };
+      return { kind: 'port', port, host: cliHost || process.env.HOST || '0.0.0.0', source: name };
     }
 
     console.warn(`  DIQQAT: ${name} o'zgaruvchisidagi "${value}" qiymati port yoki soket yo'li emas — e'tiborsiz qoldirildi.`);
   }
 
-  return { kind: 'port', port: 8080, host: process.env.HOST || '0.0.0.0', source: 'odatiy qiymat' };
+  return { kind: 'port', port: 8080, host: cliHost || process.env.HOST || '0.0.0.0', source: 'odatiy qiymat (hech qanday o\'zgaruvchi berilmagan)' };
 }
 
 const LISTEN = resolveListenTarget();
@@ -956,6 +973,7 @@ const onListening = () => {
     console.log(`  Manzil:            http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   }
   console.log(`  Port manbasi:      ${LISTEN.source}`);
+  console.log(`  Jarayon raqami:    ${process.pid}`);
 
   if (!fs.existsSync(DIST)) {
     console.log('  DIQQAT: dist/ katalogi topilmadi — sayt qurilmagan.');
@@ -995,18 +1013,48 @@ const onListening = () => {
 
 server.on('error', (error) => {
   console.error('');
+  console.error('  ════════════════════════════════════════════════════════════');
+
   if (error.code === 'EADDRINUSE') {
     const where = LISTEN.kind === 'socket' ? LISTEN.socketPath : `${HOST}:${PORT}`;
-    console.error(`  XATOLIK: ${where} allaqachon band.`);
-    console.error('  Boshqa jarayon shu portni ishlatmoqda. Uni to\'xtating yoki');
-    console.error('  PORT o\'zgaruvchisida boshqa port ko\'rsating.');
+    console.error(`  SERVER ISHGA TUSHMADI: ${where} allaqachon band.`);
+    console.error('');
+    console.error(`  Port manbasi: ${LISTEN.source}`);
+    console.error('');
+    if (LISTEN.source.startsWith('odatiy')) {
+      console.error('  SABABI EHTIMOL SHU: hosting paneli portni bermagan, shuning uchun');
+      console.error(`  server odatiy ${PORT}-portni tanladi va u boshqa jarayon tomonidan band.`);
+      console.error('');
+      console.error('  YECHIM: panelning «Переменная окружения» bo\'limida PORT o\'zgaruvchisini');
+      console.error('  qo\'shib, hosting shu sayt uchun ajratgan portni yozing.');
+      console.error('  ISPmanager\'da bu port odatda 10000 dan boshlanadi.');
+    } else {
+      console.error('  YECHIM: shu portni ishlatayotgan eski jarayonni to\'xtating.');
+    }
+    console.error('');
+    console.error('  Portni kim band qilganini aniqlash:');
+    console.error(`     ss -ltnp | grep :${PORT}          (yoki: lsof -i :${PORT})`);
+    console.error('  Loyihaning eski jarayonlarini ko\'rish va to\'xtatish:');
+    console.error('     ps aux | grep "server/server.mjs"');
+    console.error('     pkill -f "server/server.mjs"');
+    console.error('');
+    console.error('  To\'liq tekshiruv uchun:  node server/tools/diagnose.mjs');
   } else if (error.code === 'EACCES') {
-    console.error(`  XATOLIK: ${LISTEN.kind === 'socket' ? LISTEN.socketPath : `${PORT}-port`} uchun ruxsat yo'q.`);
-    console.error('  1024 dan kichik portlar administrator huquqini talab qiladi —');
-    console.error('  1024 dan katta port ishlatib, oldiga nginx qo\'ying.');
+    const what = LISTEN.kind === 'socket' ? LISTEN.socketPath : `${PORT}-port`;
+    console.error(`  SERVER ISHGA TUSHMADI: ${what} uchun ruxsat yo'q.`);
+    console.error('');
+    if (LISTEN.kind === 'port' && PORT < 1024) {
+      console.error('  1024 dan kichik portlar administrator huquqini talab qiladi.');
+      console.error('  1024 dan katta port ishlatib (masalan 8080), oldiga nginx qo\'ying.');
+    } else {
+      console.error('  Soket fayli joylashgan katalogga yozish huquqi yo\'q.');
+    }
   } else {
-    console.error(`  Server xatoligi: ${error.message}`);
+    console.error(`  SERVER XATOLIGI: ${error.message}`);
+    console.error(`  Kod: ${error.code || 'nomalum'}`);
   }
+
+  console.error('  ════════════════════════════════════════════════════════════');
   console.error('');
   process.exit(1);
 });
