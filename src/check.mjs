@@ -84,7 +84,12 @@ for (const file of htmlFiles) {
   if (localeMatch) localeCodes.add(localeMatch[1]);
 
   // Qulaylik: skip-link, viewport
-  if (!/class="skip-link"/.test(html)) warn(`${page}: asosiy mazmunga o'tish havolasi yo'q.`);
+  // Skip-link faqat navigatsiyasi bor sahifalar uchun zarur. Ildizdagi til tanlash
+  // sahifasi (root-gate) bir bo'limdan iborat — o'tib ketadigan mazmun yo'q.
+  const hasNav = /<header\b/.test(html) || /<nav\b/.test(html);
+  if (hasNav && !/class="skip-link"/.test(html)) {
+    warn(`${page}: asosiy mazmunga o'tish havolasi yo'q.`);
+  }
   if (!/name="viewport"/.test(html)) fail(`${page}: viewport meta tegi yo'q.`);
 
   // alt atributi
