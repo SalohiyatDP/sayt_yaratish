@@ -1,6 +1,9 @@
 # Qurilgan statik sayt (build natijasi)
 /dist/
 
+# Hostingga yuklash uchun yasalgan to'plamlar
+/release/
+
 # Mahalliy sozlamalar va maxfiy ma'lumotlar
 .env
 .env.local

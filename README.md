@@ -275,36 +275,74 @@ Windows'da `npm` ishlamasa — `windows\` katalogidagi `.cmd` fayllardan foydala
 
 ## 8. Joylashtirish (deploy)
 
-### A. Faqat statik sayt
+Birinchi savol: **hostingda Node.js bormi?** Javob butun arxitekturani belgilaydi.
 
-`dist/` katalogini har qanday statik hostingga joylang: nginx, Apache, GitHub Pages,
-Netlify, Cloudflare Pages, S3 + CloudFront.
+| | A. To'liq (Node.js) | B. Statik + funksiya | C. Faqat statik |
+|---|---|---|---|
+| Sayt sahifalari, 4 til, xarita | ✅ | ✅ | ✅ |
+| Murojaat Telegramga boradi | ✅ | ✅ | ❌ |
+| Murojaat serverda saqlanadi | ✅ | ❌ | ❌ |
+| Boshqaruv paneli | ✅ | ❌ | ❌ |
+| Kontentni kim yangilaydi | Xodim brauzerdan | Dasturchi | Dasturchi |
+
+**A variant tavsiya etiladi** — murojaatlar yo'qolmaydi, xodimlar kontentni
+o'zlari yangilaydi.
+
+### Joylashtirish to'plamini yasash
 
 ```bash
-npm run build && npm run check
-# dist/ ni serverga ko'chirasiz
+node scripts/bundle.mjs             # A variant (sayt + server + panel)
+node scripts/bundle.mjs --static    # B va C variantlar (faqat HTML fayllar)
 ```
 
-Talablar:
+Skript saytni qayta quradi, tekshiradi, **maxfiy fayllar tushmaganini nazorat
+qiladi** va `release/` katalogida tayyor arxiv yasaydi. To'plam ichida
+`YUKLASH-YORIQNOMASI.txt` bo'ladi.
 
-- `404.html` ni 404 sahifasi sifatida sozlang.
-- Statik sayt rejimida murojaat shakli ishlamaydi —
-  `features.contactFormEndpoint` ni `null` qoldiring yoki tashqi xizmat manzilini ko'rsating.
-- `content/site.json → seo.canonicalOrigin` ga saytning to'liq manzilini yozing
-  (`sitemap.xml` va `canonical` havolalar uchun).
+To'plamga **kirmaydi**: `.env`, bot tokeni, panel parollari, kelgan murojaatlar.
 
-### B. Server bilan (murojaatlar va boshqaruv paneli bilan)
+### Qo'llab-quvvatlanadigan usullar
 
-`server/server.mjs` ni `systemd` xizmati sifatida ishga tushirib, oldiga HTTPS teskari
-proksi (nginx) qo'yish tavsiya etiladi.
+| Usul | Qayerda ishlatiladi |
+|---|---|
+| **systemd + nginx** | O'z VPS serveringiz — eng ko'p ishlatiladigan usul |
+| **cPanel «Setup Node.js App»** | Ko'pgina O'zbekiston hostinglarida bor. Kirish fayli: `app.js` |
+| **Docker** | `docker compose up -d` — tayyor `Dockerfile` va `docker-compose.yml` |
+| **Serverless funksiya** | Faqat statik hosting bo'lsa: `serverless/` (Cloudflare Worker) |
+| **GitHub Pages** | Faqat ko'rib chiqish uchun (Actions ish oqimi tayyor) |
 
-Namunaviy `systemd` birligi va nginx sozlamasi: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Har biri uchun to'liq, qadam-baqadam yo'riqnoma, nginx va systemd namunalari,
+zaxiralash skripti va topshirishdan oldin tekshiruv ro'yxati:
+**[`docs/DEPLOY.md`](docs/DEPLOY.md)**
 
-Xavfsizlik bo'yicha majburiy shartlar:
+### Monitoring
+
+Server `/api/health` manzilini beradi (maxfiy ma'lumot qaytarmaydi):
+
+```bash
+curl -s https://sayt-manzili.uz/api/health
+```
+
+```json
+{ "ok": true, "status": "ok",
+  "site": { "built": true, "build": { "date": "2026-09-24", "demo": false, "pages": 32 } },
+  "features": { "adminPanel": true, "contactForm": "enabled", "telegram": "configured" } }
+```
+
+`site.build.demo` qiymati `true` bo'lsa — **darhol e'tibor bering**: ishlab
+turgan saytda namunaviy ma'lumot ko'rinib turgan bo'ladi.
+
+### Xavfsizlik bo'yicha majburiy shartlar
 
 - Boshqaruv paneli **faqat HTTPS** orqali ochiq bo'lsin (aks holda seans cookie'si himoyasiz).
-- `/admin/` va `/api/admin/` ni IP bo'yicha yoki VPN orqali cheklash tavsiya etiladi.
+- `/admin/` va `/api/admin/` ni IP bo'yicha yoki VPN orqali cheklang.
+- `.env` → `chmod 600`, `server/data/` → `chmod 700`.
+- `--dev` bayrog'i ishlab turgan serverda **ishlatilmaydi**.
 - `server/data/` va `content/inbox/` kataloglarini zaxiralang va boshqalarga ochmang.
+
+> `.uz` domenidagi davlat sayti uchun ma'lumotlar O'zbekiston hududidagi serverda
+> joylashtirilishi talab qilinishi mumkin — bu masalani vakolatli organ bilan
+> aniqlashtirish kerak. Sayt texnik jihatdan har qanday hostingda ishlaydi.
 
 ---
 
@@ -326,8 +364,11 @@ to'ldiring va kontent fayllariga shu til kalitini qo'shing.
 - [`docs/KONTENT.md`](docs/KONTENT.md) — maydonlar bo'yicha to'liq ma'lumotnoma
 - [`docs/BOSHQARUV-PANELI.md`](docs/BOSHQARUV-PANELI.md) — xodimlar uchun yo'riqnoma
 - [`docs/TELEGRAM.md`](docs/TELEGRAM.md) — murojaat shaklini Telegram botga ulash
-- [`docs/DEPLOY.md`](docs/DEPLOY.md) — serverga joylashtirish
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — hostingga joylashtirish (systemd, nginx,
+  cPanel, Docker, zaxiralash, monitoring, tekshiruv ro'yxati)
 - [`docs/ARXITEKTURA.md`](docs/ARXITEKTURA.md) — texnik qarorlar va tuzilma
+- [`serverless/README.md`](serverless/README.md) — faqat statik hosting uchun
+  murojaat shakli (Cloudflare Worker)
 - [`windows/README.md`](windows/README.md) — Windows uchun yordamchi skriptlar va
   PowerShell cheklovini hal qilish
 

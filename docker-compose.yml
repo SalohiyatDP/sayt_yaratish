@@ -1,0 +1,78 @@
+# ============================================================================
+#  Direksiya sayti — docker compose
+#
+#  Ishga tushirish:
+#      docker compose up -d
+#
+#  Jurnalni ko'rish:
+#      docker compose logs -f
+#
+#  Yangilash (kod o'zgargandan keyin):
+#      docker compose build && docker compose up -d
+#
+#  DIQQAT: bu fayl saytni 8080-portda ochadi. Internetga chiqarishdan oldin
+#  oldiga HTTPS teskari proksi (nginx, Caddy, Traefik) qo'yish SHART.
+#  Batafsil: docs/DEPLOY.md
+# ============================================================================
+
+services:
+  sayt:
+    build: .
+    image: direksiya-sayt:latest
+    container_name: direksiya-sayt
+    restart: unless-stopped
+
+    # Faqat mahalliy interfeysda tinglaydi — tashqi ulanish nginx orqali keladi.
+    # Proksi ishlatmasangiz "127.0.0.1:" qismini olib tashlang (tavsiya etilmaydi).
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      HOST: 0.0.0.0
+
+    # Maxfiy sozlamalar (bot tokeni va h.k.) .env faylidan o'qiladi.
+    # Fayl bo'lmasa, quyidagi qatorni izohga olib qo'ying.
+    env_file:
+      - .env
+
+    volumes:
+      # Kontent — tahrirlanadi va saqlanishi kerak
+      - ./content:/app/content
+      # Yuklangan fayllar (fotosuratlar, PDF hujjatlar)
+      - ./assets/uploads:/app/assets/uploads
+      # Foydalanuvchilar, seans kaliti, Telegram sozlamalari, zaxira nusxalar
+      - ./server/data:/app/server/data
+      # Qurilgan sayt — boshqaruv panelidan qayta qurish mumkin bo'lishi uchun
+      #
+      # ESLATMA: tasvir ichida sayt allaqachon qurilgan. Yuqorida content/
+      # katalogi host mashinadan ulangani uchun, agar host kontenti tasvirdagi
+      # kontentdan farq qilsa, birinchi ishga tushirishdan keyin boshqaruv
+      # panelidagi «Saytni qurish» tugmasini bir marta bosing (yoki:
+      # docker compose exec sayt node src/build.mjs).
+      - direksiya-dist:/app/dist
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+    # Xavfsizlik cheklovlari
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  direksiya-dist:

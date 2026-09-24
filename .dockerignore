@@ -1,0 +1,32 @@
+# Qurilgan sayt — tasvir ichida qaytadan quriladi
+dist/
+
+# Maxfiy fayllar hech qachon tasvirga tushmasligi kerak
+.env
+.env.local
+server/data/session-secret
+server/data/admin-users.json
+server/data/telegram.json
+server/data/backups/
+
+# Shaxsiy ma'lumotlar
+content/inbox/*
+!content/inbox/.gitkeep
+
+# Og'ir media — volume orqali ulanadi
+assets/uploads/*
+!assets/uploads/.gitkeep
+
+# Ishlab chiqish fayllari
+.git/
+.github/
+.gitignore
+.gitattributes
+node_modules/
+windows/
+docs/
+release/
+*.log
+.DS_Store
+Thumbs.db
+README.md

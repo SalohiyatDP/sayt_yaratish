@@ -279,6 +279,69 @@ async function serveStatic(req, res, baseDir, urlPath, { cacheable = true } = {}
   return true;
 }
 
+/* ─────────────────────────── Salomatlik tekshiruvi ─────────────────────────── */
+
+/**
+ * GET /api/health — serverning ishlash holati.
+ *
+ * Monitoring xizmatlari, hosting salomatlik tekshiruvlari va yuklamani
+ * taqsimlovchilar (load balancer) uchun. Maxfiy ma'lumot qaytarmaydi:
+ * bot tokeni, chat_id, foydalanuvchi nomlari va murojaat mazmuni chiqmaydi.
+ *
+ * 200 — hammasi joyida; 503 — sayt qurilmagan (dist/ yo'q).
+ */
+function handleHealth(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return sendJson(res, 405, { ok: false, error: 'method_not_allowed' });
+  }
+
+  const siteBuilt = fs.existsSync(path.join(DIST, 'index.html'));
+
+  let build = null;
+  try {
+    const info = JSON.parse(fs.readFileSync(path.join(DIST, 'build-info.json'), 'utf8'));
+    build = {
+      date: info.isoDate ?? null,
+      dateTime: info.isoDateTime ?? null,
+      demo: Boolean(info.demo),
+      pages: info.pages ?? null,
+      lots: info.lots ?? null,
+      masterplans: info.masterplans ?? null,
+      news: info.news ?? null,
+      warnings: Array.isArray(info.warnings) ? info.warnings.length : 0,
+    };
+  } catch (error) {
+    build = null;
+  }
+
+  let contactForm = null;
+  try {
+    const site = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, 'site.json'), 'utf8'));
+    contactForm = site?.features?.contactFormEndpoint ? 'enabled' : 'disabled';
+  } catch (error) {
+    contactForm = null;
+  }
+
+  const tg = telegram.getConfig();
+
+  const body = {
+    ok: siteBuilt,
+    status: siteBuilt ? 'ok' : 'site_not_built',
+    uptimeSeconds: Math.round(process.uptime()),
+    node: process.version,
+    checkedAt: new Date().toISOString(),
+    site: { built: siteBuilt, build },
+    features: {
+      adminPanel: !PUBLIC_ONLY,
+      contactForm,
+      // Faqat sozlanganligi ko'rsatiladi — token va chat_id oshkor qilinmaydi.
+      telegram: tg.disabled ? 'disabled' : tg.enabled ? 'configured' : 'not_configured',
+    },
+  };
+
+  return sendJson(res, siteBuilt ? 200 : 503, body);
+}
+
 /* ─────────────────────────── Murojaat shakli ─────────────────────────── */
 
 async function handleContact(req, res) {
@@ -773,6 +836,9 @@ const server = http.createServer(async (req, res) => {
     if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       return send(res, 405, 'Method Not Allowed');
     }
+
+    // Salomatlik tekshiruvi (hosting, monitoring va yuklamani taqsimlovchi uchun)
+    if (url.pathname === '/api/health') return handleHealth(req, res);
 
     // Murojaat shakli
     if (url.pathname === '/api/contact') return await handleContact(req, res);

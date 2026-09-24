@@ -1,0 +1,93 @@
+# Saytning STATIK ko'rinishini GitHub Pages ga joylashtiradi.
+#
+# DIQQAT — bu faqat KO'RIB CHIQISH (preview) uchun:
+#   • murojaat shakli ishlamaydi (Node.js server kerak)
+#   • boshqaruv paneli ishlamaydi
+#   • Telegram integratsiyasi ishlamaydi
+#
+# Rasmiy sayt uchun Node.js serveri bo'lgan hosting kerak — docs/DEPLOY.md.
+#
+# Yoqish: repozitoriya → Settings → Pages → Source: "GitHub Actions",
+# so'ngra Actions bo'limidan bu ish oqimini qo'lda ishga tushirasiz.
+
+name: Statik ko'rinishni GitHub Pages ga joylash
+
+on:
+  workflow_dispatch:
+    inputs:
+      demo:
+        description: "Namunaviy (DEMO) ma'lumotlar bilan qurilsinmi?"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Qurish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Pages uchun sozlash
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Sayt manzilini sozlash
+        run: |
+          ORIGIN="${{ steps.pages.outputs.base_url }}"
+          if [ -z "$ORIGIN" ]; then
+            ORIGIN="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          fi
+          node - "$ORIGIN" <<'EOF'
+          const fs = require('node:fs');
+          const origin = process.argv[2];
+          const file = 'content/site.json';
+          const site = JSON.parse(fs.readFileSync(file, 'utf8'));
+          site.seo = site.seo || {};
+          site.seo.canonicalOrigin = origin;
+          fs.writeFileSync(file, JSON.stringify(site, null, 2) + '\n');
+          console.log('canonicalOrigin =', origin);
+          EOF
+
+      - name: Qurish
+        run: |
+          if [ "${{ inputs.demo }}" = "true" ]; then
+            node src/build.mjs --demo
+          else
+            node src/build.mjs
+          fi
+
+      - name: Tekshirish
+        run: node src/check.mjs
+
+      - name: Jekyll qayta ishlovini o'chirish
+        run: touch dist/.nojekyll
+
+      - name: Artefaktni yuklash
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Joylashtirish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pages ga joylash
+        id: deployment
+        uses: actions/deploy-pages@v4
