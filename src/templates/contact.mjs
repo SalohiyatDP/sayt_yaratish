@@ -132,7 +132,12 @@ export function contactPage(ctx) {
     bodyClass: 'page--contact',
     body,
     jsonLd,
-    scripts: ['/assets/js/contact.js'],
+    // contact.js — murojaat shakli; lot.js — sahifadagi yakka xaritani ishga
+    // tushiradi (bino koordinatalari kiritilgan bo'lsa). Xaritani faqat
+    // koordinatalar bor bo'lsa yuklaymiz — keraksiz JS tushmasin.
+    scripts: contacts.coordinates && contacts.coordinates.lat != null
+      ? ['/assets/js/contact.js', '/assets/js/lot.js']
+      : ['/assets/js/contact.js'],
   };
 }
 
