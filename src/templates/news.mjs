@@ -88,12 +88,20 @@ export function newsItemPage(ctx, item) {
             </div>
             ${when(ctx.pick(item.cover?.caption), html`<figcaption class="media__caption">${ctx.pick(item.cover?.caption)}</figcaption>`)}
           </figure>
+          ${when(item.gallery.length > 0, gallery(ctx, item.gallery, { id: `news-${item.id}` }))}
+        </div>`,
+      )}
+
+      ${when(
+        // Muqova rasmi yo'q, lekin galereya bor — galereyani matndan oldin ko'rsatamiz
+        !item.cover && item.gallery.length > 0,
+        html`<div class="container narrow article__cover">
+          ${gallery(ctx, item.gallery, { id: `news-${item.id}` })}
         </div>`,
       )}
 
       <div class="container narrow article__body">
         ${prose(ctx, item.body)}
-        ${when(item.gallery.length > 0, gallery(ctx, item.gallery, { id: `news-${item.id}` }))}
         ${when(
           item.sourceUrl,
           html`<p class="article__source">
