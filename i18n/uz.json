@@ -241,6 +241,7 @@
   "map.openExternal": "Xaritani tashqi xizmatda ochish",
   "map.pointsList": "Xaritadagi nuqtalar ro'yxati",
   "media.photo": "Haqiqiy fotosurat",
+  "media.image": "Tasvir",
   "media.render": "Loyiha konsepsiyasi",
   "media.scheme": "Chizma",
   "media.empty": "Fotosurat hozircha joylashtirilmagan",
@@ -293,5 +294,7 @@
   "lot.parentArea": "Hudud",
   "lot.parentArea.open": "Hudud sahifasiga o'tish",
   "lot.parentArea.none": "Bu lot uchun hudud ko'rsatilmagan.",
-  "catalog.filters.parentArea": "Hudud"
+  "catalog.filters.parentArea": "Hudud",
+  "gallery.prev": "Oldingi rasmlar",
+  "gallery.next": "Keyingi rasmlar"
 }

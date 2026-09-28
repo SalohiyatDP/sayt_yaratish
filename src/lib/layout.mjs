@@ -465,7 +465,7 @@ function pickClientStrings(ctx) {
     'lot.auction.startPrice', 'lot.auction.rightType', 'lot.auction.date',
     'map.loading', 'map.error', 'map.errorHint', 'map.zoomIn', 'map.zoomOut', 'map.reset',
     'map.noCoordinates', 'map.keyboardHint', 'map.pointsList',
-    'media.photo', 'media.render', 'media.scheme', 'media.gallery.counter',
+    'media.image', 'media.gallery.counter', 'gallery.prev', 'gallery.next',
     'masterplan.viewer.zoomIn', 'masterplan.viewer.zoomOut', 'masterplan.viewer.reset',
     'contact.form.sending', 'contact.form.submit', 'contact.form.success', 'contact.form.successHint',
     'contact.form.error', 'contact.form.errorHint', 'contact.form.disabledTitle', 'contact.form.disabledText',

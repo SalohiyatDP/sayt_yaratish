@@ -85,12 +85,6 @@ export function newsItemPage(ctx, item) {
           <figure class="media media--${item.cover?.kind || 'photo'}">
             <div class="media__frame">
               <img src="${item.cover?.src}" alt="${ctx.pick(item.cover?.alt) || title}" decoding="async">
-              ${when(
-                item.cover?.kind === 'render' || item.cover?.kind === 'scheme',
-                html`<span class="media__kind${item.cover?.kind === 'render' ? ' media__kind--render' : ''}">
-                  ${item.cover?.kind === 'render' ? t('media.render') : t('media.scheme')}
-                </span>`,
-              )}
             </div>
             ${when(ctx.pick(item.cover?.caption), html`<figcaption class="media__caption">${ctx.pick(item.cover?.caption)}</figcaption>`)}
           </figure>

@@ -9,6 +9,10 @@ import {
   createDropZone, geoFileField,
 } from './fields.js';
 
+// Qaysi versiya ishlayotganini konsolda ko'rsatamiz. Agar panel yangilanmagandek
+// tuyulsa, shu raqamni hosting jurnalidagi versiya bilan solishtirish mumkin.
+console.info(`Boshqaruv paneli — versiya ${window.__ADMIN_VERSION__ || 'noma\'lum'}`);
+
 const state = {
   user: null,
   view: 'areas',

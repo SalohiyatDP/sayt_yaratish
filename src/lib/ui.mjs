@@ -145,9 +145,10 @@ function isBlank(value) {
 export function mediaFigure(ctx, item, { className = '', lazy = true, sizes } = {}) {
   const { t } = ctx;
   if (!item || !item.src) return mediaPlaceholder(ctx, { className });
-  const kindLabel = { photo: t('media.photo'), render: t('media.render'), scheme: t('media.scheme') }[item.kind || 'photo'];
   const caption = ctx.pick(item.caption);
-  const alt = ctx.pick(item.alt) || caption || kindLabel;
+  // Rasm ustida tur belgisi ko'rsatilmaydi. Alt matni bo'lmasa, izoh yoki
+  // umumiy "tasvir" so'zi ishlatiladi (skrin o'quvchilar uchun).
+  const alt = ctx.pick(item.alt) || caption || t('media.image');
   const meta = [item.author ? `${t('media.author')}: ${item.author}` : '', item.date ? `${t('media.date')}: ${formatDate(item.date, ctx.locale)}` : '']
     .filter(Boolean)
     .join(' · ');
@@ -164,13 +165,6 @@ export function mediaFigure(ctx, item, { className = '', lazy = true, sizes } = 
           loading="${lazy ? 'lazy' : 'eager'}"
           decoding="async"
         >
-        ${when(
-          // Fotosuratda yozuv chiqarilmaydi — rasm o'zi ko'rinib turadi.
-          // Loyiha konsepsiyasida (render) esa yozuv MAJBURIY: foydalanuvchi
-          // buni haqiqiy holat deb o'ylab qolmasligi kerak.
-          item.kind === 'render' || item.kind === 'scheme',
-          html`<span class="${cx('media__kind', item.kind === 'render' && 'media__kind--render')}">${kindLabel}</span>`,
-        )}
       </div>
       ${when(
         caption || meta,
@@ -203,25 +197,33 @@ export function gallery(ctx, items, { id, title } = {}) {
   return html`
     <div class="gallery" data-gallery${attr('id', id)}>
       ${when(title, html`<p class="gallery__title">${title}</p>`)}
-      <ul class="gallery__grid">
-        ${list.map(
-          (item, index) => html`
-            <li class="gallery__item">
-              <button
-                type="button"
-                class="gallery__button"
-                data-gallery-open="${index}"
-                data-src="${item.src}"
-                data-kind="${item.kind || 'photo'}"
-                data-caption="${ctx.pick(item.caption)}"
-                aria-label="${ctx.pick(item.alt) || ctx.pick(item.caption) || ctx.t('common.open')}"
-              >
-                ${mediaFigure(ctx, item, { className: 'media--thumb' })}
-              </button>
-            </li>
-          `,
-        )}
-      </ul>
+      <div class="gallery__strip">
+        <button type="button" class="gallery__nav gallery__nav--prev" data-gallery-scroll="-1" aria-label="${ctx.t('gallery.prev')}" hidden>
+          ${icon('chevronRight', { size: 20 })}
+        </button>
+        <ul class="gallery__grid" data-gallery-track>
+          ${list.map(
+            (item, index) => html`
+              <li class="gallery__item">
+                <button
+                  type="button"
+                  class="gallery__button"
+                  data-gallery-open="${index}"
+                  data-src="${item.src}"
+                  data-kind="${item.kind || 'photo'}"
+                  data-caption="${ctx.pick(item.caption)}"
+                  aria-label="${ctx.pick(item.alt) || ctx.pick(item.caption) || ctx.t('common.open')}"
+                >
+                  ${mediaFigure(ctx, item, { className: 'media--thumb' })}
+                </button>
+              </li>
+            `,
+          )}
+        </ul>
+        <button type="button" class="gallery__nav gallery__nav--next" data-gallery-scroll="1" aria-label="${ctx.t('gallery.next')}" hidden>
+          ${icon('chevronRight', { size: 20 })}
+        </button>
+      </div>
     </div>
   `;
 }

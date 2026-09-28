@@ -241,6 +241,7 @@
   "map.openExternal": "Open the map in an external service",
   "map.pointsList": "List of points on the map",
   "media.photo": "Actual photograph",
+  "media.image": "Image",
   "media.render": "Project concept",
   "media.scheme": "Drawing",
   "media.empty": "No photograph has been published yet",
@@ -293,5 +294,7 @@
   "lot.parentArea": "Area",
   "lot.parentArea.open": "Go to the area page",
   "lot.parentArea.none": "No area is specified for this lot.",
-  "catalog.filters.parentArea": "Area"
+  "catalog.filters.parentArea": "Area",
+  "gallery.prev": "Previous",
+  "gallery.next": "Next"
 }

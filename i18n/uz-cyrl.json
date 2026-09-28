@@ -241,6 +241,7 @@
   "map.openExternal": "Харитани ташқи хизматда очиш",
   "map.pointsList": "Харитадаги нуқталар рўйхати",
   "media.photo": "Ҳақиқий фотосурат",
+  "media.image": "Тасвир",
   "media.render": "Лойиҳа концепцияси",
   "media.scheme": "Чизма",
   "media.empty": "Фотосурат ҳозирча жойлаштирилмаган",
@@ -293,5 +294,7 @@
   "lot.parentArea": "Ҳудуд",
   "lot.parentArea.open": "Ҳудуд саҳифасига ўтиш",
   "lot.parentArea.none": "Бу лот учун ҳудуд кўрсатилмаган.",
-  "catalog.filters.parentArea": "Ҳудуд"
+  "catalog.filters.parentArea": "Ҳудуд",
+  "gallery.prev": "Олдинги расмлар",
+  "gallery.next": "Кейинги расмлар"
 }

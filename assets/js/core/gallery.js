@@ -7,11 +7,6 @@
  */
 import { qs, qsa, t, trapFocus } from './config.js';
 
-const KIND_LABEL = {
-  render: 'media.render',
-  scheme: 'media.scheme',
-};
-
 let items = [];
 let index = 0;
 let releaseFocus = null;
@@ -23,10 +18,12 @@ function show(box) {
   const image = qs('[data-lightbox-image]', box);
   image.src = item.src;
   image.alt = item.alt || item.caption || '';
-  const kindKey = KIND_LABEL[item.kind];
+  // Tur belgisi ko'rsatilmaydi
   const kindNode = qs('[data-lightbox-kind]', box);
-  kindNode.textContent = kindKey ? t(kindKey) : '';
-  kindNode.hidden = !kindKey;
+  if (kindNode) {
+    kindNode.textContent = '';
+    kindNode.hidden = true;
+  }
   qs('[data-lightbox-caption]', box).textContent = item.caption || '';
   qs('[data-lightbox-counter]', box).textContent = t('media.gallery.counter', { i: index + 1, n: items.length });
   const singleImage = items.length < 2;
@@ -100,4 +97,40 @@ export function initGallery() {
     if (Math.abs(delta) > 50) move(delta < 0 ? 1 : -1);
     startX = null;
   }, { passive: true });
+
+  initGalleryNav();
+}
+
+/**
+ * Galereya lentasidagi yon yo'naltirgichlar (o'q tugmalar).
+ * Scrollbar yashirilgani uchun lenta shu tugmalar orqali suriladi.
+ * Tugmalar faqat surish kerak bo'lganda (rasmlar ko'rinishga sig'masa) chiqadi.
+ */
+function initGalleryNav() {
+  for (const strip of qsa('.gallery__strip')) {
+    const track = qs('[data-gallery-track]', strip);
+    const prev = qs('[data-gallery-scroll="-1"]', strip);
+    const next = qs('[data-gallery-scroll="1"]', strip);
+    if (!track || !prev || !next) continue;
+
+    const update = () => {
+      // Lenta to'liq sig'sa — tugmalar kerak emas
+      const overflow = track.scrollWidth - track.clientWidth > 4;
+      const atStart = track.scrollLeft <= 2;
+      const atEnd = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
+      prev.hidden = !overflow || atStart;
+      next.hidden = !overflow || atEnd;
+    };
+
+    const scrollByStep = (dir) => {
+      // Bir bosishda ko'rinadigan kenglikning ~80% ga suramiz
+      track.scrollBy({ left: dir * track.clientWidth * 0.8, behavior: 'smooth' });
+    };
+
+    prev.addEventListener('click', () => scrollByStep(-1));
+    next.addEventListener('click', () => scrollByStep(1));
+    track.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
 }

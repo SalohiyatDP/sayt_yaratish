@@ -1556,22 +1556,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .media__empty-text { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ── Galereya: kichik rasmlar lentasi ───────────────────────────────────────
- * Rasmlar asosiy rasm ostida bir qatorli lenta bo'lib turadi. Ilgari bu
- * to'rsimon (grid) edi va bitta-ikkita rasmda kartochka cho'zilib ketardi.
+ * Rasmlar asosiy rasm ostida bir qatorli lenta bo'lib turadi. Yon tomonlarda
+ * yo'naltirgich (o'q) tugmalar; ko'rinadigan scrollbar yashirilgan.
  */
 .gallery { margin-top: var(--space-4); }
 .gallery__title { margin: 0 0 var(--space-3); font-weight: 650; }
+
+.gallery__strip { position: relative; }
 .gallery__grid {
   display: flex;
   gap: var(--space-2);
   list-style: none;
   margin: 0;
-  padding: 0 0 var(--space-2);
+  padding: 0;
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  scroll-behavior: smooth;
   overscroll-behavior-x: contain;
+  /* Scrollbar yashiriladi — o'rniga o'q tugmalar ishlatiladi */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.gallery__grid::-webkit-scrollbar { display: none; }
 .gallery__item { flex: 0 0 auto; margin: 0; scroll-snap-align: start; }
 .gallery__button {
   display: block;
@@ -1590,8 +1596,37 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .gallery__button .media__caption { display: none; }
 .gallery__button .media__frame { aspect-ratio: 4 / 3; }
 
+/* Yon yo'naltirgichlar */
+.gallery__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition), color var(--transition);
+}
+.gallery__nav:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.gallery__nav--prev { left: calc(-1 * var(--space-3)); }
+.gallery__nav--prev .icon { transform: rotate(180deg); }
+.gallery__nav--next { right: calc(-1 * var(--space-3)); }
+.gallery__nav[hidden] { display: none; }
+
 @media (min-width: 900px) {
   .gallery__button { width: 156px; }
+}
+@media (max-width: 560px) {
+  /* Tor ekranda o'qlar lenta ustida turadi (joy tejash uchun) */
+  .gallery__nav--prev { left: var(--space-1); }
+  .gallery__nav--next { right: var(--space-1); }
 }
 
 .lightbox, .viewer, .search-overlay, .compare-modal { position: fixed; inset: 0; z-index: 150; display: grid; }

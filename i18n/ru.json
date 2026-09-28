@@ -241,6 +241,7 @@
   "map.openExternal": "Открыть карту во внешнем сервисе",
   "map.pointsList": "Список точек на карте",
   "media.photo": "Реальная фотография",
+  "media.image": "Изображение",
   "media.render": "Концепция проекта",
   "media.scheme": "Чертёж",
   "media.empty": "Фотография пока не размещена",
@@ -293,5 +294,7 @@
   "lot.parentArea": "Территория",
   "lot.parentArea.open": "Перейти к территории",
   "lot.parentArea.none": "Для этого лота территория не указана.",
-  "catalog.filters.parentArea": "Территория"
+  "catalog.filters.parentArea": "Территория",
+  "gallery.prev": "Предыдущие",
+  "gallery.next": "Следующие"
 }

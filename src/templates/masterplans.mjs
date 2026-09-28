@@ -192,9 +192,7 @@ export function masterplanPage(ctx, plan) {
                       <span class="sheet__zoom">${icon('zoomIn', { size: 18 })}</span>
                     </button>
                     <figcaption class="sheet__caption">
-                      <span class="media__kind${sheet.kind === 'render' ? ' media__kind--render' : ''}">
-                        ${sheet.kind === 'render' ? t('media.render') : t('media.scheme')}
-                      </span>
+
                       ${ctx.pick(sheet.title)}
                     </figcaption>
                   </figure>`,

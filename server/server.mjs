@@ -816,6 +816,50 @@ async function patchInboxRecord(id, patch) {
   }
 }
 
+/**
+ * Boshqaruv panelining HTML sahifasini beradi.
+ *
+ * Kesh muammosini oldini olish uchun `app.js`, `admin.css` va `lib.js`
+ * havolalariga versiya belgisi (`?v=<xesh>`) qo'shiladi. Belgi fayllar
+ * mazmunidan hisoblanadi, ya'ni kod o'zgarsa belgi ham o'zgaradi va brauzer
+ * yangi nusxani majburan yuklaydi. HTML ning o'zi hech qachon keshlanmaydi.
+ */
+let adminAssetVersion = null;
+
+function computeAdminVersion() {
+  const hash = crypto.createHash('sha1');
+  for (const file of ['app.js', 'lib.js', 'fields.js', 'admin.css', 'index.html']) {
+    try {
+      hash.update(fs.readFileSync(path.join(ADMIN_DIR, file)));
+    } catch (error) {
+      /* fayl yo'q — e'tiborsiz */
+    }
+  }
+  return hash.digest('hex').slice(0, 8);
+}
+
+async function serveAdminIndex(req, res) {
+  // DEV rejimida har so'rovda qayta hisoblaymiz (tahrirlash qulay bo'lsin),
+  // ishlab chiqarishda bir marta — tez ishlaydi.
+  if (!adminAssetVersion || DEV) adminAssetVersion = computeAdminVersion();
+  let html;
+  try {
+    html = await fsp.readFile(path.join(ADMIN_DIR, 'index.html'), 'utf8');
+  } catch (error) {
+    return send(res, 404, 'Not Found');
+  }
+  // /admin/app.js va /admin/admin.css havolalariga versiya qo'shamiz
+  html = html.replace(/(href|src)="(\/admin\/[^"?]+\.(?:js|css))"/g, `$1="$2?v=${adminAssetVersion}"`);
+  // Panel versiyasini global o'zgaruvchiga yozamiz — app.js uni import
+  // havolalariga qo'shadi va konsolda ko'rsatadi (qaysi kod ishlayotgani aniq).
+  html = html.replace('<head>', `<head>\n<script>window.__ADMIN_VERSION__=${JSON.stringify(adminAssetVersion)}</script>`);
+  return send(res, 200, html, {
+    'Content-Type': MIME['.html'],
+    'Cache-Control': 'no-store, must-revalidate',
+    'X-Admin-Version': adminAssetVersion,
+  });
+}
+
 /** Telegram xabaridagi tugma uchun boshqaruv paneli manzili. */
 function adminPanelUrl() {
   const configured = String(process.env.SITE_ORIGIN || '').replace(/\/$/, '');
@@ -1618,11 +1662,13 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
       if (PUBLIC_ONLY) return send(res, 404, 'Not Found');
       const relative = url.pathname.replace(/^\/admin\/?/, '') || 'index.html';
+      // index.html — har safar serverdan yangilanadi va ichidagi JS/CSS
+      // fayllariga versiya qo'shiladi. Shu tarzda brauzer yoki oldidagi nginx
+      // eski koddan foydalanib q, panel yangilanmay qolishi oldini olamiz.
+      if (relative === 'index.html') return serveAdminIndex(req, res);
       const served = await serveStatic(req, res, ADMIN_DIR, `/${relative}`, { cacheable: false });
       if (served) return undefined;
-      return await serveStatic(req, res, ADMIN_DIR, '/index.html', { cacheable: false }).then((ok) =>
-        ok ? undefined : send(res, 404, 'Not Found'),
-      );
+      return serveAdminIndex(req, res);
     }
 
     // Yuklangan fayllar (dist/ ga hali nusxalanmagan bo'lsa ham ishlaydi)
@@ -1737,6 +1783,7 @@ const onListening = () => {
     console.log('  Boshqaruv paneli:  o\'chirilgan (--public-only)');
   } else {
     console.log(`  Boshqaruv paneli:  http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/admin/`);
+    console.log(`  Panel versiyasi:   ${computeAdminVersion()}`);
     if (users.length === 0) {
       const key = syncSetupKey();
       console.log('');
