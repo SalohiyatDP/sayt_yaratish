@@ -2,7 +2,7 @@
  * Sahifa qobig'i: <head>, sarlavha (header), menyu, futer va umumiy skriptlar.
  */
 import { html, raw, esc, cx, when, attr, formatDate } from './util.mjs';
-import { icon, iconSprite } from './icons.mjs';
+import { icon, iconSprite, socialIcon } from './icons.mjs';
 import { MAIN_NAV, SECTION_NAV_KEY, urlFor } from './i18n.mjs';
 import { demoBanner } from './ui.mjs';
 
@@ -206,7 +206,18 @@ function footer(ctx) {
             social.length > 0,
             html`<ul class="site-footer__social" aria-label="${t('contact.social')}">
               ${social.map(
-                (link) => html`<li><a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.name || link.platform}${icon('external', { size: 13 })}</a></li>`,
+                (link) => html`<li>
+                  <a
+                    class="social-link"
+                    href="${link.url}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="${link.name || link.platform}"
+                  >
+                    ${icon(socialIcon(link), { size: 18, label: link.name || link.platform })}
+                    <span>${link.name || link.platform}</span>
+                  </a>
+                </li>`,
               )}
             </ul>`,
           )}

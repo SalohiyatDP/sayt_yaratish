@@ -4,7 +4,7 @@
 import { qs, qsa, el, api, toast, pick, slugify, clone, todayIso, formatBytes, formatDateTime, confirmAction, emptyI18n, escapeHtml } from './lib.js';
 import {
   getPath, setPath, textField, numberField, dateField, checkboxField, selectField,
-  multiSelectField, i18nField, i18nListField, coordinatesField, jsonField,
+  multiSelectField, i18nField, i18nListField, coordinatesField,
   mediaListField, documentListField, sheetListField, zoneListField, explicationField,
   createDropZone, geoFileField,
 } from './fields.js';
@@ -378,10 +378,7 @@ const AREAS_VIEW = {
           label: 'Hudud nomi *',
           onInput: (value) => syncSlug(record, value),
         }),
-        el('div', { class: 'a-row' }, [
-          slugControl(record),
-          numberField(record, { path: 'totalAreaHa', label: 'Umumiy maydoni, gektar', step: '0.1', min: '0' }),
-        ]),
+        numberField(record, { path: 'totalAreaHa', label: 'Umumiy maydoni, gektar', step: '0.1', min: '0' }),
         el('div', { class: 'a-row' }, [
           selectField(record, { path: 'district', label: 'Tuman *' }, options(tax.districts)),
           selectField(record, { path: 'areaType', label: 'Hudud turi *' }, options(tax.areaTypes)),
@@ -403,14 +400,6 @@ const AREAS_VIEW = {
             state.dirty = true;
             render();
           },
-        }),
-        coordinatesField(record, { path: 'coordinates', label: 'Markaziy nuqta' }),
-        jsonField(record, {
-          path: 'boundary',
-          label: 'Hudud chegarasi konturi',
-          rows: 6,
-          placeholder: '[[41.0762, 71.8105], [41.0765, 71.8168], [41.0722, 71.8172]]',
-          hint: 'Odatda yuqoridagi KMZ fayl orqali to\'ldiriladi. Nuqtalar [kenglik, uzunlik] juftliklari. Kamida 3 nuqta.',
         }),
         textField(record, { path: 'boundarySource', label: 'Chegara manbasi', hint: 'Masalan: Kadastr palatasi ma\'lumoti, 2026-yil 12-mart' }),
       ]),
@@ -507,7 +496,6 @@ const LOTS_VIEW = {
           onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
-          slugControl(record),
           textField(record, { path: 'lotNumber', label: 'Lot raqami', hint: 'Rasmiy hujjatdagi raqam' }),
           selectField(record, { path: 'status', label: 'Joriy holat *' }, options(tax.lotStatuses)),
         ]),
@@ -533,14 +521,6 @@ const LOTS_VIEW = {
             // Maydonlar yangi qiymat bilan qaytadan chiziladi
             render();
           },
-        }),
-        coordinatesField(record, { path: 'coordinates', label: 'Lotning markaziy nuqtasi' }),
-        jsonField(record, {
-          path: 'boundary',
-          label: 'Kadastr chegarasi konturi',
-          rows: 6,
-          placeholder: '[[41.0762, 71.8105], [41.0765, 71.8168], [41.0722, 71.8172]]',
-          hint: 'Nuqtalar [kenglik, uzunlik] juftliklari ko\'rinishida. Odatda yuqoridagi KMZ fayl orqali to\'ldiriladi. Berilgan konturni o\'zgartirmang va soddalashtirmang. Kamida 3 nuqta kerak.',
         }),
         textField(record, { path: 'boundarySource', label: 'Chegara manbasi' }),
       ]),
@@ -784,7 +764,6 @@ const MASTERPLANS_VIEW = {
           onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
-          slugControl(record),
           selectField(record, { path: 'district', label: 'Tuman' }, options(tax.districts)),
           selectField(record, { path: 'areaType', label: 'Hudud turi' }, options(tax.areaTypes)),
         ]),
@@ -883,7 +862,6 @@ const NEWS_VIEW = {
           onInput: (value) => syncSlug(record, value),
         }),
         el('div', { class: 'a-row' }, [
-          slugControl(record),
           dateField(record, { path: 'date', label: 'Sana *' }),
           selectField(record, { path: 'category', label: 'Rukn' }, options(file.categories)),
         ]),
@@ -945,91 +923,32 @@ function coverField(record) {
   return host;
 }
 
-/* ── Manzil (slug) ────────────────────────────────────────────────────────
- * Slug nomdan avtomatik yasaladi va nom yozilgan sari yangilanib turadi.
- * Xodim maydonni o'zi tahrirlasa, avtomatik to'ldirish o'sha zahoti to'xtaydi.
- * Mavjud (saqlangan) yozuvda slug avtomatik o'zgarmaydi — tashqi havolalar
- * buzilmasligi kerak.
- */
-
-// Ochiq tahrirlovchidagi slug maydoni. Har yangi tahrirlovchida tozalanadi.
-let slugInputRef = null;
-
-function slugControl(record) {
-  const isNew = Boolean(state.editing?.isNew);
-  const input = el('input', {
-    type: 'text',
-    value: record.slug || '',
-    dataset: { slugInput: 'true' },
-    onInput: (event) => {
-      // Qo'lda tahrirlangandan keyin nomga bog'lanish uzilib qoladi
-      event.target.dataset.touched = 'true';
-      record.slug = slugify(event.target.value);
-      hint.textContent = HINT_MANUAL;
-    },
-    onBlur: (event) => {
-      event.target.value = record.slug || '';
-    },
-  });
-  slugInputRef = input;
-
-  const HINT_AUTO = 'Nomdan avtomatik to\'ldiriladi. Xohlasangiz o\'zingiz ham yozishingiz mumkin.';
-  const HINT_MANUAL = 'Qo\'lda kiritildi — endi nomga qarab o\'zgarmaydi.';
-  const HINT_SAVED = 'Sahifa manzilida ishlatiladi. O\'zgartirish tashqi havolalarni buzadi — zarur bo\'lmasa tegmang.';
-  const hint = el('span', { class: 'a-field__hint', text: isNew ? HINT_AUTO : HINT_SAVED });
-
-  // Saqlangan yozuvda nomdan qayta yasash faqat xodim so'raganda bo'ladi
-  const regenerate = isNew
-    ? null
-    : el('button', {
-        type: 'button',
-        class: 'a-btn a-btn--sm',
-        text: 'Nomdan qayta yasash',
-        style: 'margin-top:0.35rem;align-self:start',
-        onClick: () => {
-          const source = pick(record.title ?? record.name);
-          if (!source) {
-            toast('Avval nomni to\'ldiring.', 'error');
-            return;
-          }
-          if (!confirmAction('Manzil o\'zgarsa, bu sahifaga oldin berilgan havolalar ishlamay qoladi. Davom etasizmi?')) return;
-          record.slug = slugify(source);
-          input.value = record.slug;
-          state.dirty = true;
-        },
-      });
-
-  return el('label', { class: 'a-field' }, [
-    el('span', { class: 'a-field__label', text: 'Manzil (slug)' }),
-    input,
-    hint,
-    regenerate,
-  ]);
-}
-
 /**
- * Nom o'zgarganda slugni yangilaydi.
- * Nom maydonining har bosilishida chaqiriladi.
+ * Nom o'zgarganda manzilni (slug) yangilaydi.
+ *
+ * Manzil xodimga ko'rsatilmaydi va qo'lda tahrirlanmaydi — u nomdan o'zi
+ * yasaladi. Saqlangan yozuvda esa o'zgarmaydi: bu tashqi havolalarni buzardi.
  */
 function syncSlug(record, nameValue) {
   if (!state.editing?.isNew) return;
-  if (!slugInputRef || slugInputRef.dataset.touched === 'true') return;
   record.slug = slugify(pick(nameValue));
-  slugInputRef.value = record.slug;
 }
 
-/**
- * Nashr holati — tahrirlovchining eng yuqorisida turadi.
- * Ilgari bu oddiy katak shakl oxirida edi va e'tibordan chetda qolardi:
- * yozuv kiritilardi, lekin saytda ko'rinmasdi.
- */
 /** `viewer` roli faqat ko'radi — o'zgartiruvchi tugmalar unga ko'rsatilmaydi. */
 const canEdit = () => state.user?.role !== 'viewer';
 
-function publishBar(record) {
+// Kolleksiya nomi → saytdagi bo'lim manzili (sahifa havolasini ko'rsatish uchun)
+const SECTION_PATH = { areas: 'areas', lots: 'lots', masterplans: 'masterplans', news: 'news' };
+
+function publishBar(record, collection) {
   const host = el('div', {});
+  const section = SECTION_PATH[collection];
+
   const draw = () => {
     const live = record.published !== false;
+    // Sahifa manzili nomdan avtomatik yasaladi — xodim uni tahrirlamaydi,
+    // lekin qanday manzil chiqqanini ko'rib turishi foydali.
+    const pageUrl = section && record.slug ? `/uz/${section}/${record.slug}/` : null;
     host.innerHTML = '';
     host.append(
       el('div', { class: `publish-bar publish-bar--${live ? 'live' : 'draft'}` }, [
@@ -1041,6 +960,14 @@ function publishBar(record) {
               ? 'Saqlaganingizdan so\'ng ommaviy saytda darhol chiqadi.'
               : 'Faqat shu panelda turadi. Saytga chiqarish uchun holatni o\'zgartiring.',
           }),
+          pageUrl
+            ? el('span', { class: 'a-small' }, [
+                'Sahifa manzili: ',
+                live
+                  ? el('a', { href: pageUrl, target: '_blank', rel: 'noopener' }, [el('code', { text: pageUrl })])
+                  : el('code', { text: pageUrl }),
+              ])
+            : null,
         ]),
         el('button', {
           type: 'button',
@@ -1178,7 +1105,6 @@ async function renderCollection(name, view) {
 
 async function renderEditor(name, view, file, tax) {
   const { record, index, isNew } = state.editing;
-  slugInputRef = null;
   const fields = await view.form(record);
 
   const save = async () => {
@@ -1186,9 +1112,18 @@ async function renderEditor(name, view, file, tax) {
       toast('Nom kamida bitta tilda to\'ldirilishi kerak.', 'error');
       return;
     }
-    if (!record.slug) {
-      record.slug = slugify(pick(record.title ?? record.name) || `${view.idPrefix}-${Date.now()}`);
+    // Manzil (slug) nomdan yasaladi. Xodim uni tahrirlamaydi, shuning uchun
+    // bir xil nomdan kelib chiqadigan takrorlanishni tizim o'zi hal qiladi:
+    // «chodak-hududi», «chodak-hududi-2», «chodak-hududi-3» …
+    const baseSlug = record.slug || slugify(pick(record.title ?? record.name)) || `${view.idPrefix}-${Date.now()}`;
+    const taken = new Set((file.items || []).filter((item, i) => i !== index).map((item) => item.slug));
+    let slug = baseSlug;
+    let suffix = 2;
+    while (taken.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
     }
+    record.slug = slug;
     if (!record.id) {
       const used = new Set((file.items || []).map((item) => item.id));
       let counter = file.items.length + 1;
@@ -1199,12 +1134,6 @@ async function renderEditor(name, view, file, tax) {
       }
       record.id = candidate;
     }
-    const duplicate = (file.items || []).some((item, i) => item.slug === record.slug && i !== index);
-    if (duplicate) {
-      toast(`"${record.slug}" manzili band. Boshqa slug kiriting.`, 'error', 6000);
-      return;
-    }
-
     if (isNew) file.items.push(record);
     else file.items[index] = record;
 
@@ -1233,7 +1162,7 @@ async function renderEditor(name, view, file, tax) {
   ]);
 
   const editor = el('form', { class: 'editor', onSubmit: (event) => { event.preventDefault(); save(); } }, [
-    publishBar(record),
+    publishBar(record, name),
     ...fields,
     actions,
   ]);
@@ -2105,14 +2034,25 @@ async function renderInboxView() {
                   }
                 },
               }),
-          state.user?.role === 'admin'
+          // Murojaatni o'chirish `admin` va `editor` rollariga ruxsat etilgan;
+          // `viewer` faqat ko'radi.
+          canEdit()
             ? el('button', {
                 type: 'button',
                 class: 'a-btn a-btn--sm a-btn--danger',
                 text: 'O\'chirish',
                 onClick: async () => {
-                  if (!confirmAction(`${item.id} murojaati butunlay o'chirilsinmi?`)) return;
-                  await api.deleteInbox(item.id).catch((error) => toast(error.message, 'error'));
+                  if (!confirmAction(
+                    `${item.id} murojaati butunlay o'chirilsinmi?\n\n`
+                      + `${item.name || ''}${item.phone ? ` · ${item.phone}` : ''}\n\n`
+                      + 'Bu amalni qaytarib bo\'lmaydi — murojaat serverdan ham o\'chadi.',
+                  )) return;
+                  try {
+                    await api.deleteInbox(item.id);
+                    toast('Murojaat o\'chirildi', 'success');
+                  } catch (error) {
+                    toast(`O'chirilmadi: ${error.data?.error || error.message}`, 'error', 7000);
+                  }
                   render();
                   refreshCounts();
                 },
@@ -2787,7 +2727,13 @@ async function renderTelegramView() {
     if (r.canSend) {
       return el('div', { class: 'a-alert a-alert--success' }, [
         el('strong', { text: 'Telegram ulangan va ishlayapti' }),
-        el('p', { text: `Murojaatlar @${r.bot.username} boti orqali «${r.chat.title || r.chat.id}» chatiga yuboriladi.` }),
+        el('p', {
+          text: (() => {
+            const working = (r.recipients || []).filter((item) => item.ok === true);
+            const names = working.map((item) => item.label || item.title || item.chatId);
+            return `Murojaatlar @${r.bot?.username || 'bot'} boti orqali ${working.length} ta manzilga yuboriladi: ${names.join(', ')}.`;
+          })(),
+        }),
       ]);
     }
     if (r.disabled) {

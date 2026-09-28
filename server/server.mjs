@@ -1075,7 +1075,9 @@ async function handleAdminApi(req, res, url) {
       return sendJson(res, 200, { ok: true, item: existing });
     }
     if (req.method === 'DELETE') {
-      if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+      // `viewer` faqat ko'radi; `editor` va `admin` o'chirishi mumkin
+      if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+      if (!fs.existsSync(file)) return sendJson(res, 404, { ok: false, error: 'not_found' });
       await fsp.unlink(file).catch(() => undefined);
       logLine(`Murojaat o'chirildi: ${inboxMatch[1]} (${session.sub})`);
       return sendJson(res, 200, { ok: true });

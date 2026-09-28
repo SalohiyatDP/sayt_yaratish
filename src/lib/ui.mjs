@@ -164,7 +164,13 @@ export function mediaFigure(ctx, item, { className = '', lazy = true, sizes } = 
           loading="${lazy ? 'lazy' : 'eager'}"
           decoding="async"
         >
-        <span class="${cx('media__kind', item.kind === 'render' && 'media__kind--render')}">${kindLabel}</span>
+        ${when(
+          // Fotosuratda yozuv chiqarilmaydi — rasm o'zi ko'rinib turadi.
+          // Loyiha konsepsiyasida (render) esa yozuv MAJBURIY: foydalanuvchi
+          // buni haqiqiy holat deb o'ylab qolmasligi kerak.
+          item.kind === 'render' || item.kind === 'scheme',
+          html`<span class="${cx('media__kind', item.kind === 'render' && 'media__kind--render')}">${kindLabel}</span>`,
+        )}
       </div>
       ${when(
         caption || meta,

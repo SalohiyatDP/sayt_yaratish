@@ -34,6 +34,16 @@ const PATHS = {
   alert: '<path d="M12 4 3 19h18L12 4Z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r="1"/>',
   file: '<path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5L14 3.5Z"/><path d="M13.5 3.8V8h4.2"/>',
   phone: '<path d="M6.5 4h3l1.5 4-2 1.5a10 10 0 0 0 5.5 5.5L16 13l4 1.5v3a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.5 6.2 2 2 0 0 1 6.5 4Z"/>',
+
+  /* ── Ijtimoiy tarmoqlar ──
+   * Rasmiy logotiplar himoyalangan belgilar bo'lgani uchun soddalashtirilgan,
+   * loyihaning umumiy uslubiga mos (stroke asosida) shakllar ishlatiladi.
+   */
+  telegram: '<path d="M21 4.5 2.8 11.3c-.7.3-.7 1.2 0 1.4l4.3 1.4 1.6 4.9c.2.6 1 .8 1.4.3l2.3-2.4 4.3 3.2c.5.4 1.2.1 1.4-.5L21.9 5.6c.2-.8-.5-1.4-1.2-1.1Z"/><path d="m7.1 14.1 10.6-7.4-6.6 8.5-.3 3.6"/>',
+  instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17" cy="7" r="1.15"/>',
+  facebook: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M15.5 8h-1.6a2 2 0 0 0-2 2v10.5"/><path d="M9.3 13.2h5.4"/>',
+  twitterX: '<path d="M4.5 4.5h3.2l11.8 15h-3.2L4.5 4.5Z"/><path d="m5 19.5 6-6.8"/><path d="m13.2 10.6 5.8-6.1"/>',
+  youtube: '<rect x="3" y="6" width="18" height="12" rx="3.5"/><path d="m10.4 9.5 5 2.5-5 2.5V9.5Z"/>',
   mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 5.5L20 7"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.5 2"/>',
   share: '<circle cx="17" cy="6" r="2.5"/><circle cx="17" cy="18" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><path d="m9 10.8 5.5-3.2M9 13.2l5.5 3.2"/>',
@@ -94,3 +104,18 @@ export function icon(name, options = {}) {
 /** Hudud turi uchun mos ikonka nomi. */
 export const areaTypeIcon = (areaTypeId) =>
   ({ mountain: 'mountain', river: 'river', reservoir: 'water' })[areaTypeId] || 'pin';
+
+/**
+ * Ijtimoiy tarmoq uchun ikonka nomi.
+ * Havola manzili yoki nomiga qarab aniqlanadi — xodim panelda faqat nom va
+ * havolani kiritadi, ikonkani tizim o'zi topadi.
+ */
+export function socialIcon(link) {
+  const haystack = `${link?.url || ''} ${link?.name || ''} ${link?.platform || ''}`.toLowerCase();
+  if (/t\.me|telegram/.test(haystack)) return 'telegram';
+  if (/instagram|instagr\.am/.test(haystack)) return 'instagram';
+  if (/facebook|fb\.com|fb\.me/.test(haystack)) return 'facebook';
+  if (/twitter\.com|x\.com|\btwitter\b|\bx\b/.test(haystack)) return 'twitterX';
+  if (/youtube|youtu\.be/.test(haystack)) return 'youtube';
+  return 'external';
+}

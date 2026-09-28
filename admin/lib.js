@@ -19,7 +19,13 @@ export function el(tag, attrs = {}, children = []) {
     else if (key === 'html') node.innerHTML = value;
     else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2).toLowerCase(), value);
     else if (key === 'dataset') Object.assign(node.dataset, value);
-    else if (value === true) node.setAttribute(key, '');
+    // `<textarea>` `value` atributini tan olmaydi — qiymat matn mazmuni bo'lib
+    // turadi. Shu sababli xususiyat orqali yozamiz, aks holda maydon bo'sh
+    // ko'rinadi va xodim saqlangan matnni ko'rmaydi.
+    else if (key === 'value' && (node.tagName === 'TEXTAREA' || node.tagName === 'INPUT')) {
+      node.value = String(value);
+      if (node.tagName === 'TEXTAREA') node.textContent = String(value);
+    } else if (value === true) node.setAttribute(key, '');
     else node.setAttribute(key, String(value));
   }
   for (const child of [].concat(children)) {

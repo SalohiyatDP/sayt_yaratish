@@ -1,6 +1,6 @@
 /** "Bog'lanish" sahifasi: rekvizitlar va murojaat shakli. */
 import { html, raw, when, attr } from '../lib/util.mjs';
-import { icon } from '../lib/icons.mjs';
+import { icon, socialIcon } from '../lib/icons.mjs';
 import { sectionHead, callout, emptyState, defList } from '../lib/ui.mjs';
 
 export function contactPage(ctx) {
@@ -64,7 +64,7 @@ export function contactPage(ctx) {
                 ${social.map(
                   (link) => html`<li>
                     <a class="btn btn--ghost btn--sm" href="${link.url}" target="_blank" rel="noopener noreferrer">
-                      ${link.name || link.platform}${icon('external', { size: 14 })}
+                      ${icon(socialIcon(link), { size: 16 })}${link.name || link.platform}
                     </a>
                   </li>`,
                 )}

@@ -316,45 +316,6 @@ export function coordinatesField(record, field) {
 
 /* ── JSON maydon (chegara konturi kabi murakkab qiymatlar uchun) ───────── */
 
-export function jsonField(record, field) {
-  const current = getPath(record, field.path);
-  const area = el('textarea', {
-    class: 'a-input',
-    rows: field.rows || 6,
-    spellcheck: 'false',
-    value: current == null ? '' : JSON.stringify(current, null, 2),
-    placeholder: field.placeholder || '',
-  });
-  const status = el('p', { class: 'a-field__hint' });
-
-  area.addEventListener('input', () => {
-    const raw = area.value.trim();
-    if (raw === '') {
-      setPath(record, field.path, null);
-      status.textContent = 'Bo\'sh — qiymat saqlanmaydi.';
-      status.style.color = '';
-      return;
-    }
-    try {
-      setPath(record, field.path, JSON.parse(raw));
-      status.textContent = 'JSON to\'g\'ri.';
-      status.style.color = 'var(--a-success)';
-    } catch (error) {
-      status.textContent = `JSON xato: ${error.message}`;
-      status.style.color = 'var(--a-danger)';
-    }
-  });
-
-  return el('div', { class: 'a-field' }, [
-    el('span', { class: 'a-field__label', text: field.label }),
-    field.hint ? el('span', { class: 'a-field__hint', text: field.hint }) : null,
-    area,
-    status,
-  ]);
-}
-
-/* ── Fayl yuklash ──────────────────────────────────────────────────────── */
-
 export function createDropZone({ folder, accept, multiple = true, onUploaded }) {
   const input = el('input', { type: 'file', accept: accept || '', multiple, hidden: true });
   const zone = el('div', {
@@ -691,6 +652,7 @@ export function geoFileField(record, options) {
   const { coordinatesPath = 'coordinates', boundaryPath = 'boundary', onApplied } = options || {};
 
   const status = el('div', { class: 'a-small', style: 'margin-top:0.5rem' });
+  const current = el('div', { style: 'margin-top:0.6rem' });
   const input = el('input', {
     type: 'file',
     accept: '.kmz,.kml,.geojson,.json',
@@ -703,6 +665,65 @@ export function geoFileField(record, options) {
     for (const line of [].concat(lines)) {
       if (line) status.append(el('p', { text: line, style: 'margin:0.15rem 0' }));
     }
+  };
+
+  /**
+   * Joriy koordinatalar — faqat ko'rish uchun.
+   * Qiymatlar fayldan olinadi, shuning uchun qo'lda kiritish maydonlari yo'q.
+   * Xodim nima saqlanganini ko'rib turishi va kerak bo'lsa tozalashi mumkin.
+   */
+  const drawCurrent = () => {
+    const point = getPath(record, coordinatesPath);
+    const boundary = boundaryPath ? getPath(record, boundaryPath) : null;
+    const hasBoundary = Array.isArray(boundary) && boundary.length >= 3;
+    current.innerHTML = '';
+
+    if (!point && !hasBoundary) {
+      current.append(
+        el('p', { class: 'a-small a-muted', text: 'Koordinata hali yuklanmagan — xaritada ko\'rsatilmaydi.' }),
+      );
+      return;
+    }
+
+    current.append(
+      el('div', { class: 'geo-current' }, [
+        el('div', {}, [
+          point
+            ? el('p', { class: 'a-small' }, [
+                el('strong', { text: 'Markaziy nuqta: ' }),
+                el('code', { text: `${point.lat}, ${point.lng}` }),
+              ])
+            : el('p', { class: 'a-small a-muted', text: 'Markaziy nuqta yo\'q.' }),
+          hasBoundary
+            ? el('p', { class: 'a-small' }, [el('strong', { text: 'Chegara: ' }), `${boundary.length} nuqta`])
+            : el('p', { class: 'a-small a-muted', text: 'Chegara konturi yo\'q.' }),
+        ]),
+        el('div', { style: 'display:flex;gap:0.35rem;flex-wrap:wrap' }, [
+          point
+            ? el('a', {
+                class: 'a-btn a-btn--sm',
+                href: `https://www.openstreetmap.org/?mlat=${point.lat}&mlon=${point.lng}#map=15/${point.lat}/${point.lng}`,
+                target: '_blank',
+                rel: 'noopener',
+                text: 'Xaritada tekshirish',
+              })
+            : null,
+          el('button', {
+            type: 'button',
+            class: 'a-btn a-btn--sm a-btn--danger',
+            text: 'Tozalash',
+            onClick: () => {
+              if (!confirm('Koordinata va chegara o\'chirilsinmi? Hudud xaritada ko\'rsatilmaydi.')) return;
+              setPath(record, coordinatesPath, null);
+              if (boundaryPath) setPath(record, boundaryPath, null);
+              setStatus('info', 'Koordinatalar tozalandi.');
+              drawCurrent();
+              onApplied?.(null);
+            },
+          }),
+        ]),
+      ]),
+    );
   };
 
   const load = async (file) => {
@@ -730,6 +751,7 @@ export function geoFileField(record, options) {
         result.name ? `Fayldagi nomi: ${result.name}` : null,
         ...(result.notes || []),
       ]);
+      drawCurrent();
       toast('Koordinatalar fayldan olindi', 'success');
       onApplied?.(result);
     } catch (error) {
@@ -765,14 +787,18 @@ export function geoFileField(record, options) {
     el('span', { class: 'a-small', text: 'KMZ, KML yoki GeoJSON — bosing yoki faylni bu yerga tashlang' }),
   ]);
 
+  drawCurrent();
+
   return el('div', { class: 'a-field' }, [
-    el('span', { class: 'a-field__label', text: 'Fayldan olish (tavsiya etiladi)' }),
+    el('span', { class: 'a-field__label', text: 'Koordinatalar va chegara' }),
     el('span', {
       class: 'a-field__hint',
-      text: 'Geodeziya xizmati bergan KMZ faylni yuklasangiz, markaziy nuqta va chegara o\'zi to\'ldiriladi. Fayl saqlanmaydi — faqat koordinatalar olinadi.',
+      text: 'Geodeziya xizmati bergan KMZ faylni yuklasangiz, markaziy nuqta va chegara o\'zi to\'ldiriladi. '
+        + 'Fayl serverda saqlanmaydi — faqat koordinatalar olinadi.',
     }),
     zone,
     input,
     status,
+    current,
   ]);
 }

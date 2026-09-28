@@ -1500,6 +1500,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .article__lead { font-size: var(--fs-lg); color: var(--text-soft); margin-bottom: var(--space-4); }
 .article__cover { padding-top: var(--space-6); }
 .article__body { padding-block: var(--space-6); }
+
+/* Maqola matni rasm bilan bir xil kenglikda va ikki tomonga tekislangan
+   (Word dagi Ctrl+J). Torroq ekranlarda tekislash o'chiriladi: uzun so'zlar
+   orasida katta bo'shliqlar paydo bo'lmasligi kerak. */
+.article__body .prose { max-width: none; }
+@media (min-width: 640px) {
+  .article__body .prose p,
+  .article__body .prose li { text-align: justify; text-justify: inter-word; hyphens: auto; }
+}
 .article__source { margin-top: var(--space-6); font-size: var(--fs-sm); color: var(--text-muted); }
 .article__related { margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--border); }
 
@@ -1546,12 +1555,27 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .media__empty-icon { color: var(--text-muted); opacity: 0.7; }
 .media__empty-text { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
 
+/* ── Galereya: kichik rasmlar lentasi ───────────────────────────────────────
+ * Rasmlar asosiy rasm ostida bir qatorli lenta bo'lib turadi. Ilgari bu
+ * to'rsimon (grid) edi va bitta-ikkita rasmda kartochka cho'zilib ketardi.
+ */
+.gallery { margin-top: var(--space-4); }
 .gallery__title { margin: 0 0 var(--space-3); font-weight: 650; }
-.gallery__grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); list-style: none; margin: 0; padding: 0; }
-.gallery__item { margin: 0; }
+.gallery__grid {
+  display: flex;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0 0 var(--space-2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.gallery__item { flex: 0 0 auto; margin: 0; scroll-snap-align: start; }
 .gallery__button {
   display: block;
-  width: 100%;
+  width: 132px;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1560,8 +1584,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
   overflow: hidden;
   transition: border-color var(--transition), transform var(--transition);
 }
-.gallery__button:hover { border-color: var(--primary); transform: translateY(-2px); }
-.gallery__button .media__caption { padding: var(--space-2); margin: 0; text-align: start; }
+.gallery__button:hover,
+.gallery__button:focus-visible { border-color: var(--primary); transform: translateY(-2px); }
+/* Lentada izoh ko'rsatilmaydi — u kattalashtirilgan ko'rinishda chiqadi */
+.gallery__button .media__caption { display: none; }
+.gallery__button .media__frame { aspect-ratio: 4 / 3; }
+
+@media (min-width: 900px) {
+  .gallery__button { width: 156px; }
+}
 
 .lightbox, .viewer, .search-overlay, .compare-modal { position: fixed; inset: 0; z-index: 150; display: grid; }
 .lightbox__backdrop, .viewer__backdrop, .search-overlay__backdrop, .compare-modal__backdrop {
@@ -1903,6 +1934,19 @@ html.is-dark .site-footer { background: var(--bg-sunken); border-top: 1px solid 
 .site-footer__list--contact .icon { flex: none; margin-top: 0.2em; color: var(--water-300); }
 .site-footer__social { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; margin: var(--space-4) 0 0; padding: 0; font-size: var(--fs-sm); }
 .site-footer__social li { margin: 0; }
+
+/* Ijtimoiy tarmoq havolasi: ikonka + nom */
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+.social-link:hover { border-color: currentColor; background: color-mix(in srgb, currentColor 10%, transparent); }
+.social-link .icon { flex: none; }
 .site-footer__note { margin: 0 0 var(--space-4); font-size: var(--fs-sm); }
 .site-footer .btn--outline { border-color: rgba(255, 255, 255, 0.35); color: #fff; }
 .site-footer .btn--outline:hover { background: rgba(255, 255, 255, 0.12); border-color: #fff; }

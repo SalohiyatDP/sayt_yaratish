@@ -219,9 +219,25 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 }
 .publish-bar--live { border-left-color: var(--a-success); background: var(--a-success-soft); }
 .publish-bar--draft { border-left-color: var(--a-warning); background: var(--a-warning-soft); }
-.publish-bar__text { display: grid; flex: 1; min-width: 14rem; }
+.publish-bar__text { display: grid; gap: 0.15rem; flex: 1; min-width: 14rem; }
 .publish-bar__text strong { font-size: 14px; }
 .publish-bar__text .a-small { color: inherit; opacity: 0.85; }
+.publish-bar__text code { padding: 0.05rem 0.25rem; border-radius: var(--a-radius); background: rgba(0, 0, 0, 0.07); font-family: var(--a-mono); font-size: 11px; }
+
+/* Yuklangan koordinatalarning joriy holati */
+.geo-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  background: var(--a-surface-2);
+}
+.geo-current p { margin: 0.1rem 0; }
+.geo-current code { font-family: var(--a-mono); }
 
 .a-tag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--a-surface-2); border: 1px solid var(--a-border); font-size: 11px; font-weight: 600; }
 .a-tag--success { background: var(--a-success-soft); border-color: transparent; color: var(--a-success); }

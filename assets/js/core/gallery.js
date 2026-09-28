@@ -1,11 +1,13 @@
 /**
  * Galereya (lightbox): tasvirni to'liq ekranda ko'rish.
- * Tasvir turi ("Haqiqiy fotosurat" / "Loyiha konsepsiyasi") har doim ko'rsatiladi.
+ *
+ * Tasvir turi faqat vizualizatsiya va chizmalarda ko'rsatiladi: foydalanuvchi
+ * loyiha konsepsiyasini haqiqiy holat deb o'ylab qolmasligi kerak.
+ * Fotosuratda esa yozuv keraksiz — rasm o'zi ko'rinib turadi.
  */
 import { qs, qsa, t, trapFocus } from './config.js';
 
 const KIND_LABEL = {
-  photo: 'media.photo',
   render: 'media.render',
   scheme: 'media.scheme',
 };
@@ -21,7 +23,10 @@ function show(box) {
   const image = qs('[data-lightbox-image]', box);
   image.src = item.src;
   image.alt = item.alt || item.caption || '';
-  qs('[data-lightbox-kind]', box).textContent = t(KIND_LABEL[item.kind] || 'media.photo');
+  const kindKey = KIND_LABEL[item.kind];
+  const kindNode = qs('[data-lightbox-kind]', box);
+  kindNode.textContent = kindKey ? t(kindKey) : '';
+  kindNode.hidden = !kindKey;
   qs('[data-lightbox-caption]', box).textContent = item.caption || '';
   qs('[data-lightbox-counter]', box).textContent = t('media.gallery.counter', { i: index + 1, n: items.length });
   const singleImage = items.length < 2;
