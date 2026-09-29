@@ -82,19 +82,29 @@ export function getConfig() {
   const apiBase = String(file.apiBase || preset.apiBase).replace(/\/$/, '');
   const disabled = process.env.AI_DISABLED === '1' || file.disabled === true;
 
+  // Proksi: hosting IP manzili AI provayder tomonidan bloklansa (masalan
+  // Google Gemini «User location is not supported»), so'rovlarni ruxsat
+  // berilgan hudud orqali yo'naltirish uchun. Env > ai.json tartibida.
+  // Ko'rinishi: http://user:pass@host:port yoki socks5://host:port
+  const proxy = String(
+    process.env.AI_PROXY || process.env.HTTPS_PROXY || process.env.https_proxy || file.proxy || '',
+  ).trim();
+
   return {
     provider,
     apiKey,
     model,
     apiBase,
     disabled,
+    proxy,
     enabled: Boolean(apiKey) && !disabled,
     keySource: envKey ? 'env' : file.apiKey ? 'file' : null,
+    proxySource: (process.env.AI_PROXY || process.env.HTTPS_PROXY || process.env.https_proxy) ? 'env' : file.proxy ? 'file' : null,
   };
 }
 
 /** Sozlamalarni saqlaydi (kalit faqat egasi o'qiy oladigan faylda). */
-export async function saveConfig({ provider, apiKey, model, disabled }) {
+export async function saveConfig({ provider, apiKey, model, disabled, proxy }) {
   await fsp.mkdir(DATA_DIR, { recursive: true });
   const next = { ...readFileConfig() };
   const providerChanged = provider !== undefined && ['openai', 'gemini'].includes(provider) && provider !== next.provider;
@@ -104,6 +114,12 @@ export async function saveConfig({ provider, apiKey, model, disabled }) {
   if (typeof apiKey === 'string' && apiKey.trim() !== '') next.apiKey = apiKey.trim();
   if (typeof model === 'string' && model.trim() !== '') next.model = model.trim();
   if (disabled !== undefined) next.disabled = Boolean(disabled);
+  // Proksi: bo'sh satr yuborilsa — proksi o'chiriladi (to'g'ridan-to'g'ri ulanish)
+  if (typeof proxy === 'string') {
+    const trimmed = proxy.trim();
+    if (trimmed === '') delete next.proxy;
+    else next.proxy = trimmed;
+  }
 
   // Provayder o'zgarsa, model aniq berilmagan bo'lsa — yangi provayderning
   // odatiy modeliga o'tkazamiz. Aks holda bir provayderning modeli boshqasiga
@@ -199,6 +215,26 @@ export function maskKey(key) {
   const value = String(key || '');
   if (value.length < 8) return value ? '…' : '';
   return `${value.slice(0, 4)}…${value.slice(-3)}`;
+}
+
+/** Proksi manzilidagi parolni yashiradi: http://user:***@host:port */
+export function maskProxy(url) {
+  return String(url || '').replace(/(:\/\/[^:@/]+:)[^@/]+@/, '$1***@');
+}
+
+/**
+ * Node jarayoni proksi env o'zgaruvchilarini `fetch` uchun ishlatadimi?
+ * Bu faqat `--use-env-proxy` bayrog'i yoki `NODE_USE_ENV_PROXY=1` bilan
+ * ishga tushirilganda faol bo'ladi. Server startда shu tekshiriladi va
+ * proksi sozlangani ammo faol emasligini aniqlab, ogohlantirish beriladi.
+ */
+export function isProxyActive() {
+  if (process.env.NODE_USE_ENV_PROXY === '1') return true;
+  const opts = String(process.env.NODE_OPTIONS || '');
+  if (/--use-env-proxy/.test(opts)) return true;
+  // execArgv — jarayon bevosita shu bayroq bilan ishga tushirilgan bo'lsa
+  if ((process.execArgv || []).some((a) => a.includes('use-env-proxy'))) return true;
+  return false;
 }
 
 /* ─────────────────────────── Provayderga so'rov ─────────────────────────── */
@@ -497,6 +533,8 @@ export async function diagnose({ probe = false } = {}) {
     keySource: config.keySource,
     disabled: config.disabled,
     enabled: config.enabled,
+    proxy: config.proxy ? maskProxy(config.proxy) : '',
+    proxyActive: config.proxy ? isProxyActive() : false,
     canUse: false,
     problem: null,
   };

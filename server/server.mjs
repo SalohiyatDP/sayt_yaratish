@@ -1450,6 +1450,14 @@ async function handleAdminApi(req, res, url) {
     if (typeof payload.apiKey === 'string') patch.apiKey = payload.apiKey.trim();
     if (typeof payload.model === 'string') patch.model = sanitizeText(payload.model, 80);
     if (typeof payload.disabled === 'boolean') patch.disabled = payload.disabled;
+    if (typeof payload.proxy === 'string') {
+      const proxy = payload.proxy.trim();
+      // Faqat http(s)/socks proksi manzillariga ruxsat (yoki bo'sh = o'chirish)
+      if (proxy !== '' && !/^(https?|socks[45]?):\/\/[^\s]+$/i.test(proxy)) {
+        return sendJson(res, 422, { ok: false, error: 'invalid_proxy' });
+      }
+      patch.proxy = proxy.slice(0, 300);
+    }
 
     await ai.saveConfig(patch);
     logLine(`AI sozlamalari yangilandi (${session.sub})`);
@@ -1953,6 +1961,16 @@ const onListening = () => {
     console.log('  AI yordamchisi:    vaqtincha o\'chirilgan');
   } else {
     console.log('  AI yordamchisi:    sozlanmagan (ixtiyoriy — panel «AI yordamchisi» bo\'limi)');
+  }
+  if (aiConfig.proxy) {
+    if (ai.isProxyActive()) {
+      console.log(`  AI proksi:         faol → ${ai.maskProxy(aiConfig.proxy)}`);
+    } else {
+      console.log(`  AI proksi:         SOZLANGAN, LEKIN FAOL EMAS → ${ai.maskProxy(aiConfig.proxy)}`);
+      console.log('                     Faollashtirish uchun ilovani shu env bilan ishga tushiring:');
+      console.log(`                     NODE_OPTIONS="--use-env-proxy" HTTPS_PROXY="${aiConfig.proxy}" HTTP_PROXY="${aiConfig.proxy}"`);
+      console.log('                     (yoki app.js proksini avtomatik yoqadi — pastga qarang)');
+    }
   }
 
   const tg = telegram.getConfig();

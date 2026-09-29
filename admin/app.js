@@ -3417,24 +3417,46 @@ async function renderAiView() {
     autocomplete: 'off',
   });
 
+  // Proksi — hosting IP bloklanganda (masalan Gemini geografik cheklovi)
+  // so'rovlarni ruxsat berilgan hudud orqali yo'naltirish uchun.
+  const proxyInput = el('input', {
+    type: 'text',
+    class: 'a-input',
+    value: r.proxy || '',
+    placeholder: 'http://user:parol@host:port yoki socks5://host:port',
+    autocomplete: 'off',
+  });
+  const proxyStatus = r.proxy
+    ? (r.proxyActive
+        ? el('span', { class: 'a-tag a-tag--success', text: 'proksi faol' })
+        : el('span', { class: 'a-tag a-tag--warning', text: 'proksi sozlangan, faollashishi uchun ilova qayta ishga tushishi kerak' }))
+    : null;
+
   const saveButton = el('button', {
     type: 'button',
     class: 'a-btn a-btn--primary',
     text: 'Saqlash',
     onClick: async () => {
-      const payload = { provider: providerSelect.value, model: modelSelect.value };
+      const newProxy = proxyInput.value.trim();
+      const proxyChanged = newProxy !== (r.proxy || '');
+      const payload = { provider: providerSelect.value, model: modelSelect.value, proxy: newProxy };
       if (keyInput.value.trim() !== '') payload.apiKey = keyInput.value.trim();
       saveButton.disabled = true;
       try {
         await api.aiSave(payload);
         keyInput.value = '';
         await refreshAiState();
-        toast('Sozlamalar saqlandi', 'success');
+        if (proxyChanged) {
+          toast('Sozlamalar saqlandi. Proksi o\'zgardi — faollashishi uchun Node.js ilovasini hosting panelida qayta ishga tushiring.', 'success', 14000);
+        } else {
+          toast('Sozlamalar saqlandi', 'success');
+        }
         render();
       } catch (error) {
         const messages = {
           unknown_provider: 'Noma\'lum provayder.',
           admin_only: 'Bu amalni faqat admin bajaradi.',
+          invalid_proxy: 'Proksi manzili noto\'g\'ri. Ko\'rinishi: http://host:port yoki socks5://host:port',
         };
         toast(messages[error.data?.error] || `Saqlanmadi: ${error.message}`, 'error', 7000);
       } finally {
@@ -3492,6 +3514,7 @@ async function renderAiView() {
         row('Provayder', r.providerLabel),
         row('Model', r.model),
         row('Kalit', r.hasKey ? `${r.keyMasked} (manba: ${r.keySource === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
+        r.proxy ? row('Proksi', `${r.proxy} (${r.proxyActive ? 'faol' : 'faol emas — qayta ishga tushirish kerak'})`) : null,
         row('Holat', r.canUse ? 'ishlashga tayyor' : r.disabled ? 'o\'chirilgan' : 'sozlanmagan'),
       ]),
     ]),
@@ -3530,6 +3553,11 @@ async function renderAiView() {
         el('span', { class: 'a-field__label', text: 'API kaliti' }),
         keyInput,
         el('span', { class: 'a-field__hint', text: r.hasKey ? 'Bo\'sh qoldirsangiz, saqlangan kalit o\'zgarmaydi.' : (providers[r.provider]?.keyHint || '') }),
+      ]),
+      el('label', { class: 'a-field' }, [
+        el('span', { class: 'a-field__label' }, ['Proksi (ixtiyoriy)', proxyStatus ? ' ' : '', proxyStatus].filter(Boolean)),
+        proxyInput,
+        el('span', { class: 'a-field__hint', text: 'Hosting IP manzili AI provayder tomonidan bloklansa (masalan Gemini «User location is not supported»), so\'rovlarni ruxsat berilgan hudud orqali yo\'naltiradi. Bo\'sh qoldirsangiz — to\'g\'ridan-to\'g\'ri ulanadi. Saqlagach ilova avtomatik qayta ishga tushadi.' }),
       ]),
       el('div', { style: 'margin:0.75rem 0' }, [disableToggle]),
       el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap' }, [saveButton]),
