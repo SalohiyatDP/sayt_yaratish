@@ -1,0 +1,77 @@
+# Saytni har bir o'zgarishda qurib tekshiradi.
+# Bog'liqliklar yo'q — shu sababli `npm install` qadami ham yo'q.
+
+name: Qurish va tekshirish
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Qurish va tekshirish (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+
+    steps:
+      - name: Kodni olish
+        uses: actions/checkout@v4
+
+      - name: Node.js o'rnatish
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Sayt qurish (ishlab chiqarish rejimi)
+        run: node src/build.mjs
+
+      - name: Natijani tekshirish (havolalar, tillar, qulaylik)
+        run: node src/check.mjs
+
+      - name: Demo rejimi ham buzilmaganini tekshirish
+        run: |
+          node src/build.mjs --demo --quiet
+          node src/check.mjs
+
+      - name: Modullar sintaksisi
+        run: |
+          set -e
+          count=0
+          for f in $(find src server admin assets/js scripts app.js -name '*.mjs' -o -name '*.js' | sort); do
+            node --check "$f"
+            count=$((count + 1))
+          done
+          echo "$count ta modul sintaksis jihatdan to'g'ri."
+
+      - name: Joylashtirish to'plami yasalishini tekshirish
+        run: node scripts/bundle.mjs --no-archive
+
+      - name: Maxfiy fayllar repozitoriyada yo'qligini tekshirish
+        run: |
+          set -e
+          leaked=0
+          for f in .env server/data/telegram.json server/data/admin-users.json server/data/session-secret; do
+            if git ls-files --error-unmatch "$f" > /dev/null 2>&1; then
+              echo "XAVFSIZLIK: $f repozitoriyada kuzatilmoqda!"
+              leaked=1
+            fi
+          done
+          if [ "$leaked" -eq 1 ]; then exit 1; fi
+          echo "Maxfiy fayllar repozitoriyada yo'q."
+
+      - name: Qurilgan saytni artefakt sifatida saqlash
+        if: matrix.node == '22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sayt-dist
+          path: dist/
+          retention-days: 14

@@ -1,0 +1,42 @@
+{
+  "_note": "Master-rejalar. Dastlab ro'yxat bo'sh. Har bir master-reja holatini (konsepsiya / ishlab chiqilayotgan / tasdiqlangan) aniq belgilang — sayt shu asosda ogohlantirish matnini o'zi qo'yadi.",
+
+  "_template": {
+    "id": "mp-0001",
+    "slug": "hudud-nomi-master-reja",
+    "title": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "district": "chortoq",
+    "areaType": "mountain",
+    "lotIds": [],
+    "status": "concept",
+    "approvedBy": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "approvalDocument": "",
+    "approvalDate": "",
+    "summary": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "totalAreaHa": null,
+    "zones": [],
+    "explication": [],
+    "solutions": {
+      "pedestrian": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "transport": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "parking": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "landscaping": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "engineering": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" }
+    },
+    "sheets": [],
+    "documents": [],
+    "updatedAt": "",
+    "published": false,
+    "demo": false
+  },
+
+  "_fieldGuide": {
+    "status": "taxonomies.json → masterplanStatuses: concept | in-development | approved",
+    "zones": "[{ \"name\": {..}, \"areaHa\": null, \"purpose\": {..}, \"color\": \"#1f6feb\" }] — funksional zonalar",
+    "explication": "[{ \"no\": \"1\", \"name\": {..}, \"areaM2\": null, \"capacity\": \"\", \"note\": {..} }] — obyektlar eksplikatsiyasi",
+    "sheets": "[{ \"src\": \"/assets/uploads/...\", \"title\": {..}, \"kind\": \"scheme|render\", \"zoomable\": true }] — kattalashtirib ko'rish uchun chizmalar/varaqlar",
+    "documents": "[{ \"title\": {..}, \"src\": \"/assets/uploads/....pdf\", \"sizeBytes\": null, \"format\": \"PDF\" }] — yuklab olish uchun fayllar"
+  },
+
+  "items": []
+}

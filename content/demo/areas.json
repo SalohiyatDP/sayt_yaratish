@@ -1,0 +1,248 @@
+{
+  "_note": "NAMUNAVIY hududlar — faqat --demo rejimida qo'shiladi va saytda «DEMO» nishoni bilan chiqadi. Haqiqiy kontent content/areas.json faylida.",
+  "items": [
+    {
+      "id": "demo-area-1",
+      "slug": "demo-namuna-hududi-1",
+      "name": {
+        "uz-cyrl": "Намуна ҳудуд 1 — тоғ этаги",
+        "uz": "Namuna hudud 1 — tog' etagi",
+        "ru": "Образцовая территория 1 — подножие горы",
+        "en": "Sample area 1 — mountain foothills"
+      },
+      "district": "chortoq",
+      "areaType": "mountain",
+      "location": {
+        "uz-cyrl": "Намунавий жойлашув тавсифи: тоғ этагидаги қия майдон, асосий йўлдан тармоқ йўл орқали кириш.",
+        "uz": "Namunaviy joylashuv tavsifi: tog' etagidagi qiya maydon, asosiy yo'ldan tarmoq yo'l orqali kirish.",
+        "ru": "Образцовое описание расположения: наклонный участок у подножия горы, въезд по ответвлению от основной дороги.",
+        "en": "Sample location description: a sloping plot at the mountain foothills, accessed via a branch from the main road."
+      },
+      "coordinates": {
+        "lat": 41.0742,
+        "lng": 71.8135
+      },
+      "boundary": [
+        [
+          41.0762,
+          71.8105
+        ],
+        [
+          41.0765,
+          71.8168
+        ],
+        [
+          41.0722,
+          71.8172
+        ],
+        [
+          41.0718,
+          71.8108
+        ]
+      ],
+      "boundarySource": "DEMO — haqiqiy kadastr hujjati emas",
+      "tourismDirections": [
+        "ecotourism",
+        "mountain-recreation",
+        "camping"
+      ],
+      "media": [],
+      "infrastructure": [
+        {
+          "uz-cyrl": "Электр тармоғи — ҳудуд чегарасигача (намуна)",
+          "uz": "Elektr tarmog'i — hudud chegarasigacha (namuna)",
+          "ru": "Электросеть — до границы участка (образец)",
+          "en": "Power grid — up to the plot boundary (sample)"
+        },
+        {
+          "uz-cyrl": "Сув таъминоти — лойиҳа доирасида ҳал этилади (намуна)",
+          "uz": "Suv ta'minoti — loyiha doirasida hal etiladi (namuna)",
+          "ru": "Водоснабжение — решается в рамках проекта (образец)",
+          "en": "Water supply — to be resolved within the project (sample)"
+        }
+      ],
+      "access": {
+        "uz-cyrl": "Намуна: асосий йўлдан 2,5 км тармоқ йўл. Ҳақиқий лотда бу маълумот ўрганиш ҳисоботидан олинади.",
+        "uz": "Namuna: asosiy yo'ldan 2,5 km tarmoq yo'l. Haqiqiy lotda bu ma'lumot o'rganish hisobotidan olinadi.",
+        "ru": "Образец: ответвление 2,5 км от основной дороги. В реальном лоте эти данные берутся из отчёта об изучении.",
+        "en": "Sample: a 2.5 km branch road from the main road. In a real lot this information comes from the survey report."
+      },
+      "masterplanId": "demo-mp-1",
+      "documents": [],
+      "totalAreaHa": 31.0,
+      "shortDescription": {
+        "uz-cyrl": "Намунавий лот: тоғ этагидаги майдон, экотуризм ва кемпинг йўналишлари учун мўлжалланган концепция.",
+        "uz": "Namunaviy lot: tog' etagidagi maydon, ekoturizm va kemping yo'nalishlari uchun mo'ljallangan konsepsiya.",
+        "ru": "Образцовый лот: участок у подножия горы, концепция для экотуризма и кемпинга.",
+        "en": "Sample lot: a plot at the mountain foothills, with a concept for ecotourism and camping."
+      },
+      "description": {
+        "uz-cyrl": "Бу — сайт имкониятларини кўрсатиш учун тайёрланган намунавий ёзув. Ҳақиқий лотда бу бўлимда ҳудуднинг релефи, ер тоифаси, иқлим шароитлари ва ўрганиш натижалари баён этилади.\n\nҲақиқий маълумотлар фақат расмий ҳужжатлар асосида киритилади.",
+        "uz": "Bu — sayt imkoniyatlarini ko'rsatish uchun tayyorlangan namunaviy yozuv. Haqiqiy lotda bu bo'limda hududning relyefi, yer toifasi, iqlim sharoitlari va o'rganish natijalari bayon etiladi.\n\nHaqiqiy ma'lumotlar faqat rasmiy hujjatlar asosida kiritiladi.",
+        "ru": "Это образцовая запись, подготовленная для демонстрации возможностей сайта. В реальном лоте здесь описываются рельеф территории, категория земель, климатические условия и результаты изучения.\n\nРеальные данные вносятся только на основании официальных документов.",
+        "en": "This is a sample record prepared to demonstrate the site's features. In a real lot, this section describes the relief, land category, climatic conditions and survey results.\n\nReal data is entered only on the basis of official documents."
+      },
+      "updatedAt": "2026-08-20",
+      "published": true,
+      "demo": true
+    },
+    {
+      "id": "demo-area-2",
+      "slug": "demo-namuna-hududi-2",
+      "name": {
+        "uz-cyrl": "Намуна ҳудуд 2 — дарё бўйи",
+        "uz": "Namuna hudud 2 — daryo bo'yi",
+        "ru": "Образцовая территория 2 — побережье реки",
+        "en": "Sample area 2 — riverside"
+      },
+      "district": "pop",
+      "areaType": "river",
+      "location": {
+        "uz-cyrl": "Намунавий жойлашув: дарё бўйидаги текис майдон.",
+        "uz": "Namunaviy joylashuv: daryo bo'yidagi tekis maydon.",
+        "ru": "Образцовое расположение: ровный участок на берегу реки.",
+        "en": "Sample location: a level plot on the river bank."
+      },
+      "coordinates": {
+        "lat": 40.8721,
+        "lng": 71.1043
+      },
+      "boundary": null,
+      "tourismDirections": [
+        "family-recreation",
+        "gastronomy",
+        "water-recreation"
+      ],
+      "media": [],
+      "infrastructure": [],
+      "access": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "masterplanId": null,
+      "documents": [],
+      "totalAreaHa": 14.5,
+      "shortDescription": {
+        "uz-cyrl": "Намунавий лот: дарё бўйидаги майдон, оилавий дам олиш йўналиши учун концепция.",
+        "uz": "Namunaviy lot: daryo bo'yidagi maydon, oilaviy dam olish yo'nalishi uchun konsepsiya.",
+        "ru": "Образцовый лот: участок на берегу реки, концепция для семейного отдыха.",
+        "en": "Sample lot: a riverside plot, with a concept for family recreation."
+      },
+      "description": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "updatedAt": "2026-07-11",
+      "published": true,
+      "demo": true
+    },
+    {
+      "id": "demo-area-3",
+      "slug": "demo-namuna-hududi-3",
+      "name": {
+        "uz-cyrl": "Намуна ҳудуд 3 — сув омбори атрофи",
+        "uz": "Namuna hudud 3 — suv ombori atrofi",
+        "ru": "Образцовая территория 3 — окрестности водохранилища",
+        "en": "Sample area 3 — reservoir surroundings"
+      },
+      "district": "kosonsoy",
+      "areaType": "reservoir",
+      "location": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "coordinates": {
+        "lat": 41.2488,
+        "lng": 71.5462
+      },
+      "boundary": null,
+      "tourismDirections": [
+        "water-recreation",
+        "health-tourism"
+      ],
+      "media": [],
+      "infrastructure": [],
+      "access": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "masterplanId": null,
+      "documents": [],
+      "totalAreaHa": 52.5,
+      "shortDescription": {
+        "uz-cyrl": "Намунавий лот: сув омбори атрофидаги майдон, ўрганиш жараёнида.",
+        "uz": "Namunaviy lot: suv ombori atrofidagi maydon, o'rganish jarayonida.",
+        "ru": "Образцовый лот: участок у водохранилища, в процессе изучения.",
+        "en": "Sample lot: a plot near the reservoir, currently under study."
+      },
+      "description": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "updatedAt": "2026-06-02",
+      "published": true,
+      "demo": true
+    },
+    {
+      "id": "demo-area-4",
+      "slug": "demo-namuna-hududi-4",
+      "name": {
+        "uz-cyrl": "Намуна ҳудуд 4 — тоғли ҳудуд (мастер-режа тайёрланмоқда)",
+        "uz": "Namuna hudud 4 — tog'li hudud (master-reja tayyorlanmoqda)",
+        "ru": "Образцовая территория 4 — горная территория (готовится мастер-план)",
+        "en": "Sample area 4 — mountain area (master plan in progress)"
+      },
+      "district": "chust",
+      "areaType": "mountain",
+      "location": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "coordinates": null,
+      "boundary": null,
+      "tourismDirections": [
+        "adventure",
+        "winter",
+        "mountain-recreation"
+      ],
+      "media": [],
+      "infrastructure": [],
+      "access": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "masterplanId": null,
+      "documents": [],
+      "totalAreaHa": 86.5,
+      "shortDescription": {
+        "uz-cyrl": "Намунавий лот: координаталари ҳали киритилмаган майдон — харитада кўрсатилмайди.",
+        "uz": "Namunaviy lot: koordinatalari hali kiritilmagan maydon — xaritada ko'rsatilmaydi.",
+        "ru": "Образцовый лот: координаты ещё не внесены — на карте не отображается.",
+        "en": "Sample lot: coordinates not yet entered — not shown on the map."
+      },
+      "description": {
+        "uz-cyrl": "",
+        "uz": "",
+        "ru": "",
+        "en": ""
+      },
+      "updatedAt": "2026-05-19",
+      "published": true,
+      "demo": true
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "_note": "NAMUNAVIY MA'LUMOTLAR. Faqat demo rejimida ko'rinadi.",
+
+  "items": [
+    {
+      "id": "demo-mp-1",
+      "slug": "demo-namuna-master-reja-1",
+      "title": {
+        "uz-cyrl": "Намуна ҳудуд 1 мастер-режаси",
+        "uz": "Namuna hudud 1 master-rejasi",
+        "ru": "Мастер-план образцовой территории 1",
+        "en": "Master plan for sample area 1"
+      },
+      "district": "chortoq",
+      "areaType": "mountain",
+      "lotIds": ["demo-lot-1"],
+      "status": "concept",
+      "approvedBy": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+      "approvalDocument": "",
+      "approvalDate": "",
+      "summary": {
+        "uz-cyrl": "Намунавий концепция: тоғ этагидаги майдонда дам олиш, хизмат кўрсатиш ва кўрув зоналарини жойлаштириш ечими. Бу материал концепция ҳисобланади — тасдиқланган мастер-режа эмас.",
+        "uz": "Namunaviy konsepsiya: tog' etagidagi maydonda dam olish, xizmat ko'rsatish va ko'ruv zonalarini joylashtirish yechimi. Bu material konsepsiya hisoblanadi — tasdiqlangan master-reja emas.",
+        "ru": "Образцовая концепция: решение по размещению зон отдыха, обслуживания и обзора на участке у подножия горы. Данный материал является концепцией, а не утверждённым мастер-планом.",
+        "en": "Sample concept: a solution for placing recreation, service and viewing zones on a plot at the mountain foothills. This material is a concept, not an approved master plan."
+      },
+      "totalAreaHa": 12.4,
+      "zones": [
+        {
+          "name": { "uz-cyrl": "Дам олиш зонаси", "uz": "Dam olish zonasi", "ru": "Зона отдыха", "en": "Recreation zone" },
+          "areaHa": 4.2,
+          "purpose": { "uz-cyrl": "Кемпинг ва глэмпинг майдончалари (намуна)", "uz": "Kemping va glemping maydonchalari (namuna)", "ru": "Площадки кемпинга и глэмпинга (образец)", "en": "Camping and glamping grounds (sample)" },
+          "color": "#238555"
+        },
+        {
+          "name": { "uz-cyrl": "Хизмат кўрсатиш зонаси", "uz": "Xizmat ko'rsatish zonasi", "ru": "Зона обслуживания", "en": "Service zone" },
+          "areaHa": 1.6,
+          "purpose": { "uz-cyrl": "Қабул блоки, овқатланиш, санитар тугунлар (намуна)", "uz": "Qabul bloki, ovqatlanish, sanitar tugunlar (namuna)", "ru": "Блок приёма, питание, санузлы (образец)", "en": "Reception block, catering, sanitary facilities (sample)" },
+          "color": "#0d7d8f"
+        },
+        {
+          "name": { "uz-cyrl": "Табиий сақлаш зонаси", "uz": "Tabiiy saqlash zonasi", "ru": "Природоохранная зона", "en": "Nature conservation zone" },
+          "areaHa": 5.4,
+          "purpose": { "uz-cyrl": "Қурилиш амалга оширилмайдиган майдон (намуна)", "uz": "Qurilish amalga oshirilmaydigan maydon (namuna)", "ru": "Территория без застройки (образец)", "en": "Non-built-up area (sample)" },
+          "color": "#5fbf8c"
+        },
+        {
+          "name": { "uz-cyrl": "Транспорт ва автотураргоҳ", "uz": "Transport va avtoturargoh", "ru": "Транспорт и автостоянка", "en": "Transport and parking" },
+          "areaHa": 1.2,
+          "purpose": { "uz-cyrl": "Кириш йўли ва тураргоҳ (намуна)", "uz": "Kirish yo'li va turargoh (namuna)", "ru": "Въезд и стоянка (образец)", "en": "Access road and parking (sample)" },
+          "color": "#12406c"
+        }
+      ],
+      "explication": [
+        { "no": "1", "name": { "uz-cyrl": "Қабул блоки", "uz": "Qabul bloki", "ru": "Блок приёма", "en": "Reception block" }, "areaM2": 320, "capacity": "—", "note": { "uz-cyrl": "Намуна", "uz": "Namuna", "ru": "Образец", "en": "Sample" } },
+        { "no": "2", "name": { "uz-cyrl": "Овқатланиш блоки", "uz": "Ovqatlanish bloki", "ru": "Блок питания", "en": "Catering block" }, "areaM2": 540, "capacity": "80", "note": { "uz-cyrl": "Намуна", "uz": "Namuna", "ru": "Образец", "en": "Sample" } },
+        { "no": "3", "name": { "uz-cyrl": "Глэмпинг модуллари", "uz": "Glemping modullari", "ru": "Глэмпинг-модули", "en": "Glamping modules" }, "areaM2": 960, "capacity": "24", "note": { "uz-cyrl": "Намуна", "uz": "Namuna", "ru": "Образец", "en": "Sample" } },
+        { "no": "4", "name": { "uz-cyrl": "Кўрув майдончаси", "uz": "Ko'ruv maydonchasi", "ru": "Смотровая площадка", "en": "Viewing platform" }, "areaM2": 180, "capacity": "—", "note": { "uz-cyrl": "Намуна", "uz": "Namuna", "ru": "Образец", "en": "Sample" } }
+      ],
+      "solutions": {
+        "pedestrian": {
+          "uz-cyrl": "Намуна: зоналарни боғлайдиган пиёда йўлаклари табиий релефга мослаб лойиҳаланади.",
+          "uz": "Namuna: zonalarni bog'laydigan piyoda yo'laklari tabiiy relyefga moslab loyihalanadi.",
+          "ru": "Образец: пешеходные дорожки, связывающие зоны, проектируются с учётом естественного рельефа.",
+          "en": "Sample: pedestrian paths linking the zones are designed to follow the natural relief."
+        },
+        "transport": {
+          "uz-cyrl": "Намуна: транспорт кириши битта назорат нуқтаси орқали ташкил этилади.",
+          "uz": "Namuna: transport kirishi bitta nazorat nuqtasi orqali tashkil etiladi.",
+          "ru": "Образец: транспортный въезд организуется через один контрольный пункт.",
+          "en": "Sample: vehicle access is organised through a single control point."
+        },
+        "parking": {
+          "uz-cyrl": "Намуна: тураргоҳ ҳудуд киришида, дам олиш зонасидан ажратилган ҳолда жойлаштирилади.",
+          "uz": "Namuna: turargoh hudud kirishida, dam olish zonasidan ajratilgan holda joylashtiriladi.",
+          "ru": "Образец: стоянка размещается у въезда, отдельно от зоны отдыха.",
+          "en": "Sample: parking is located at the entrance, separated from the recreation zone."
+        },
+        "landscaping": {
+          "uz-cyrl": "Намуна: маҳаллий ўсимлик турлари асосида кўкаламзорлаштириш.",
+          "uz": "Namuna: mahalliy o'simlik turlari asosida ko'kalamzorlashtirish.",
+          "ru": "Образец: озеленение на основе местных видов растений.",
+          "en": "Sample: landscaping based on local plant species."
+        },
+        "engineering": {
+          "uz-cyrl": "Намуна: сув таъминоти ва оқова сувларни тозалаш ечимлари лойиҳа доирасида белгиланади.",
+          "uz": "Namuna: suv ta'minoti va oqova suvlarni tozalash yechimlari loyiha doirasida belgilanadi.",
+          "ru": "Образец: решения по водоснабжению и очистке стоков определяются в рамках проекта.",
+          "en": "Sample: water supply and wastewater treatment solutions are defined within the project."
+        }
+      },
+      "sheets": [],
+      "documents": [],
+      "updatedAt": "2026-08-20",
+      "published": true,
+      "demo": true
+    },
+
+    {
+      "id": "demo-mp-2",
+      "slug": "demo-namuna-master-reja-2",
+      "title": {
+        "uz-cyrl": "Намуна сув омбори атрофи режаси",
+        "uz": "Namuna suv ombori atrofi rejasi",
+        "ru": "План образцовой прибрежной зоны водохранилища",
+        "en": "Plan for the sample reservoir shoreline"
+      },
+      "district": "kosonsoy",
+      "areaType": "reservoir",
+      "lotIds": ["demo-lot-3"],
+      "status": "in-development",
+      "summary": {
+        "uz-cyrl": "Намунавий режа ишлаб чиқилиш жараёнида. Ечимлар ўзгариши мумкин.",
+        "uz": "Namunaviy reja ishlab chiqilish jarayonida. Yechimlar o'zgarishi mumkin.",
+        "ru": "Образцовый план находится в разработке. Решения могут измениться.",
+        "en": "The sample plan is under development. Solutions may change."
+      },
+      "totalAreaHa": 21.0,
+      "zones": [],
+      "explication": [],
+      "solutions": {},
+      "sheets": [],
+      "documents": [],
+      "updatedAt": "2026-06-02",
+      "published": true,
+      "demo": true
+    }
+  ]
+}

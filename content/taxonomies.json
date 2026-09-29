@@ -1,0 +1,201 @@
+{
+  "_note": "Saytdagi filtrlar va holatlar uchun ma'lumotnoma ro'yxatlar. Tumanlar ro'yxati Namangan viloyatining amaldagi ma'muriy-hududiy bo'linishiga asoslangan. Yangi qiymat qo'shsangiz, i18n lug'atlariga tarjimasini ham qo'shing.",
+
+  "districts": [
+    { "id": "namangan-city", "type": "city", "name": { "uz-cyrl": "Наманган шаҳри", "uz": "Namangan shahri", "ru": "город Наманган", "en": "Namangan city" } },
+    { "id": "namangan", "type": "district", "name": { "uz-cyrl": "Наманган тумани", "uz": "Namangan tumani", "ru": "Наманганский район", "en": "Namangan district" } },
+    { "id": "chortoq", "type": "district", "name": { "uz-cyrl": "Чортоқ тумани", "uz": "Chortoq tumani", "ru": "Чартакский район", "en": "Chortoq district" } },
+    { "id": "chust", "type": "district", "name": { "uz-cyrl": "Чуст тумани", "uz": "Chust tumani", "ru": "Чустский район", "en": "Chust district" } },
+    { "id": "kosonsoy", "type": "district", "name": { "uz-cyrl": "Косонсой тумани", "uz": "Kosonsoy tumani", "ru": "Касансайский район", "en": "Kosonsoy district" } },
+    { "id": "mingbuloq", "type": "district", "name": { "uz-cyrl": "Мингбулоқ тумани", "uz": "Mingbuloq tumani", "ru": "Мингбулакский район", "en": "Mingbuloq district" } },
+    { "id": "norin", "type": "district", "name": { "uz-cyrl": "Норин тумани", "uz": "Norin tumani", "ru": "Наринский район", "en": "Norin district" } },
+    { "id": "pop", "type": "district", "name": { "uz-cyrl": "Поп тумани", "uz": "Pop tumani", "ru": "Папский район", "en": "Pop district" } },
+    { "id": "turaqorgon", "type": "district", "name": { "uz-cyrl": "Тўрақўрғон тумани", "uz": "To'raqo'rg'on tumani", "ru": "Туракурганский район", "en": "To'raqo'rg'on district" } },
+    { "id": "uchqorgon", "type": "district", "name": { "uz-cyrl": "Учқўрғон тумани", "uz": "Uchqo'rg'on tumani", "ru": "Учкурганский район", "en": "Uchqo'rg'on district" } },
+    { "id": "uychi", "type": "district", "name": { "uz-cyrl": "Уйчи тумани", "uz": "Uychi tumani", "ru": "Уйчинский район", "en": "Uychi district" } },
+    { "id": "yangiqorgon", "type": "district", "name": { "uz-cyrl": "Янгиқўрғон тумани", "uz": "Yangiqo'rg'on tumani", "ru": "Янгикурганский район", "en": "Yangiqo'rg'on district" } }
+  ],
+
+  "areaTypes": [
+    {
+      "id": "mountain",
+      "icon": "mountain",
+      "name": { "uz-cyrl": "Тоғли ҳудуд", "uz": "Tog'li hudud", "ru": "Горная территория", "en": "Mountain area" }
+    },
+    {
+      "id": "river",
+      "icon": "river",
+      "name": { "uz-cyrl": "Дарё бўйи", "uz": "Daryo bo'yi", "ru": "Побережье реки", "en": "Riverside" }
+    },
+    {
+      "id": "reservoir",
+      "icon": "water",
+      "name": { "uz-cyrl": "Сув омбори атрофи", "uz": "Suv ombori atrofi", "ru": "Прибрежная зона водохранилища", "en": "Reservoir surroundings" }
+    }
+  ],
+
+  "lotStatuses": [
+    {
+      "id": "study",
+      "step": 1,
+      "tone": "neutral",
+      "name": { "uz-cyrl": "Ўрганиш жараёнида", "uz": "O'rganish jarayonida", "ru": "В процессе изучения", "en": "Under study" }
+    },
+    {
+      "id": "masterplan",
+      "step": 3,
+      "tone": "info",
+      "name": { "uz-cyrl": "Мастер-режа тайёрланмоқда", "uz": "Master-reja tayyorlanmoqda", "ru": "Разрабатывается мастер-план", "en": "Master plan in development" }
+    },
+    {
+      "id": "auction-prep",
+      "step": 4,
+      "tone": "warning",
+      "name": { "uz-cyrl": "Аукционга тайёрланмоқда", "uz": "Auksionga tayyorlanmoqda", "ru": "Готовится к аукциону", "en": "Being prepared for auction" }
+    },
+    {
+      "id": "auction",
+      "step": 5,
+      "tone": "success",
+      "name": { "uz-cyrl": "Аукционда", "uz": "Auksionda", "ru": "На аукционе", "en": "At auction" }
+    },
+    {
+      "id": "auction-closed",
+      "step": 6,
+      "tone": "muted",
+      "name": { "uz-cyrl": "Аукцион якунланган", "uz": "Auksion yakunlangan", "ru": "Аукцион завершён", "en": "Auction completed" }
+    }
+  ],
+
+  "workflowStages": [
+    {
+      "id": "stage-study",
+      "number": 1,
+      "name": { "uz-cyrl": "Ҳудудни ўрганиш", "uz": "Hududni o'rganish", "ru": "Изучение территории", "en": "Area study" },
+      "description": {
+        "uz-cyrl": "Тоғли ҳудудлар, дарё бўйлари ва сув омборлари атрофидаги ер майдонлари жойида ўрганилади: релеф, ер тоифаси, кадастр ҳолати ва мавжуд чекловлар аниқланади.",
+        "uz": "Tog'li hududlar, daryo bo'ylari va suv omborlari atrofidagi yer maydonlari joyida o'rganiladi: relyef, yer toifasi, kadastr holati va mavjud cheklovlar aniqlanadi.",
+        "ru": "Земельные участки в горных районах, вдоль рек и вокруг водохранилищ изучаются на месте: определяются рельеф, категория земель, кадастровое состояние и действующие ограничения.",
+        "en": "Land plots in mountainous areas, along rivers and around reservoirs are studied on site: relief, land category, cadastral status and existing restrictions are determined."
+      }
+    },
+    {
+      "id": "stage-assessment",
+      "number": 2,
+      "name": { "uz-cyrl": "Туризм салоҳиятини баҳолаш", "uz": "Turizm salohiyatini baholash", "ru": "Оценка туристического потенциала", "en": "Tourism potential assessment" },
+      "description": {
+        "uz-cyrl": "Ҳудуднинг табиий-иқлим шароитлари, транспорт йўллари ва инфратузилма имкониятлари таҳлил қилиниб, унга мос туризм йўналишлари белгиланади.",
+        "uz": "Hududning tabiiy-iqlim sharoitlari, transport yo'llari va infratuzilma imkoniyatlari tahlil qilinib, unga mos turizm yo'nalishlari belgilanadi.",
+        "ru": "Анализируются природно-климатические условия, транспортная доступность и инфраструктурные возможности территории, определяются подходящие направления туризма.",
+        "en": "The natural and climatic conditions, transport accessibility and infrastructure capacity of the area are analysed, and suitable tourism directions are identified."
+      }
+    },
+    {
+      "id": "stage-masterplan",
+      "number": 3,
+      "name": { "uz-cyrl": "Мастер-режа ишлаб чиқиш", "uz": "Master-reja ishlab chiqish", "ru": "Разработка мастер-плана", "en": "Master plan development" },
+      "description": {
+        "uz-cyrl": "Туризм объектларини жойлаштириш бўйича мастер-режа тайёрланади: функционал зоналар, объектлар экспликацияси, пиёда ва транспорт йўллари, кўкаламзорлаштириш ечимлари ишлаб чиқилади.",
+        "uz": "Turizm obyektlarini joylashtirish bo'yicha master-reja tayyorlanadi: funksional zonalar, obyektlar eksplikatsiyasi, piyoda va transport yo'llari, ko'kalamzorlashtirish yechimlari ishlab chiqiladi.",
+        "ru": "Готовится мастер-план размещения объектов туризма: разрабатываются функциональные зоны, экспликация объектов, пешеходные и транспортные связи, решения по озеленению.",
+        "en": "A master plan for the placement of tourism facilities is prepared: functional zones, a schedule of facilities, pedestrian and vehicle routes, and landscaping solutions are developed."
+      }
+    },
+    {
+      "id": "stage-lots",
+      "number": 4,
+      "name": { "uz-cyrl": "Лотларни тайёрлаш", "uz": "Lotlarni tayyorlash", "ru": "Подготовка лотов", "en": "Lot preparation" },
+      "description": {
+        "uz-cyrl": "Ҳудуд лотларга ажратилади, ҳар бир лот учун ҳужжатлар тўплами, талаблар, чекловлар ва тақдим этиладиган ҳуқуқ тури расмий ҳужжатларга мувофиқ шакллантирилади.",
+        "uz": "Hudud lotlarga ajratiladi, har bir lot uchun hujjatlar to'plami, talablar, cheklovlar va taqdim etiladigan huquq turi rasmiy hujjatlarga muvofiq shakllantiriladi.",
+        "ru": "Территория разделяется на лоты; для каждого лота формируется комплект документов, требования, ограничения и вид предоставляемого права в соответствии с официальными документами.",
+        "en": "The area is divided into lots; for each lot a set of documents, requirements, restrictions and the type of right being granted are formed in accordance with official documents."
+      }
+    },
+    {
+      "id": "stage-auction",
+      "number": 5,
+      "name": { "uz-cyrl": "E-auksion орқали тақдим этиш", "uz": "E-auksion orqali taqdim etish", "ru": "Представление через E-auksion", "en": "Offering via E-auksion" },
+      "description": {
+        "uz-cyrl": "Тайёрланган лотлар E-auksion электрон аукцион платформасида расмий эълон қилинади. Савдо, тўлов ва шартнома тузиш жараёни шу платформа қоидалари асосида кечади.",
+        "uz": "Tayyorlangan lotlar E-auksion elektron auksion platformasida rasmiy e'lon qilinadi. Savdo, to'lov va shartnoma tuzish jarayoni shu platforma qoidalari asosida kechadi.",
+        "ru": "Подготовленные лоты официально публикуются на электронной аукционной платформе E-auksion. Торги, оплата и заключение договора проходят по правилам этой платформы.",
+        "en": "Prepared lots are officially published on the E-auksion electronic auction platform. Bidding, payment and contract conclusion follow the rules of that platform."
+      }
+    }
+  ],
+
+  "tourismDirections": [
+    { "id": "ecotourism", "name": { "uz-cyrl": "Экотуризм", "uz": "Ekoturizm", "ru": "Экотуризм", "en": "Ecotourism" } },
+    { "id": "mountain-recreation", "name": { "uz-cyrl": "Тоғ дам олиш маскани", "uz": "Tog' dam olish maskani", "ru": "Горный отдых", "en": "Mountain recreation" } },
+    { "id": "water-recreation", "name": { "uz-cyrl": "Сув дам олиш ва спорт", "uz": "Suv dam olish va sport", "ru": "Водный отдых и спорт", "en": "Water recreation and sport" } },
+    { "id": "health-tourism", "name": { "uz-cyrl": "Соғломлаштириш туризми", "uz": "Sog'lomlashtirish turizmi", "ru": "Оздоровительный туризм", "en": "Health tourism" } },
+    { "id": "gastronomy", "name": { "uz-cyrl": "Гастрономик туризм", "uz": "Gastronomik turizm", "ru": "Гастрономический туризм", "en": "Gastronomy tourism" } },
+    { "id": "family-recreation", "name": { "uz-cyrl": "Оилавий дам олиш", "uz": "Oilaviy dam olish", "ru": "Семейный отдых", "en": "Family recreation" } },
+    { "id": "adventure", "name": { "uz-cyrl": "Фаол ва саргузашт туризм", "uz": "Faol va sarguzasht turizm", "ru": "Активный и приключенческий туризм", "en": "Active and adventure tourism" } },
+    { "id": "camping", "name": { "uz-cyrl": "Кемпинг ва глэмпинг", "uz": "Kemping va glemping", "ru": "Кемпинг и глэмпинг", "en": "Camping and glamping" } },
+    { "id": "cultural", "name": { "uz-cyrl": "Маданий-этнографик туризм", "uz": "Madaniy-etnografik turizm", "ru": "Культурно-этнографический туризм", "en": "Cultural and ethnographic tourism" } },
+    { "id": "winter", "name": { "uz-cyrl": "Қишки дам олиш", "uz": "Qishki dam olish", "ru": "Зимний отдых", "en": "Winter recreation" } }
+  ],
+
+  "rightTypes": {
+    "_note": "Huquq turi HAR BIR LOT uchun alohida, uning rasmiy hujjatlaridan ko'chiriladi. Bu ro'yxat faqat boshqaruv panelidagi tanlov uchun namuna. Umumiy 'yer sotiladi' iborasi hech qachon ishlatilmaydi.",
+    "items": [
+      { "id": "lease-right", "name": { "uz-cyrl": "Ижара ҳуқуқи", "uz": "Ijara huquqi", "ru": "Право аренды", "en": "Lease right" } },
+      { "id": "permanent-use", "name": { "uz-cyrl": "Доимий фойдаланиш ҳуқуқи", "uz": "Doimiy foydalanish huquqi", "ru": "Право постоянного пользования", "en": "Right of permanent use" } },
+      { "id": "land-plot", "name": { "uz-cyrl": "Ер участкаси", "uz": "Yer uchastkasi", "ru": "Земельный участок", "en": "Land plot" } },
+      { "id": "other", "name": { "uz-cyrl": "Бошқа ҳуқуқ тури (ҳужжатга мувофиқ)", "uz": "Boshqa huquq turi (hujjatga muvofiq)", "ru": "Иной вид права (согласно документу)", "en": "Other type of right (as per document)" } }
+    ]
+  },
+
+  "masterplanStatuses": [
+    {
+      "id": "concept",
+      "tone": "warning",
+      "name": { "uz-cyrl": "Лойиҳа концепцияси", "uz": "Loyiha konsepsiyasi", "ru": "Концепция проекта", "en": "Project concept" },
+      "disclaimer": {
+        "uz-cyrl": "Бу материал лойиҳа концепцияси ҳисобланади. Тасвирлар визуализация бўлиб, қуриб битказилган объектни акс эттирмайди.",
+        "uz": "Bu material loyiha konsepsiyasi hisoblanadi. Tasvirlar vizualizatsiya bo'lib, qurib bitkazilgan obyektni aks ettirmaydi.",
+        "ru": "Данный материал является концепцией проекта. Изображения представляют собой визуализацию и не отображают построенный объект.",
+        "en": "This material is a project concept. The images are visualisations and do not depict a completed facility."
+      }
+    },
+    {
+      "id": "in-development",
+      "tone": "info",
+      "name": { "uz-cyrl": "Ишлаб чиқилаётган режа", "uz": "Ishlab chiqilayotgan reja", "ru": "Разрабатываемый план", "en": "Plan under development" },
+      "disclaimer": {
+        "uz-cyrl": "Режа ишлаб чиқилиш жараёнида. Ечимлар ўзгариши мумкин.",
+        "uz": "Reja ishlab chiqilish jarayonida. Yechimlar o'zgarishi mumkin.",
+        "ru": "План находится в разработке. Решения могут быть изменены.",
+        "en": "The plan is under development. Solutions may change."
+      }
+    },
+    {
+      "id": "approved",
+      "tone": "success",
+      "name": { "uz-cyrl": "Тасдиқланган мастер-режа", "uz": "Tasdiqlangan master-reja", "ru": "Утверждённый мастер-план", "en": "Approved master plan" },
+      "disclaimer": {
+        "uz-cyrl": "Мастер-режа ваколатли органлар томонидан тасдиқланган.",
+        "uz": "Master-reja vakolatli organlar tomonidan tasdiqlangan.",
+        "ru": "Мастер-план утверждён уполномоченными органами.",
+        "en": "The master plan has been approved by the authorised bodies."
+      }
+    }
+  ],
+
+  "mediaKinds": [
+    {
+      "id": "photo",
+      "name": { "uz-cyrl": "Ҳақиқий фотосурат", "uz": "Haqiqiy fotosurat", "ru": "Реальная фотография", "en": "Actual photograph" }
+    },
+    {
+      "id": "render",
+      "name": { "uz-cyrl": "Лойиҳа концепцияси (визуализация)", "uz": "Loyiha konsepsiyasi (vizualizatsiya)", "ru": "Концепция проекта (визуализация)", "en": "Project concept (visualisation)" }
+    },
+    {
+      "id": "scheme",
+      "name": { "uz-cyrl": "Чизма ёки схема", "uz": "Chizma yoki sxema", "ru": "Чертёж или схема", "en": "Drawing or scheme" }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "_note": "Yangiliklar. Dastlab ro'yxat bo'sh. Soxta yangilik, sana, tadbir yoki uchrashuv yaratish QAT'IYAN man etiladi. Faqat haqiqatda bo'lib o'tgan yoki rasmiy e'lon qilingan voqealarni kiriting.",
+
+  "categories": [
+    { "id": "study", "name": { "uz-cyrl": "Ҳудудларни ўрганиш", "uz": "Hududlarni o'rganish", "ru": "Изучение территорий", "en": "Area studies" } },
+    { "id": "masterplan", "name": { "uz-cyrl": "Мастер-режалар тақдимоти", "uz": "Master-rejalar taqdimoti", "ru": "Презентации мастер-планов", "en": "Master plan presentations" } },
+    { "id": "meeting", "name": { "uz-cyrl": "Тадбиркорлар билан учрашувлар", "uz": "Tadbirkorlar bilan uchrashuvlar", "ru": "Встречи с предпринимателями", "en": "Meetings with entrepreneurs" } },
+    { "id": "auction", "name": { "uz-cyrl": "Аукцион эълонлари", "uz": "Auksion e'lonlari", "ru": "Объявления об аукционах", "en": "Auction announcements" } },
+    { "id": "official", "name": { "uz-cyrl": "Расмий хабарлар", "uz": "Rasmiy xabarlar", "ru": "Официальные сообщения", "en": "Official announcements" } }
+  ],
+
+  "_template": {
+    "id": "news-0001",
+    "slug": "yangilik-sarlavhasi",
+    "category": "official",
+    "date": "",
+    "title": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "lead": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "body": { "uz-cyrl": "", "uz": "", "ru": "", "en": "" },
+    "cover": null,
+    "gallery": [],
+    "relatedLotIds": [],
+    "relatedMasterplanIds": [],
+    "sourceUrl": "",
+    "published": false,
+    "demo": false
+  },
+
+  "_fieldGuide": {
+    "date": "YYYY-MM-DD formatida. Sana noma'lum bo'lsa, yangilikni nashr etmang.",
+    "body": "Oddiy matn yoki cheklangan HTML: <p> <br> <strong> <em> <ul> <ol> <li> <a href> <h3> <h4> <blockquote>. Boshqa teglar tozalanadi.",
+    "cover": "{ \"src\": \"/assets/uploads/...\", \"kind\": \"photo|render\", \"alt\": {..}, \"caption\": {..} }",
+    "sourceUrl": "Rasmiy manba havolasi (masalan, viloyat hokimligi sayti). Bo'sh bo'lsa ko'rsatilmaydi."
+  },
+
+  "items": []
+}
