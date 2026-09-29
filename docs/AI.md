@@ -117,7 +117,25 @@ Panelda xatolik chiqsa, sabab va yechim o'zbekcha yoziladi. Tipik holatlar:
 | Xatolik | Sabab | Yechim |
 |---|---|---|
 | «API kaliti qabul qilinmadi» | Kalit xato yoki eskirgan | Yangi kalit oling |
-| «Limit tugagan» | Hisobda mablag'/limit yo'q | Provayder hisobini tekshiring |
+| «Kredit/balans tugagan» | OpenAI hisobida mablag' yo'q | platform.openai.com → Billing da mablag' qo'shing |
+| «So'rovlar soni daqiqalik limitdan oshdi» | Bepul reja limiti (429) | Bir daqiqa kuting; `gemini-flash-lite-latest` modelini tanlang (eng yuqori limit) |
 | «Model mavjud emas» | Noto'g'ri model | Boshqa modelni tanlang |
 | «Ulanish vaqti tugadi» | Hosting tashqi tarmoqqa chiqmayapti | Hostingdan chiqishni oching |
 | «PDF dan matn topilmadi» | Skanerlangan (rasm) PDF | Matnli PDF ishlating |
+
+### Bepul rejada 429 (rate limit) xatosi
+
+Gemini'ning **bepul** rejasida daqiqasiga ruxsat etilgan so'rovlar soni modelga
+qarab farq qiladi (taxminan):
+
+| Model | Daqiqasiga | Kunlik |
+|---|---|---|
+| `gemini-flash-lite-latest` | ~15 | ~1000 |
+| `gemini-flash-latest` | ~10 | ~250 |
+| `gemini-pro-latest` | ~5 | ~100 |
+
+Shu sababli odatiy model sifatida **`gemini-flash-lite-latest`** tanlanadi — u
+eng ko'p so'rovga ruxsat beradi. Agar 429 chiqsa: bir daqiqa kuting, tugmani
+ketma-ket bosmang. Bir xil kalit bir nechta dasturda (masalan PDF-XChange va
+shu panel) ishlatilsa, ular **bitta** limitni bo'lishadi. Ko'proq hajm kerak
+bo'lsa, provayderда to'lovli rejaga o'ting.

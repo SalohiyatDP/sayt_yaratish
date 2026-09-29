@@ -42,9 +42,12 @@ export const PROVIDERS = {
   gemini: {
     label: 'Google Gemini',
     // `-latest` psevdonimi har doim eng yangi barqaror modelга ishora qiladi
-    // va eskirmaydi/yopilmaydi — shuning uchun odatiy sifatida shu tanlanadi.
-    defaultModel: 'gemini-flash-latest',
-    fallbackModels: ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-flash-lite-latest'],
+    // va eskirmaydi/yopilmaydi. Odatiy sifatida `flash-lite` tanlanadi — u
+    // bepul rejada eng yuqori daqiqalik limitga ega (RPM ~15, kunlik ~1000),
+    // shuning uchun 429 (rate limit) xatosi kamroq uchraydi. Foydalanuvchi
+    // xohlasa panelда kuchliroq `flash`/`pro` ni tanlashi mumkin.
+    defaultModel: 'gemini-flash-lite-latest',
+    fallbackModels: ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-pro-latest'],
     apiBase: 'https://generativelanguage.googleapis.com',
     keyHint: 'aistudio.google.com → Get API key',
   },
@@ -216,7 +219,7 @@ async function chat(opts, config = getConfig()) {
   // yopilmaydi, shuning uchun xodim eski model tanlagan bo'lsa ham ishlaydi.
   const modelGone = /no longer available|not found|does not exist|not supported|unknown model|invalid model|update your code to use/i.test(first.error || '');
   if (modelGone) {
-    const fresh = config.provider === 'gemini' ? 'gemini-flash-latest' : 'gpt-5-mini';
+    const fresh = config.provider === 'gemini' ? 'gemini-flash-lite-latest' : 'gpt-5-mini';
     if (config.model !== fresh) {
       const retry = await chatOnce(opts, { ...config, model: fresh });
       if (retry.ok) {
