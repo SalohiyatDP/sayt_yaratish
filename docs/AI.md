@@ -117,21 +117,22 @@ Agar hosting IP manzili AI provayder tomonidan bloklangan bo'lsa, so'rovlarni
 qo'llab-quvvatlanadigan hudud (masalan AQSH/Yevropa) dagi proksi orqali
 yo'naltirish mumkin. Bunda hostingни ko'chirish shart emas.
 
-1. Qo'llab-quvvatlanadigan hududда **proksi server** oling (HTTP yoki SOCKS5).
-   Ko'rinishi: `http://foydalanuvchi:parol@host:port` yoki `socks5://host:port`.
+1. Qo'llab-quvvatlanadigan hududда **proksi server** oling. **SOCKS5** yoki
+   **HTTP** proksi bo'lishi mumkin. Ko'rinishi:
+   - `socks5://foydalanuvchi:parol@host:port`
+   - `http://foydalanuvchi:parol@host:port`
 2. Panel → **AI yordamchisi** → **Proksi (ixtiyoriy)** maydoniga kiriting →
    **Saqlash**.
-3. **Node.js ilovasini hosting panelida qayta ishga tushiring.** Bu shart —
-   proksi faqat ilova qayta yuklanganda faollashadi (`app.js` uni avtomatik
-   `--use-env-proxy` bayrog'i bilan yoqadi).
-4. Panelда «Proksi: faol» ko'rinsa — tayyor. «Ulanishni tekshirish» bosing.
+3. **Darhol faol bo'ladi** — ilovani qayta ishga tushirish shart emas. Panelда
+   «Proksi: faol» ko'rinadi. «Ulanishni tekshirish» bosib sinang.
 
-Muqobil: proksini muhit o'zgaruvchisi orqali ham berish mumkin (panelга kiritmasdan):
-`HTTPS_PROXY=http://host:port` va ilovani `--use-env-proxy` bilan ishga tushiring.
-Bu holda `app.js` avtomatik shu env'ni ishlatadi.
-
-Proksi kaliti bilan bir xil joyда (`server/data/ai.json`) saqlanadi va
+So'rovlar o'rnatilgan proksi tunneli orqali yuboriladi (`server/ai/proxy-fetch.mjs`)
+— bu tashqi paketga bog'liq emas, Node ning maxsus bayrog'i ham kerak emas.
+Proksi manzili kalit bilan bir joyда (`server/data/ai.json`) saqlanadi va
 repozitoriyaga tushmaydi.
+
+Muqobil: proksini muhit o'zgaruvchisi orqali ham berish mumkin —
+`HTTPS_PROXY=socks5://host:port` (yoki `AI_PROXY`). U ai.json dan ustun turadi.
 - **To'lov.** OpenAI pullik; Gemini'da bepul limit bor. Har bir tarjima/ajratish
   provayder hisobingizdan oz miqdorda foydalanadi.
 - **Huquqiy jihat.** `.uz` domenidagi davlat muassasasi uchun rasmiy hujjat

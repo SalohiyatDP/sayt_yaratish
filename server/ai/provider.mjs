@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { proxyFetch } from './proxy-fetch.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
@@ -146,10 +147,10 @@ export async function listModels(config = getConfig()) {
 
   try {
     if (config.provider === 'openai') {
-      const response = await fetch(`${config.apiBase}/v1/models`, {
+      const response = await apiFetch(`${config.apiBase}/v1/models`, {
         headers: { Authorization: `Bearer ${config.apiKey}` },
-        signal: AbortSignal.timeout(15_000),
-      });
+        timeout: 15_000,
+      }, config);
       if (!response.ok) return fallback;
       const data = await response.json();
       // Faqat chat/matn modellari: gpt-… (audio, image, embedding, tts, whisper emas)
@@ -167,10 +168,10 @@ export async function listModels(config = getConfig()) {
     // ACCESS_TOKEN_TYPE_UNSUPPORTED qaytaradi. Sarlavha usuli eski (AIza) va
     // yangi (AQ.) kalitlarning ikkalasi uchun ham ishlaydi.
     const url = `${config.apiBase}/v1beta/models?pageSize=1000`;
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       headers: { 'x-goog-api-key': config.apiKey },
-      signal: AbortSignal.timeout(15_000),
-    });
+      timeout: 15_000,
+    }, config);
     if (!response.ok) return fallback;
     const data = await response.json();
     const models = sortModels(
@@ -210,6 +211,18 @@ function sortModels(list) {
   return [...new Set(list)].sort((a, b) => score(b) - score(a) || a.localeCompare(b));
 }
 
+/**
+ * Provayder API ga so'rov: proksi sozlangan bo'lsa proksi tunneli orqali
+ * (zero-dep, SOCKS5/HTTP CONNECT), aks holda native `fetch` orqali.
+ * Har ikkala yo'l ham bir xil (ok/status/json/text) obyekt qaytaradi.
+ */
+async function apiFetch(url, { headers = {}, method = 'GET', body, timeout = 15_000 } = {}, config) {
+  if (config && config.proxy) {
+    return proxyFetch(url, { method, headers, body, timeout }, config.proxy);
+  }
+  return fetch(url, { method, headers, body, signal: AbortSignal.timeout(timeout) });
+}
+
 /** Kalitni jurnalga yozish uchun yashiradi: sk-abc…xyz */
 export function maskKey(key) {
   const value = String(key || '');
@@ -223,18 +236,16 @@ export function maskProxy(url) {
 }
 
 /**
- * Node jarayoni proksi env o'zgaruvchilarini `fetch` uchun ishlatadimi?
- * Bu faqat `--use-env-proxy` bayrog'i yoki `NODE_USE_ENV_PROXY=1` bilan
- * ishga tushirilganda faol bo'ladi. Server startда shu tekshiriladi va
- * proksi sozlangani ammo faol emasligini aniqlab, ogohlantirish beriladi.
+ * Proksi faol ishlaydimi? Endi proksi so'rovlari o'rnatilgan `proxyFetch`
+ * moduli orqali (zero-dep SOCKS5/HTTP CONNECT tunnel) yuboriladi — bu Node
+ * ning `--use-env-proxy` bayrog'iga bog'liq EMAS va ilova qayta ishga
+ * tushishini talab QILMAYDI. Shuning uchun proksi sozlangan bo'lsa, u darhol
+ * faol hisoblanadi. Manzil to'g'ri formatда ekanini ham tekshiramiz.
  */
-export function isProxyActive() {
-  if (process.env.NODE_USE_ENV_PROXY === '1') return true;
-  const opts = String(process.env.NODE_OPTIONS || '');
-  if (/--use-env-proxy/.test(opts)) return true;
-  // execArgv — jarayon bevosita shu bayroq bilan ishga tushirilgan bo'lsa
-  if ((process.execArgv || []).some((a) => a.includes('use-env-proxy'))) return true;
-  return false;
+export function isProxyActive(proxy) {
+  const value = String(proxy ?? getConfig().proxy ?? '').trim();
+  if (!value) return false;
+  return /^(https?|socks[45]?):\/\/[^\s]+$/i.test(value);
 }
 
 /* ─────────────────────────── Provayderga so'rov ─────────────────────────── */
@@ -287,15 +298,15 @@ async function chatOnce({ system, user, jsonMode = false }, config) {
 
       let lastErr = null;
       for (const extra of attempts) {
-        const response = await fetch(`${config.apiBase}/v1/chat/completions`, {
+        const response = await apiFetch(`${config.apiBase}/v1/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${config.apiKey}`,
           },
           body: JSON.stringify({ model: config.model, messages, ...extra }),
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT),
-        });
+          timeout: REQUEST_TIMEOUT,
+        }, config);
         const data = await response.json().catch(() => null);
         if (response.ok) {
           const text = data?.choices?.[0]?.message?.content;
@@ -315,7 +326,7 @@ async function chatOnce({ system, user, jsonMode = false }, config) {
     // `?key=` ni qo'llamaydi (401 ACCESS_TOKEN_TYPE_UNSUPPORTED). Sarlavha usuli
     // eski (AIza) va yangi (AQ.) kalitlarning ikkalasi uchun ham ishlaydi.
     const url = `${config.apiBase}/v1beta/models/${encodeURIComponent(config.model)}:generateContent`;
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -329,8 +340,8 @@ async function chatOnce({ system, user, jsonMode = false }, config) {
           ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
         },
       }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
-    });
+      timeout: REQUEST_TIMEOUT,
+    }, config);
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       return { ok: false, status: response.status, error: data?.error?.message || `HTTP ${response.status}` };
@@ -534,7 +545,7 @@ export async function diagnose({ probe = false } = {}) {
     disabled: config.disabled,
     enabled: config.enabled,
     proxy: config.proxy ? maskProxy(config.proxy) : '',
-    proxyActive: config.proxy ? isProxyActive() : false,
+    proxyActive: isProxyActive(config.proxy),
     canUse: false,
     problem: null,
   };

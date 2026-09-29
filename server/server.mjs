@@ -1963,13 +1963,11 @@ const onListening = () => {
     console.log('  AI yordamchisi:    sozlanmagan (ixtiyoriy — panel «AI yordamchisi» bo\'limi)');
   }
   if (aiConfig.proxy) {
-    if (ai.isProxyActive()) {
+    if (ai.isProxyActive(aiConfig.proxy)) {
       console.log(`  AI proksi:         faol → ${ai.maskProxy(aiConfig.proxy)}`);
     } else {
-      console.log(`  AI proksi:         SOZLANGAN, LEKIN FAOL EMAS → ${ai.maskProxy(aiConfig.proxy)}`);
-      console.log('                     Faollashtirish uchun ilovani shu env bilan ishga tushiring:');
-      console.log(`                     NODE_OPTIONS="--use-env-proxy" HTTPS_PROXY="${aiConfig.proxy}" HTTP_PROXY="${aiConfig.proxy}"`);
-      console.log('                     (yoki app.js proksini avtomatik yoqadi — pastga qarang)');
+      console.log(`  AI proksi:         MANZIL NOTO'G'RI → ${ai.maskProxy(aiConfig.proxy)}`);
+      console.log('                     Ko\'rinishi: socks5://host:port yoki http://host:port');
     }
   }
 

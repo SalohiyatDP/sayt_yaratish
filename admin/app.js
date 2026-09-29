@@ -3429,7 +3429,7 @@ async function renderAiView() {
   const proxyStatus = r.proxy
     ? (r.proxyActive
         ? el('span', { class: 'a-tag a-tag--success', text: 'proksi faol' })
-        : el('span', { class: 'a-tag a-tag--warning', text: 'proksi sozlangan, faollashishi uchun ilova qayta ishga tushishi kerak' }))
+        : el('span', { class: 'a-tag a-tag--warning', text: 'proksi manzili noto\'g\'ri' }))
     : null;
 
   const saveButton = el('button', {
@@ -3446,8 +3446,8 @@ async function renderAiView() {
         await api.aiSave(payload);
         keyInput.value = '';
         await refreshAiState();
-        if (proxyChanged) {
-          toast('Sozlamalar saqlandi. Proksi o\'zgardi — faollashishi uchun Node.js ilovasini hosting panelida qayta ishga tushiring.', 'success', 14000);
+        if (proxyChanged && newProxy) {
+          toast('Sozlamalar saqlandi. Proksi darhol faol — «Ulanishni tekshirish» bilan sinab ko\'ring.', 'success', 10000);
         } else {
           toast('Sozlamalar saqlandi', 'success');
         }
@@ -3514,7 +3514,7 @@ async function renderAiView() {
         row('Provayder', r.providerLabel),
         row('Model', r.model),
         row('Kalit', r.hasKey ? `${r.keyMasked} (manba: ${r.keySource === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
-        r.proxy ? row('Proksi', `${r.proxy} (${r.proxyActive ? 'faol' : 'faol emas — qayta ishga tushirish kerak'})`) : null,
+        r.proxy ? row('Proksi', `${r.proxy} (${r.proxyActive ? 'faol' : 'manzil noto\'g\'ri'})`) : null,
         row('Holat', r.canUse ? 'ishlashga tayyor' : r.disabled ? 'o\'chirilgan' : 'sozlanmagan'),
       ]),
     ]),
@@ -3557,7 +3557,7 @@ async function renderAiView() {
       el('label', { class: 'a-field' }, [
         el('span', { class: 'a-field__label' }, ['Proksi (ixtiyoriy)', proxyStatus ? ' ' : '', proxyStatus].filter(Boolean)),
         proxyInput,
-        el('span', { class: 'a-field__hint', text: 'Hosting IP manzili AI provayder tomonidan bloklansa (masalan Gemini «User location is not supported»), so\'rovlarni ruxsat berilgan hudud orqali yo\'naltiradi. Bo\'sh qoldirsangiz — to\'g\'ridan-to\'g\'ri ulanadi. Saqlagach ilova avtomatik qayta ishga tushadi.' }),
+        el('span', { class: 'a-field__hint', text: 'Hosting IP manzili AI provayder tomonidan bloklansa (masalan Gemini «User location is not supported»), so\'rovlarni ruxsat berilgan hudud orqali yo\'naltiradi. SOCKS5 va HTTP proksi qo\'llab-quvvatlanadi. Bo\'sh qoldirsangiz — to\'g\'ridan-to\'g\'ri ulanadi. Saqlagach darhol faol bo\'ladi.' }),
       ]),
       el('div', { style: 'margin:0.75rem 0' }, [disableToggle]),
       el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap' }, [saveButton]),
