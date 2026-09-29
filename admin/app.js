@@ -962,11 +962,63 @@ const MASTERPLANS_VIEW = {
     published: true,
     demo: false,
   }),
+  // Ixtiyoriy (o'chirish mumkin bo'lgan) bo'limlar. Har birida qaysi maydonlar
+  // borligi ko'rsatilgan — bo'lim o'chirilganda shu maydonlar tozalanadi.
+  optionalSections: [
+    { key: 'zones', title: 'Zonalar va eksplikatsiya', fields: ['zones', 'explication'] },
+    { key: 'solutions', title: 'Loyiha yechimlari', fields: ['solutions'] },
+    { key: 'sheets', title: 'Chizmalar va hujjatlar', fields: ['sheets', 'documents'] },
+    { key: 'lots', title: 'Bog\'liq lotlar', fields: ['lotIds'] },
+  ],
   form: async (record) => {
     const tax = await ensureTaxonomies();
     const lots = await loadContent('lots');
+
+    // Yashiringan bo'limlar ro'yxati (record da saqlanadi — keyingi tahrirда ham
+    // eslanadi). Bo'limни ko'rsatishдан oldin shu ro'yxatni tekshiramiz.
+    if (!Array.isArray(record._hiddenSections)) record._hiddenSections = [];
+    const isHidden = (key) => record._hiddenSections.includes(key);
+    const removeSection = (key, fields) => {
+      if (!record._hiddenSections.includes(key)) record._hiddenSections.push(key);
+      // Bo'lim ma'lumotlarini tozalaymiz — sayt bu bo'limni ko'rsatmaydi
+      for (const path of fields) {
+        if (path === 'solutions') record.solutions = { pedestrian: emptyI18n(), transport: emptyI18n(), parking: emptyI18n(), landscaping: emptyI18n(), engineering: emptyI18n() };
+        else if (Array.isArray(record[path])) record[path] = [];
+      }
+      render();
+    };
+    const restoreSection = (key) => {
+      record._hiddenSections = record._hiddenSections.filter((k) => k !== key);
+      render();
+    };
+
+    // Yashiringan bo'limlarni qaytadan qo'shish paneli
+    const hidden = MASTERPLANS_VIEW.optionalSections.filter((s) => isHidden(s.key));
+    const restoreBar = hidden.length > 0
+      ? el('div', { class: 'a-alert a-alert--info' }, [
+          el('strong', { text: 'O\'chirilgan bo\'limlar' }),
+          el('p', { class: 'a-small', text: 'Kerak bo\'lsa qaytadan qo\'shishingiz mumkin:' }),
+          el('div', { class: 'section-restore' }, hidden.map((s) =>
+            el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm',
+              text: `+ ${s.title}`,
+              onClick: () => restoreSection(s.key),
+            }),
+          )),
+        ])
+      : null;
+
+    // Ixtiyoriy bo'limni yasab beruvchi yordamchi (yashiringan bo'lsa null)
+    const optional = (key, title, children) => {
+      if (isHidden(key)) return null;
+      const cfg = MASTERPLANS_VIEW.optionalSections.find((s) => s.key === key);
+      return group(title, children, { removable: true, onRemove: () => removeSection(key, cfg.fields) });
+    };
+
     return [
       pdfExtractBlock(record),
+      restoreBar,
       group('Asosiy ma\'lumotlar', [
         i18nField(record, {
           path: 'title',
@@ -996,31 +1048,31 @@ const MASTERPLANS_VIEW = {
         ]),
       ]),
 
-      group('Zonalar va eksplikatsiya', [
+      optional('zones', 'Zonalar va eksplikatsiya', [
         zoneListField(record, { path: 'zones', label: 'Funksional zonalar' }),
         explicationField(record, { path: 'explication', label: 'Obyektlar eksplikatsiyasi' }),
-      ], { collapsible: true, open: (record.zones?.length || 0) > 0 || (record.explication?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
+      ]),
 
-      group('Loyiha yechimlari', [
+      optional('solutions', 'Loyiha yechimlari', [
         i18nField(record, { path: 'solutions.pedestrian', label: 'Piyodalar yo\'laklari', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.transport', label: 'Transport kirishi', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.parking', label: 'Avtoturargoh', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.landscaping', label: 'Ko\'kalamzorlashtirish', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.engineering', label: 'Muhandislik ta\'minoti', multiline: true, rows: 2 }),
-      ], { collapsible: true, open: hasAnyI18n(record.solutions), note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
+      ]),
 
-      group('Chizmalar va hujjatlar', [
+      optional('sheets', 'Chizmalar va hujjatlar', [
         sheetListField(record, { path: 'sheets', label: 'Chizmalar va tasvirlar' }),
         documentListField(record, { path: 'documents', label: 'Yuklab olinadigan hujjatlar (PDF)', folder: 'masterplans' }),
-      ], { collapsible: true, open: (record.sheets?.length || 0) > 0 || (record.documents?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
+      ]),
 
-      group('Bog\'liq lotlar', [
+      optional('lots', 'Bog\'liq lotlar', [
         multiSelectField(
           record,
           { path: 'lotIds', label: 'Rejaga kiruvchi lotlar' },
           (lots.items || []).map((lot) => ({ value: lot.id, label: pick(lot.name) || lot.id })),
         ),
-      ], { collapsible: true, open: (record.lotIds?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
+      ]),
 
       group('Nashr', [
         dateField(record, { path: 'updatedAt', label: 'Yangilangan sana' }),
@@ -1208,25 +1260,32 @@ function hasAnyI18n(obj) {
  * Forma bo'limi (guruh).
  * @param {string} title sarlavha
  * @param {Array} children maydonlar
- * @param {string|object} [opts] izoh (string) yoki { note, collapsible, open }
- *   collapsible: true — bo'lim yig'iladigan bo'ladi (<details>). Ixtiyoriy,
- *   kamdan-kam ishlatiladigan bo'limlar uchun — panel soddaroq ko'rinadi.
- *   open: collapsible bo'lganda dastlab ochiqmi (agar ma'lumot bor bo'lsa).
+ * @param {string|object} [opts] izoh (string) yoki
+ *   { note, removable, onRemove } obyekti.
+ *   removable: true — bo'lim yuqori o'ng burchagida «✕ Bo'limni o'chirish»
+ *   tugmasi chiqadi. Bosilganda onRemove() chaqiriladi (bo'lim yashiriladi
+ *   va ma'lumoti tozalanadi). Ixtiyoriy, kerak bo'lmagan bo'limlarni butunlay
+ *   olib tashlash uchun.
  */
 function group(title, children, opts) {
   const options = typeof opts === 'string' ? { note: opts } : (opts || {});
-  const { note, collapsible = false, open = false } = options;
+  const { note, removable = false, onRemove } = options;
   const note_el = note ? el('p', { class: 'group__note', text: note }) : null;
 
-  if (collapsible) {
-    return el('details', { class: 'group group--collapsible', open: open || false }, [
-      el('summary', { class: 'group__title group__title--toggle' }, [title]),
-      note_el,
-      ...children,
-    ]);
-  }
+  const head = removable
+    ? el('div', { class: 'group__head' }, [
+        el('h2', { class: 'group__title group__title--flush', text: title }),
+        el('button', {
+          type: 'button',
+          class: 'a-btn a-btn--sm a-btn--danger-soft',
+          text: '✕ Bo\'limni o\'chirish',
+          onClick: () => { if (typeof onRemove === 'function') onRemove(); },
+        }),
+      ])
+    : el('h2', { class: 'group__title', text: title });
+
   return el('section', { class: 'group' }, [
-    el('h2', { class: 'group__title', text: title }),
+    head,
     note_el,
     ...children,
   ]);

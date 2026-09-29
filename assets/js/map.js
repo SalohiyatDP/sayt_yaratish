@@ -11,7 +11,7 @@
  *
  * Koordinatalar Web Mercator (EPSG:3857) proyeksiyasida hisoblanadi.
  */
-import { t, escapeHtml } from './core/config.js';
+import { t } from './core/config.js';
 
 const TILE_SIZE = 256;
 const MIN_ZOOM = 3;
@@ -78,7 +78,9 @@ export function createMap(element, options = {}) {
   );
 
   const attributionNode = el('p', 'map__attribution');
-  attributionNode.innerHTML = `<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">${escapeHtml(attribution)}</a>`;
+  // Attribution matni — tile provayderiga bog'liq (Esri, OpenStreetMap va h.k.).
+  // Havolasiz oddiy matn: provayder o'zgarsa ham to'g'ri qoladi.
+  attributionNode.textContent = attribution;
 
   element.append(tilesLayer, svgLayer, markersLayer, controls, attributionNode, statusNode);
 

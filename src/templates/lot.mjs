@@ -329,7 +329,7 @@ function mapBlock(ctx, lot) {
               <p class="map__status">${t('map.loading')}</p>
             </div>
             ${when(lot.boundary, html`<p class="muted small">${icon('info', { size: 13 })}${t('map.boundaryNote')}</p>`)}
-            <a class="link-arrow small" href="https://www.openstreetmap.org/?mlat=${lot.coordinates.lat}&mlon=${lot.coordinates.lng}#map=15/${lot.coordinates.lat}/${lot.coordinates.lng}" target="_blank" rel="noopener noreferrer">
+            <a class="link-arrow small" href="https://www.google.com/maps/search/?api=1&query=${lot.coordinates.lat},${lot.coordinates.lng}" target="_blank" rel="noopener noreferrer">
               ${t('map.openExternal')}${icon('external', { size: 13 })}
             </a>
           `

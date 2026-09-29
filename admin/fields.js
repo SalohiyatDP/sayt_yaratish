@@ -786,7 +786,7 @@ export function geoFileField(record, options) {
           point
             ? el('a', {
                 class: 'a-btn a-btn--sm',
-                href: `https://www.openstreetmap.org/?mlat=${point.lat}&mlon=${point.lng}#map=15/${point.lat}/${point.lng}`,
+                href: `https://www.google.com/maps/search/?api=1&query=${point.lat},${point.lng}`,
                 target: '_blank',
                 rel: 'noopener',
                 text: 'Xaritada tekshirish',

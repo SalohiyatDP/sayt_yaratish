@@ -126,8 +126,8 @@
     "_note": "Sayt funksiyalarini yoqish/o'chirish. contactFormEndpoint null bo'lsa, murojaat shakli 'qabul qilish tizimi ulanmagan' holatini ochiq ko'rsatadi va soxta muvaffaqiyat xabari chiqarmaydi.",
     "contactFormEndpoint": "/api/contact",
     "contactFormFallbackEmail": "",
-    "mapTileUrl": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "mapTileAttribution": "© OpenStreetMap",
+    "mapTileUrl": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    "mapTileAttribution": "© Esri, Maxar, Earthstar Geographics",
     "analyticsSnippet": "",
     "showDemoBanner": true
   },

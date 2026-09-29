@@ -182,7 +182,8 @@ Asosiy bo'limlar:
   - `contactFormEndpoint` — `null` bo'lsa murojaat shakli faolsiz va bu holat ochiq yoziladi.
     Shu server ishlatilsa: `"/api/contact"`.
   - `contactFormFallbackEmail` — zaxira pochta.
-  - `mapTileUrl`, `mapTileAttribution` — xarita plitkalari manbasi.
+  - `mapTileUrl`, `mapTileAttribution` — xarita plitkalari manbasi (odatiy —
+    Esri World Imagery sun'iy yo'ldosh tasvirlari).
   - `analyticsSnippet` — tahlil tizimi kodi (ixtiyoriy).
 - `seo.canonicalOrigin` — saytning to'liq manzili, masalan `https://example.uz`.
 

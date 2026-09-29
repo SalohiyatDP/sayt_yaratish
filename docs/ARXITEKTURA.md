@@ -82,8 +82,10 @@ o'tadi: ruxsat etilgan teglar ro'yxati, `on*` atributlari olib tashlanadi,
 Tashqi kutubxonasiz yozilgan slippy-map:
 
 - **Proyeksiya:** Web Mercator (EPSG:3857), plitka o'lchami 256 px.
-- **Plitkalar:** `{z}/{x}/{y}` shablonli har qanday raster manba (odatiy — OpenStreetMap).
-  `<img>` elementlari `Map` ichida keshlanadi; ko'rinmaydiganlari o'chiriladi.
+- **Plitkalar:** `{z}/{x}/{y}` shablonli har qanday raster manba. Odatiy — Esri
+  World Imagery sun'iy yo'ldosh tasvirlari (`.../tile/{z}/{y}/{x}` — Esri'да x/y
+  o'rni almashgan). `<img>` elementlari `Map` ichida keshlanadi; ko'rinmaydiganlari
+  o'chiriladi. Boshqa manbaga o'tish uchun `content/site.json` → `mapTileUrl`.
 - **Surish:** Pointer Events (sichqoncha va sensor bir xil ishlaydi), `requestAnimationFrame`
   bilan silliq chizish.
 - **Masshtab:** g'ildirak (ko'rsatgich ostidagi nuqta atrofida), tugmalar, `+`/`−` klavishlari.
