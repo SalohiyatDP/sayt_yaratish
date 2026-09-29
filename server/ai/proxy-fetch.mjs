@@ -21,6 +21,21 @@ import { URL } from 'node:url';
 
 const CONNECT_TIMEOUT = 20_000;
 
+/** SOCKS5 CONNECT javob kodini (RFC 1928) o'zbekcha izohga aylantiradi. */
+function socksReplyText(code) {
+  const map = {
+    1: 'proksi ichki xatosi',
+    2: 'proksi bu ulanishга ruxsat bermadi (obuna/limit tugagan yoki maqsad manzil taqiqlangan bo\'lishi mumkin)',
+    3: 'tarmoqqa yetib bo\'lmadi',
+    4: 'xost topilmadi',
+    5: 'ulanish rad etildi',
+    6: 'TTL tugadi',
+    7: 'buyruq qo\'llab-quvvatlanmaydi',
+    8: 'manzil turi qo\'llab-quvvatlanmaydi',
+  };
+  return `${map[code] || 'noma\'lum xato'} (SOCKS5 kod ${code})`;
+}
+
 /** socks5://user:pass@host:port → { type, host, port, user, pass } */
 function parseProxy(proxyUrl) {
   const u = new URL(proxyUrl);
@@ -74,7 +89,7 @@ function socks5Connect(proxy, destHost, destPort) {
         if (data[1] !== 0x00) return fail('socks5: login/parol xato');
         sendConnect();
       } else if (stage === 'connect') {
-        if (data[1] !== 0x00) return fail(`socks5: ulanish rad etildi (kod ${data[1]})`);
+        if (data[1] !== 0x00) return fail(`socks5: ${socksReplyText(data[1])}`);
         clearTimeout(timer);
         socket.removeAllListeners('data');
         resolve(socket);
