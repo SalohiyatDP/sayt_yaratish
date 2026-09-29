@@ -999,7 +999,7 @@ const MASTERPLANS_VIEW = {
       group('Zonalar va eksplikatsiya', [
         zoneListField(record, { path: 'zones', label: 'Funksional zonalar' }),
         explicationField(record, { path: 'explication', label: 'Obyektlar eksplikatsiyasi' }),
-      ]),
+      ], { collapsible: true, open: (record.zones?.length || 0) > 0 || (record.explication?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
 
       group('Loyiha yechimlari', [
         i18nField(record, { path: 'solutions.pedestrian', label: 'Piyodalar yo\'laklari', multiline: true, rows: 2 }),
@@ -1007,12 +1007,12 @@ const MASTERPLANS_VIEW = {
         i18nField(record, { path: 'solutions.parking', label: 'Avtoturargoh', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.landscaping', label: 'Ko\'kalamzorlashtirish', multiline: true, rows: 2 }),
         i18nField(record, { path: 'solutions.engineering', label: 'Muhandislik ta\'minoti', multiline: true, rows: 2 }),
-      ]),
+      ], { collapsible: true, open: hasAnyI18n(record.solutions), note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
 
       group('Chizmalar va hujjatlar', [
         sheetListField(record, { path: 'sheets', label: 'Chizmalar va tasvirlar' }),
         documentListField(record, { path: 'documents', label: 'Yuklab olinadigan hujjatlar (PDF)', folder: 'masterplans' }),
-      ]),
+      ], { collapsible: true, open: (record.sheets?.length || 0) > 0 || (record.documents?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
 
       group('Bog\'liq lotlar', [
         multiSelectField(
@@ -1020,7 +1020,7 @@ const MASTERPLANS_VIEW = {
           { path: 'lotIds', label: 'Rejaga kiruvchi lotlar' },
           (lots.items || []).map((lot) => ({ value: lot.id, label: pick(lot.name) || lot.id })),
         ),
-      ]),
+      ], { collapsible: true, open: (record.lotIds?.length || 0) > 0, note: 'Ixtiyoriy — kerak bo\'lmasa ochmasangiz ham bo\'ladi.' }),
 
       group('Nashr', [
         dateField(record, { path: 'updatedAt', label: 'Yangilangan sana' }),
@@ -1196,10 +1196,38 @@ function publishBar(record, collection) {
   return host;
 }
 
-function group(title, children, note) {
+/** Obyekt (masalan solutions) ichida biror i18n qiymat to'ldirilganmi? */
+function hasAnyI18n(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  return Object.values(obj).some((v) => v && typeof v === 'object'
+    ? Object.values(v).some((s) => typeof s === 'string' && s.trim() !== '')
+    : typeof v === 'string' && v.trim() !== '');
+}
+
+/**
+ * Forma bo'limi (guruh).
+ * @param {string} title sarlavha
+ * @param {Array} children maydonlar
+ * @param {string|object} [opts] izoh (string) yoki { note, collapsible, open }
+ *   collapsible: true — bo'lim yig'iladigan bo'ladi (<details>). Ixtiyoriy,
+ *   kamdan-kam ishlatiladigan bo'limlar uchun — panel soddaroq ko'rinadi.
+ *   open: collapsible bo'lganda dastlab ochiqmi (agar ma'lumot bor bo'lsa).
+ */
+function group(title, children, opts) {
+  const options = typeof opts === 'string' ? { note: opts } : (opts || {});
+  const { note, collapsible = false, open = false } = options;
+  const note_el = note ? el('p', { class: 'group__note', text: note }) : null;
+
+  if (collapsible) {
+    return el('details', { class: 'group group--collapsible', open: open || false }, [
+      el('summary', { class: 'group__title group__title--toggle' }, [title]),
+      note_el,
+      ...children,
+    ]);
+  }
   return el('section', { class: 'group' }, [
     el('h2', { class: 'group__title', text: title }),
-    note ? el('p', { class: 'group__note', text: note }) : null,
+    note_el,
     ...children,
   ]);
 }

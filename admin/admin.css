@@ -254,6 +254,28 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 .group__note { margin: -0.4rem 0 0.9rem; font-size: 12px; color: var(--a-text-muted); }
 .group__subtitle { margin: 1.4rem 0 0.5rem; font-size: 14px; }
 
+/* Yig'iladigan bo'lim (<details>) — ixtiyoriy, kamdan-kam maydonlar uchun.
+   Yopiq holatda joy egallamaydi, kerak bo'lganda sarlavhaga bosib ochiladi. */
+.group--collapsible > .group__title--toggle {
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+.group--collapsible:not([open]) > .group__title--toggle { border-bottom: 0; padding-bottom: 0; }
+.group--collapsible > .group__title--toggle::-webkit-details-marker { display: none; }
+.group--collapsible > .group__title--toggle::before {
+  content: '▸';
+  font-size: 12px;
+  color: var(--a-text-muted);
+  transition: transform 0.15s;
+}
+.group--collapsible[open] > .group__title--toggle::before { transform: rotate(90deg); }
+.group--collapsible[open] > .group__title--toggle { margin-bottom: 0.9rem; }
+
 /* Boshqa bo'limdan o'tilganda kerakli guruhni qisqa vaqt ajratib ko'rsatish */
 .group.is-highlighted { outline: 3px solid var(--a-accent); outline-offset: 3px; transition: outline-color 0.4s; }
 

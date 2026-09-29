@@ -1395,6 +1395,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .lot__card-extra { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); }
 .lot__back { padding-block: var(--space-6); }
 
+/* Yon paneldagi kartochkalar (Master-reja, Hujjatlar, Murojaat va h.k.) —
+   sarlavhalari umumiy h2 dan kichikroq bo'lishi kerak, aks holda juda katta
+   ko'rinadi. */
+.side-card {
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+.side-card + .side-card { margin-top: var(--space-4); }
+.side-card__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-lg);
+  font-weight: 650;
+}
+.side-card__text { margin: 0 0 var(--space-3); font-size: var(--fs-sm); color: var(--text-soft); }
+
 .disabled-action { display: grid; gap: var(--space-2); }
 .disabled-action__note { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
 

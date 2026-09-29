@@ -136,7 +136,7 @@ export function areaPage(ctx, area) {
           ${when(
             area.tourismDirections.length > 0,
             html`<div class="side-card">
-              <h2 class="side-card__title">${t('lot.tourismDirections')}</h2>
+              <h2 class="side-card__title">${t('catalog.filters.tourism')}</h2>
               ${chips(ctx, area.tourismDirections, content.lookup.tourismDirections, { iconName: 'compass' })}
             </div>`,
           )}
@@ -148,7 +148,7 @@ export function areaPage(ctx, area) {
               <p class="side-card__text">${ctx.pick(masterplan?.title)}</p>
               ${masterplanStatusBadge(ctx, masterplan?.status)}
               <a class="btn btn--outline btn--sm btn--block" href="${ctx.url('masterplans', masterplan?.slug)}">
-                ${t('lot.masterplan.open')}${icon('arrowRight', { size: 15 })}
+                ${t('lot.masterplanOpen')}${icon('arrowRight', { size: 15 })}
               </a>
             </div>`,
           )}
