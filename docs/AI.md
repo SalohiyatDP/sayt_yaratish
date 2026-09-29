@@ -101,6 +101,16 @@ bloki bor:
 - **Tashqi tarmoq.** Hosting `api.openai.com` yoki
   `generativelanguage.googleapis.com` ga chiqa olishi kerak. Chiqa olmasa,
   tugma xatolik sababini o'zbekcha ko'rsatadi.
+- **Geografik cheklov (muhim).** Google Gemini API ba'zi mamlakatlarda (jumladan
+  O'zbekistonда) ishlamaydi. Agar «User location is not supported» xatosi chiqsa,
+  bu hosting serveringiz joylashgan hudud Gemini uchun ochilmaganini bildiradi.
+  Diqqat: model ro'yxatini olish ishlashi mumkin («ulangan» ko'rinadi), lekin
+  haqiqiy tarjima so'rovi rad etiladi. Bunday holda **OpenAI (ChatGPT)**
+  provayderidan foydalaning — u O'zbekistondan ham ishlaydi. Yoki hosting
+  so'rovlarini qo'llab-quvvatlanadigan hudud orqali yo'naltiring (proksi).
+  Muhim: Gemini kompyuteringizda (masalan boshqa dasturda) ishlab, hostingда
+  ishlamasligi mumkin — chunki tekshiruv **server IP manzili** bo'yicha bo'ladi,
+  kompyuteringiz bo'yicha emas.
 - **To'lov.** OpenAI pullik; Gemini'da bepul limit bor. Har bir tarjima/ajratish
   provayder hisobingizdan oz miqdorda foydalanadi.
 - **Huquqiy jihat.** `.uz` domenidagi davlat muassasasi uchun rasmiy hujjat
@@ -120,6 +130,7 @@ Panelda xatolik chiqsa, sabab va yechim o'zbekcha yoziladi. Tipik holatlar:
 | «Kredit/balans tugagan» | OpenAI hisobida mablag' yo'q | platform.openai.com → Billing da mablag' qo'shing |
 | «So'rovlar soni daqiqalik limitdan oshdi» | Bepul reja limiti (429) | Bir daqiqa kuting; `gemini-flash-lite-latest` modelini tanlang (eng yuqori limit) |
 | «Model mavjud emas» | Noto'g'ri model | Boshqa modelni tanlang |
+| «Hudud qo'llab-quvvatlanmaydi» | Gemini serveringiz mamlakatida ishlamaydi | OpenAI (ChatGPT) ga o'ting yoki proksi ishlating |
 | «Ulanish vaqti tugadi» | Hosting tashqi tarmoqqa chiqmayapti | Hostingdan chiqishni oching |
 | «PDF dan matn topilmadi» | Skanerlangan (rasm) PDF | Matnli PDF ishlating |
 
