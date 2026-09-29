@@ -2,7 +2,7 @@
 import { html, raw, when, formatNumber, formatDate } from '../lib/util.mjs';
 import { icon, areaTypeIcon } from '../lib/icons.mjs';
 import {
-  sectionHead, emptyState, masterplanStatusBadge, demoBadge, callout, defList,
+  sectionHead, emptyState, masterplanStatusBadge, demoBadge, defList,
   documentList, prose, mediaFigure, mediaPlaceholder, breadcrumbs, shareRow,
 } from '../lib/ui.mjs';
 import { findLotsForMasterplan } from '../lib/content.mjs';
@@ -160,10 +160,6 @@ export function masterplanPage(ctx, plan) {
         </div>
       </header>
 
-      <div class="container">
-        ${when(status?.disclaimer, callout(ctx, { tone: status?.tone === 'approved' ? 'success' : 'warning', title: ctx.pick(status?.name), text: ctx.pick(status?.disclaimer) }))}
-      </div>
-
       <div class="container mp__layout">
         <div class="mp__main">
           ${when(
@@ -282,7 +278,7 @@ export function masterplanPage(ctx, plan) {
                 { label: t('masterplan.approvalDate'), value: plan.approvalDate ? formatDate(plan.approvalDate, ctx.locale) : '' },
                 { label: t('masterplan.totalArea'), value: plan.totalAreaHa != null ? `${formatNumber(plan.totalAreaHa, ctx.locale)} ${t('unit.ha')}` : '' },
               ],
-              { columns: 1 },
+              { columns: 1, showEmpty: false },
             )}
           </section>
 
