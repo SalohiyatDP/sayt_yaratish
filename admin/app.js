@@ -3357,6 +3357,7 @@ async function renderAiView() {
       el('strong', { text: 'AI yordamchisi ixtiyoriy' }),
       el('p', { text: 'Kalit kiritilmaguncha sayt hozirgidek to\'liq ishlaydi. Kalit kiritilsa, ma\'lumotni bitta tilda yozib qolganini AI tarjima qiladi va master-reja PDF idan maydonlarni to\'ldirishga yordam beradi.' }),
       r.problem?.reason ? el('p', {}, [el('strong', { text: `${r.problem.reason} ` }), r.problem.fix]) : null,
+      r.problem?.raw ? el('p', { class: 'a-small a-muted' }, [el('code', { text: `Provayder javobi: ${r.problem.raw}` })]) : null,
     ]);
   })();
 
@@ -3453,7 +3454,8 @@ async function renderAiView() {
         toast('AI ulanishi ishlayapti', 'success', 5000);
       } catch (error) {
         const p = error.data?.report?.problem;
-        toast(p ? `${p.reason} ${p.fix}` : `Xatolik: ${error.message}`, 'error', 12000);
+        const detail = p ? `${p.reason} ${p.fix}${p.raw ? ` [Provayder javobi: ${p.raw}]` : ''}` : `Xatolik: ${error.message}`;
+        toast(detail, 'error', 20000);
       } finally {
         testButton.disabled = false;
         testButton.textContent = 'Ulanishni tekshirish';
