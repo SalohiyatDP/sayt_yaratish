@@ -32,15 +32,17 @@ const REQUEST_TIMEOUT = 60_000; // AI javoblari sekinroq bo'lishi mumkin
 export const PROVIDERS = {
   openai: {
     label: 'OpenAI (ChatGPT)',
-    defaultModel: 'gpt-4o-mini',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+    // Odatiy — arzon va tez model. Aniq ro'yxat provayderdan olinadi (listModels).
+    defaultModel: 'gpt-5-mini',
+    // Zaxira ro'yxat: model ro'yxatini API dan olib bo'lmasa ko'rsatiladi.
+    fallbackModels: ['gpt-5-mini', 'gpt-5', 'gpt-4.1-mini', 'gpt-4o-mini'],
     apiBase: 'https://api.openai.com',
     keyHint: 'sk-… ko\'rinishida. platform.openai.com → API keys',
   },
   gemini: {
     label: 'Google Gemini',
-    defaultModel: 'gemini-2.0-flash',
-    models: ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
+    defaultModel: 'gemini-2.5-flash',
+    fallbackModels: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-flash-latest'],
     apiBase: 'https://generativelanguage.googleapis.com',
     keyHint: 'aistudio.google.com → Get API key',
   },
@@ -90,16 +92,70 @@ export function getConfig() {
 export async function saveConfig({ provider, apiKey, model, disabled }) {
   await fsp.mkdir(DATA_DIR, { recursive: true });
   const next = { ...readFileConfig() };
+  const providerChanged = provider !== undefined && ['openai', 'gemini'].includes(provider) && provider !== next.provider;
 
   if (provider !== undefined && ['openai', 'gemini'].includes(provider)) next.provider = provider;
   // Bo'sh kalit yuborilsa — saqlangani o'zgarmaydi (yulduzchali placeholder holati)
   if (typeof apiKey === 'string' && apiKey.trim() !== '') next.apiKey = apiKey.trim();
-  if (typeof model === 'string') next.model = model.trim();
+  if (typeof model === 'string' && model.trim() !== '') next.model = model.trim();
   if (disabled !== undefined) next.disabled = Boolean(disabled);
+
+  // Provayder o'zgarsa, model aniq berilmagan bo'lsa — yangi provayderning
+  // odatiy modeliga o'tkazamiz. Aks holda bir provayderning modeli boshqasiga
+  // o'tib qolib, "model mavjud emas" xatosiga sabab bo'ladi.
+  if (providerChanged && !(typeof model === 'string' && model.trim() !== '')) {
+    next.model = PROVIDERS[next.provider].defaultModel;
+  }
   next.updatedAt = new Date().toISOString();
 
   await fsp.writeFile(CONFIG_FILE, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
   return getConfig();
+}
+
+/**
+ * Provayderdan mavjud modellar ro'yxatini oladi — ro'yxat hech qachon
+ * eskirmaydi. Kalit bo'lmasa yoki so'rov muvaffaqiyatsiz bo'lsa, zaxira
+ * ro'yxat (fallbackModels) qaytariladi.
+ * @returns {Promise<{ models: string[], source: 'api'|'fallback' }>}
+ */
+export async function listModels(config = getConfig()) {
+  const preset = PROVIDERS[config.provider];
+  const fallback = { models: preset.fallbackModels, source: 'fallback' };
+  if (!config.apiKey) return fallback;
+
+  try {
+    if (config.provider === 'openai') {
+      const response = await fetch(`${config.apiBase}/v1/models`, {
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) return fallback;
+      const data = await response.json();
+      // Faqat chat/matn modellari: gpt-… (audio, image, embedding, tts, whisper emas)
+      const models = (data?.data || [])
+        .map((m) => m.id)
+        .filter((id) => /^(gpt|o\d|chatgpt)/i.test(id) && !/audio|realtime|image|tts|whisper|embedding|moderation|transcribe|search|codex/i.test(id))
+        .sort()
+        .reverse();
+      return models.length ? { models, source: 'api' } : fallback;
+    }
+
+    // Gemini
+    const url = `${config.apiBase}/v1beta/models?key=${encodeURIComponent(config.apiKey)}&pageSize=100`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) return fallback;
+    const data = await response.json();
+    const models = (data?.models || [])
+      // generateContent ni qo'llaydigan gemini modellari (embedding/aqua/imagen emas)
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name))
+      .map((m) => String(m.name).replace(/^models\//, ''))
+      .filter((id) => !/embedding|aqa|vision-latest/i.test(id))
+      .sort()
+      .reverse();
+    return models.length ? { models, source: 'api' } : fallback;
+  } catch (error) {
+    return fallback;
+  }
 }
 
 /** Kalitni jurnalga yozish uchun yashiradi: sk-abc…xyz */
@@ -121,30 +177,43 @@ async function chat({ system, user, jsonMode = false }, config = getConfig()) {
 
   try {
     if (config.provider === 'openai') {
-      const response = await fetch(`${config.apiBase}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.model,
-          temperature: 0.2,
-          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user },
-          ],
-        }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        return { ok: false, status: response.status, error: data?.error?.message || `HTTP ${response.status}` };
+      const messages = [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ];
+      // Yangi modellar (gpt-5, o-seriya) `temperature` ni qabul qilmaydi va
+      // ba'zi provayderlar `response_format` ni qo'llamaydi. Shuning uchun
+      // qo'shimcha parametrlarni asta-sekin olib tashlab qayta urinamiz.
+      const attempts = [
+        { temperature: 0.2, ...(jsonMode ? { response_format: { type: 'json_object' } } : {}) },
+        { ...(jsonMode ? { response_format: { type: 'json_object' } } : {}) }, // temperature siz
+        {}, // hech qanday qo'shimchasiz
+      ];
+
+      let lastErr = null;
+      for (const extra of attempts) {
+        const response = await fetch(`${config.apiBase}/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({ model: config.model, messages, ...extra }),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+        });
+        const data = await response.json().catch(() => null);
+        if (response.ok) {
+          const text = data?.choices?.[0]?.message?.content;
+          if (!text) return { ok: false, error: 'bo\'sh_javob' };
+          return { ok: true, text };
+        }
+        lastErr = { status: response.status, error: data?.error?.message || `HTTP ${response.status}` };
+        // Faqat parametr rad etilgan bo'lsa keyingi urinishga o'tamiz;
+        // boshqa xatolik (kalit, limit) — darhol qaytaramiz.
+        const param = /temperature|response_format|unsupported parameter|unsupported value/i.test(lastErr.error);
+        if (!param) return { ok: false, ...lastErr };
       }
-      const text = data?.choices?.[0]?.message?.content;
-      if (!text) return { ok: false, error: 'bo\'sh_javob' };
-      return { ok: true, text };
+      return { ok: false, ...lastErr };
     }
 
     // Gemini
@@ -323,7 +392,9 @@ const ERROR_GUIDE = [
   { match: /^matn_qisqa$/, reason: 'Hujjat matni juda qisqa yoki o\'qilmadi.', fix: 'PDF matnli (skanerlanmagan) ekaniga ishonch hosil qiling.' },
   { match: /incorrect api key|invalid.*api key|api key not valid|unauthorized|401/i, reason: 'API kaliti qabul qilinmadi.', fix: 'Kalit to\'g\'ri va amroqda ekanini tekshiring. Kerak bo\'lsa yangisini oling.' },
   { match: /quota|billing|insufficient|429|rate limit/i, reason: 'Hisobingizdagi limit tugagan yoki so\'rovlar cheklangan.', fix: 'Provayder hisobingizni (balans/limit) tekshiring yoki bir oz kuting.' },
-  { match: /model.*not found|does not exist|not supported|unknown model/i, reason: 'Tanlangan model mavjud emas.', fix: 'AI sozlamalarida boshqa modelni tanlang.' },
+  { match: /model.*not found|does not exist|not supported|unknown model|no such model|invalid model/i, reason: 'Tanlangan model mavjud emas yoki hisobingizga ochilmagan.', fix: 'AI sozlamalarida boshqa modelni tanlang. Ro\'yxat provayderdan olinadi — hisobingizga ruxsat berilgan modellar ko\'rinadi.' },
+  { match: /temperature|response_format|max_tokens|max_completion_tokens|unsupported parameter|unsupported value/i, reason: 'Model ba\'zi so\'rov parametrlarini qabul qilmadi.', fix: 'Boshqa modelni tanlab ko\'ring. Bu odatda juda yangi yoki maxsus modellarda uchraydi.' },
+  { match: /must be verified|organization must be verified|verify organization/i, reason: 'Bu model uchun tashkilotni tasdiqlash talab qilinadi.', fix: 'Oddiyroq modelni tanlang (masalan gpt-4o-mini yoki gemini-2.5-flash).' },
   { match: /so'rov vaqti tugadi|timeout/i, reason: 'AI serveriga ulanish vaqti tugadi.', fix: 'Hosting tashqi tarmoqqa chiqa oladimi tekshiring (api.openai.com / generativelanguage.googleapis.com).' },
   { match: /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|fetch failed|tarmoq xatoligi|getaddrinfo/i, reason: 'AI serveriga ulanib bo\'lmadi.', fix: 'Hosting tashqi tarmoqni to\'sib qo\'ygan bo\'lishi mumkin. Hosting xizmatidan chiqishni oching.' },
   { match: /so'rov rad etildi|blockReason|safety/i, reason: 'AI so\'rovni xavfsizlik sababli rad etdi.', fix: 'Matnni qayta ko\'rib chiqing yoki qismlarga bo\'lib urinib ko\'ring.' },
@@ -336,7 +407,13 @@ export function explainError(error) {
   for (const entry of ERROR_GUIDE) {
     if (entry.match.test(raw)) return { raw, reason: entry.reason, fix: entry.fix };
   }
-  return { raw, reason: 'AI xatolik qaytardi.', fix: 'Xatolik matnini texnik mutaxassisga ko\'rsating.' };
+  // Lug'atda topilmasa — xatolikning O'ZINI ko'rsatamiz (foydasiz umumiy matn emas).
+  // Provayderdan kelgan matn odatda sababni aytadi.
+  return {
+    raw,
+    reason: 'AI quyidagi xatolikni qaytardi:',
+    fix: `«${raw}». Agar tushunarsiz bo'lsa, boshqa modelni tanlab ko'ring yoki kalitni tekshiring.`,
+  };
 }
 
 /* ─────────────────────────── Tashxis ─────────────────────────── */

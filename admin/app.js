@@ -3375,14 +3375,38 @@ async function renderAiView() {
   }
 
   const modelSelect = el('select', { class: 'a-input' });
-  const fillModels = (providerId) => {
+  const modelNote = el('span', { class: 'a-field__hint' });
+
+  // Model ro'yxati: joriy provayder uchun API dan olingani (data.models),
+  // aks holda zaxira ro'yxat. Har birida joriy model tanlangan turadi.
+  const fillModels = (list, source, keepValue) => {
+    const want = keepValue || r.model;
     modelSelect.innerHTML = '';
-    for (const m of providers[providerId]?.models || []) {
-      modelSelect.append(el('option', { value: m, text: m, selected: m === r.model }));
+    const models = list && list.length ? list : (providers[providerSelect.value]?.models || []);
+    // Saqlangan model ro'yxatda bo'lmasa ham ko'rsatamiz
+    if (want && !models.includes(want)) models.unshift(want);
+    for (const m of models) {
+      modelSelect.append(el('option', { value: m, text: m, selected: m === want }));
     }
+    modelNote.textContent = source === 'api'
+      ? 'Ro\'yxat provayderdan olindi — hisobingizga ochilgan modellar.'
+      : 'Zaxira ro\'yxat. Kalit saqlangach, haqiqiy ro\'yxat yuklanadi.';
   };
-  fillModels(r.provider);
-  providerSelect.addEventListener('change', () => fillModels(providerSelect.value));
+  fillModels(data.models, data.modelsSource);
+
+  // Provayder o'zgarsa — o'sha provayderning modellarini olib kelamiz
+  providerSelect.addEventListener('change', async () => {
+    modelSelect.innerHTML = '';
+    modelSelect.append(el('option', { text: 'yuklanmoqda…' }));
+    // Provayderni vaqtincha saqlaymiz (kalit bilan birga bo'lsa API dan oladi)
+    try {
+      await api.aiSave({ provider: providerSelect.value });
+      const res = await api.aiModels().catch(() => ({ models: [] }));
+      fillModels(res.models, res.source, providers[providerSelect.value]?.defaultModel);
+    } catch (error) {
+      fillModels(providers[providerSelect.value]?.models, 'fallback', providers[providerSelect.value]?.defaultModel);
+    }
+  });
 
   const keyInput = el('input', {
     type: 'password',
@@ -3497,6 +3521,7 @@ async function renderAiView() {
       el('label', { class: 'a-field' }, [
         el('span', { class: 'a-field__label', text: 'Model' }),
         modelSelect,
+        modelNote,
       ]),
       el('label', { class: 'a-field' }, [
         el('span', { class: 'a-field__label', text: 'API kaliti' }),

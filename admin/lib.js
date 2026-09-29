@@ -209,6 +209,7 @@ export const api = {
 
   // AI yordamchisi
   ai: () => request('/api/admin/ai'),
+  aiModels: () => request('/api/admin/ai/models'),
   aiSave: (payload) =>
     request('/api/admin/ai/config', {
       method: 'POST',

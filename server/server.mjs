@@ -1414,13 +1414,24 @@ async function handleAdminApi(req, res, url) {
   /* ── AI yordamchisi ── */
 
   if (route === 'ai' && req.method === 'GET') {
+    // Joriy provayderning modellarini API dan olib kelamiz — ro'yxat eskirmaydi
+    const models = await ai.listModels();
     return sendJson(res, 200, {
       ok: true,
       report: await ai.diagnose({ probe: false }),
+      models: models.models,
+      modelsSource: models.source,
       providers: Object.fromEntries(
-        Object.entries(ai.PROVIDERS).map(([id, p]) => [id, { label: p.label, models: p.models, defaultModel: p.defaultModel, keyHint: p.keyHint }]),
+        Object.entries(ai.PROVIDERS).map(([id, p]) => [id, { label: p.label, models: p.fallbackModels, defaultModel: p.defaultModel, keyHint: p.keyHint }]),
       ),
     });
+  }
+
+  // Tanlangan provayder uchun modellar ro'yxati (kalit kiritilgach yangilash)
+  if (route === 'ai/models' && req.method === 'GET') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    const models = await ai.listModels();
+    return sendJson(res, 200, { ok: true, models: models.models, source: models.source });
   }
 
   if (route === 'ai/config' && req.method === 'POST') {

@@ -38,7 +38,10 @@ Ikki provayderdan birini tanlaysiz:
 Boshqaruv paneli → **«AI yordamchisi»** (faqat `admin` roli):
 
 1. **Provayder** — Gemini yoki OpenAI.
-2. **Model** — provayderga qarab ro'yxat o'zgaradi. Odatiy model to'g'ri keladi.
+2. **Model** — ro'yxat provayderning o'zidan olinadi (hisobingizga ochilgan
+   modellar), shuning uchun har doim dolzarb bo'ladi. Odatiy model to'g'ri
+   keladi; xohlasangiz boshqasini tanlaysiz. Kalit hali kiritilmagan bo'lsa,
+   zaxira ro'yxat ko'rinadi va kalit saqlangach haqiqiy ro'yxat yuklanadi.
 3. **API kaliti** — yuqorida olingan kalitni qo'ying.
 4. **«Saqlash»**, so'ng **«Ulanishni tekshirish»** — ulanish ishlashini tasdiqlaydi.
 
