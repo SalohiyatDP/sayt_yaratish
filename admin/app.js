@@ -737,7 +737,8 @@ function pdfExtractBlock(record) {
       };
       const ex = error.data?.explained;
       resultBox.innerHTML = '';
-      resultBox.append(el('p', { class: 'a-alert a-alert--error', text: messages[error.data?.error] || (ex ? `${ex.reason} ${ex.fix}` : `Xatolik: ${error.message}`) }));
+      const detail = messages[error.data?.error] || (ex ? `${ex.reason} ${ex.fix}${ex.raw ? ` [Provayder javobi: ${ex.raw}]` : ''}` : `Xatolik: ${error.message}`);
+      resultBox.append(el('p', { class: 'a-alert a-alert--error', text: detail }));
     }
   };
 

@@ -240,7 +240,10 @@ function aiFillBar(value, field, refresh) {
         toast('AI tarjimasi qo\'shildi. Tekshirib, saqlang.', 'success', 6000);
       } catch (error) {
         const ex = error.data?.explained;
-        toast(ex ? `${ex.reason} ${ex.fix}` : `Tarjima qilinmadi: ${error.message}`, 'error', 10000);
+        const detail = ex
+          ? `${ex.reason} ${ex.fix}${ex.raw ? ` [Provayder javobi: ${ex.raw}]` : ''}`
+          : `Tarjima qilinmadi: ${error.message}`;
+        toast(detail, 'error', 18000);
         status.textContent = '';
       } finally {
         button.disabled = false;
