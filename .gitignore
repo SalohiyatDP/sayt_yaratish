@@ -13,6 +13,7 @@ server/data/setup-key.txt
 
 # Telegram bot sozlamalari (bot tokeni maxfiy!)
 server/data/telegram.json
+server/data/ai.json
 
 # Kontentning avtomatik zaxira nusxalari (serverda saqlanadi)
 server/data/backups/

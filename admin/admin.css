@@ -269,6 +269,15 @@ code { font-family: var(--a-mono); font-size: 0.9em; background: var(--a-surface
 .i18n__tab.is-active.is-filled::after { color: #8fe0b6; }
 .i18n__panel { padding: 0.6rem; }
 .i18n__panel[hidden] { display: none; }
+.i18n__ai { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0 0.6rem 0.6rem; }
+.ai-spark { color: var(--a-accent); font-weight: 700; }
+
+/* AI PDF dan to'ldirish bloki */
+.group--ai { border: 1px solid var(--a-accent); background: color-mix(in srgb, var(--a-accent) 4%, var(--a-surface)); }
+.suggestion { display: flex; gap: 0.75rem; align-items: flex-start; justify-content: space-between; padding: 0.6rem 0; border-top: 1px solid var(--a-border); }
+.suggestion__body { flex: 1; min-width: 0; }
+.suggestion__value { margin: 0.2rem 0 0; padding: 0.4rem 0.55rem; border-radius: var(--a-radius); background: var(--a-surface-2); word-break: break-word; }
+.suggestion__tools { display: flex; align-items: center; gap: 0.5rem; flex: none; }
 
 .list-editor { display: grid; gap: 0.5rem; margin-bottom: 0.6rem; }
 .list-item { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: start; padding: 0.6rem; border: 1px solid var(--a-border); border-radius: var(--a-radius); background: var(--a-surface-2); }

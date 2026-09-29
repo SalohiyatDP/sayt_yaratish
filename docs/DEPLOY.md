@@ -785,6 +785,7 @@ curl -s https://sayt-manzili.uz/api/health
 - [ ] `.env` fayli `chmod 600`, `server/data/` `chmod 700`
 - [ ] `--dev` bayrog'i **ishlatilmayapti**
 - [ ] Bot tokeni repozitoriyaga yoki chatlarga tushmagan
+- [ ] AI ishlatilsa: kalit `server/data/ai.json` da (repozitoriyaga tushmaydi), hosting AI serveriga chiqa oladi, rasmiy hujjatni tashqi AI ga yuborishga ruxsat aniqlashtirilgan
 
 **Ish jarayoni**
 - [ ] Kunlik zaxira ishlaydi va tiklash bir marta sinab ko'rilgan

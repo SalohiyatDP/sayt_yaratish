@@ -3,7 +3,7 @@
  * Har bir funksiya DOM elementini qaytaradi va qiymatni to'g'ridan-to'g'ri
  * `record` obyektiga yozadi (yo'l orqali).
  */
-import { el, qs, LOCALES, emptyI18n, pick, api, toast, formatBytes, clone } from './lib.js';
+import { el, qs, LOCALES, emptyI18n, pick, api, toast, formatBytes, clone, isAiEnabled, cyrlToLat, latToCyrl } from './lib.js';
 
 /* ── Yo'l bo'yicha o'qish/yozish ─────────────────────────────────────────── */
 
@@ -166,8 +166,89 @@ export function i18nField(record, field) {
   });
 
   container.prepend(head);
+
+  // «AI bilan to'ldirish» — bitta to'ldirilgan tildan qolgan tillarni to'ldiradi.
+  // AI yoqilgan bo'lsagina ko'rinadi.
+  if (isAiEnabled()) {
+    const refresh = () => {
+      for (let i = 0; i < LOCALES.length; i += 1) {
+        const input = panels[i].querySelector('input, textarea');
+        if (input) input.value = value[LOCALES[i].code] || '';
+        tabs[i].classList.toggle('is-filled', String(value[LOCALES[i].code] || '').trim() !== '');
+      }
+    };
+    container.append(aiFillBar(value, field, refresh));
+  }
+
   if (field.hint) container.append(el('p', { class: 'a-field__hint', style: 'padding:0 0.6rem 0.5rem', text: field.hint }));
   return container;
+}
+
+/**
+ * Ko'p tilli maydon uchun AI to'ldirish paneli.
+ * Manba til — birinchi to'ldirilgan til. Qolganlari to'ldiriladi:
+ *   • o'zbek kiril ↔ lotin — AIsiz, darhol (transliteratsiya);
+ *   • rus, ingliz — AI orqali tarjima.
+ * Natija maydonlarga yoziladi, lekin AVTOMATIK SAQLANMAYDI — xodim ko'rib,
+ * odatdagidek «Saqlash» ni bosadi.
+ */
+function aiFillBar(value, field, refresh) {
+  const status = el('span', { class: 'a-small a-muted' });
+
+  const button = el('button', {
+    type: 'button',
+    class: 'a-btn a-btn--sm',
+    onClick: async () => {
+      // Manba: to'ldirilgan birinchi til (kiril yoki lotinni afzal ko'ramiz)
+      const order = ['uz-cyrl', 'uz', 'ru', 'en'];
+      const source = order.find((code) => String(value[code] || '').trim() !== '');
+      if (!source) {
+        toast('Avval kamida bitta tilda matn kiriting.', 'error');
+        return;
+      }
+      const sourceText = value[source];
+
+      // 1. o'zbek ikkinchi alifbosini AIsiz to'ldiramiz
+      if (source === 'uz-cyrl' && !String(value.uz || '').trim()) value.uz = cyrlToLat(sourceText);
+      if (source === 'uz' && !String(value['uz-cyrl'] || '').trim()) value['uz-cyrl'] = latToCyrl(sourceText);
+
+      // 2. Qolган bo'sh tillarni AI bilan tarjima qilamiz
+      const targets = LOCALES.map((l) => l.code).filter((code) => code !== source && String(value[code] || '').trim() === '');
+      // o'zbekning ikkinchi alifbosi allaqachon to'ldirilgan bo'lsa, uni chiqaramiz
+      const aiTargets = targets.filter((code) => String(value[code] || '').trim() === '');
+
+      if (aiTargets.length === 0) {
+        refresh();
+        toast('Barcha tillar to\'ldirildi.', 'success');
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = 'AI tarjima qilmoqda…';
+      try {
+        const res = await api.aiTranslate({
+          sourceLocale: source,
+          sourceText,
+          targetLocales: aiTargets,
+          context: field.label || '',
+        });
+        for (const [code, text] of Object.entries(res.translations || {})) {
+          if (String(value[code] || '').trim() === '') value[code] = text;
+        }
+        refresh();
+        status.textContent = '';
+        toast('AI tarjimasi qo\'shildi. Tekshirib, saqlang.', 'success', 6000);
+      } catch (error) {
+        const ex = error.data?.explained;
+        toast(ex ? `${ex.reason} ${ex.fix}` : `Tarjima qilinmadi: ${error.message}`, 'error', 10000);
+        status.textContent = '';
+      } finally {
+        button.disabled = false;
+      }
+    },
+  }, [el('span', { class: 'ai-spark', text: '✦' }), ' AI bilan to\'ldirish']);
+
+  return el('div', { class: 'i18n__ai' }, [button, status]);
 }
 
 /* ── Ko'p tilli qiymatlar ro'yxati ─────────────────────────────────────── */

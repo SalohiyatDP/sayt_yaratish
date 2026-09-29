@@ -207,6 +207,28 @@ export const api = {
   telegramTest: () => request('/api/admin/telegram/test', { method: 'POST' }),
   telegramRetry: () => request('/api/admin/telegram/retry', { method: 'POST' }),
 
+  // AI yordamchisi
+  ai: () => request('/api/admin/ai'),
+  aiSave: (payload) =>
+    request('/api/admin/ai/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  aiTest: () => request('/api/admin/ai/test', { method: 'POST' }),
+  aiTranslate: (payload) =>
+    request('/api/admin/ai/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+  aiExtract: (payload) =>
+    request('/api/admin/ai/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+
   // Koordinata faylini o'qish — fayl serverda saqlanmaydi
   parseGeoFile: (file) =>
     request(`/api/admin/geo?name=${encodeURIComponent(file.name)}`, {
@@ -241,4 +263,82 @@ export const api = {
 export function confirmAction(message) {
   // eslint-disable-next-line no-alert
   return window.confirm(message);
+}
+
+/* ─────────────────────────── AI holati (umumiy) ───────────────────────────
+ * app.js AI yoqilgan/o'chirilganini shu yerga yozadi, fields.js esa o'qiydi.
+ * Modullararo oddiy umumiy holat — «AI bilan to'ldirish» tugmasi shunga qarab
+ * ko'rinadi.
+ */
+const aiState = { enabled: false };
+export const setAiEnabled = (value) => { aiState.enabled = Boolean(value); };
+export const isAiEnabled = () => aiState.enabled;
+
+/* ── Kiril ↔ lotin o'zbek alifbosi ──────────────────────────────────────────
+ * o'zbek tilining ikki alifbosi orasida o'girish — bu tarjima emas, faqat
+ * harflarni almashtirish. Shuning uchun AIsiz, darhol bajariladi (tekin va tez).
+ */
+
+const CYRL_TO_LAT = [
+  ['ў', "o'"], ['Ў', "O'"], ['қ', 'q'], ['Қ', 'Q'], ['ғ', "g'"], ['Ғ', "G'"], ['ҳ', 'h'], ['Ҳ', 'H'],
+  ['ё', 'yo'], ['Ё', 'Yo'], ['ю', 'yu'], ['Ю', 'Yu'], ['я', 'ya'], ['Я', 'Ya'], ['ч', 'ch'], ['Ч', 'Ch'],
+  ['ш', 'sh'], ['Ш', 'Sh'], ['ъ', "'"], ['Ъ', "'"], ['ь', ''], ['Ь', ''],
+  ['а', 'a'], ['А', 'A'], ['б', 'b'], ['Б', 'B'], ['в', 'v'], ['В', 'V'], ['г', 'g'], ['Г', 'G'],
+  ['д', 'd'], ['Д', 'D'], ['е', 'e'], ['Е', 'E'], ['ж', 'j'], ['Ж', 'J'], ['з', 'z'], ['З', 'Z'],
+  ['и', 'i'], ['И', 'I'], ['й', 'y'], ['Й', 'Y'], ['к', 'k'], ['К', 'K'], ['л', 'l'], ['Л', 'L'],
+  ['м', 'm'], ['М', 'M'], ['н', 'n'], ['Н', 'N'], ['о', 'o'], ['О', 'O'], ['п', 'p'], ['П', 'P'],
+  ['р', 'r'], ['Р', 'R'], ['с', 's'], ['С', 'S'], ['т', 't'], ['Т', 'T'], ['у', 'u'], ['У', 'U'],
+  ['ф', 'f'], ['Ф', 'F'], ['х', 'x'], ['Х', 'X'], ['ц', 'ts'], ['Ц', 'Ts'], ['э', 'e'], ['Э', 'E'],
+];
+
+// Lotin → kiril: uzunroq birikmalar avval kelishi kerak (sh, ch, yo, o', g')
+const LAT_TO_CYRL = [
+  ["o'", 'ў'], ["O'", 'Ў'], ["g'", 'ғ'], ["G'", 'Ғ'], ['sh', 'ш'], ['Sh', 'Ш'], ['SH', 'Ш'],
+  ['ch', 'ч'], ['Ch', 'Ч'], ['CH', 'Ч'], ['yo', 'ё'], ['Yo', 'Ё'], ['YO', 'Ё'],
+  ['yu', 'ю'], ['Yu', 'Ю'], ['YU', 'Ю'], ['ya', 'я'], ['Ya', 'Я'], ['YA', 'Я'],
+  ['ts', 'ц'], ['Ts', 'Ц'],
+  ['a', 'а'], ['A', 'А'], ['b', 'б'], ['B', 'Б'], ['v', 'в'], ['V', 'В'], ['g', 'г'], ['G', 'Г'],
+  ['d', 'д'], ['D', 'Д'], ['e', 'е'], ['E', 'Е'], ['j', 'ж'], ['J', 'Ж'], ['z', 'з'], ['Z', 'З'],
+  ['i', 'и'], ['I', 'И'], ['y', 'й'], ['Y', 'Й'], ['k', 'к'], ['K', 'К'], ['l', 'л'], ['L', 'Л'],
+  ['m', 'м'], ['M', 'М'], ['n', 'н'], ['N', 'Н'], ['o', 'о'], ['O', 'О'], ['p', 'п'], ['P', 'П'],
+  ['q', 'қ'], ['Q', 'Қ'], ['r', 'р'], ['R', 'Р'], ['s', 'с'], ['S', 'С'], ['t', 'т'], ['T', 'Т'],
+  ['u', 'у'], ['U', 'У'], ['f', 'ф'], ['F', 'Ф'], ['x', 'х'], ['X', 'Х'], ['h', 'ҳ'], ['H', 'Ҳ'],
+];
+
+/** o'zbek matnini kirildan lotinga o'giradi (HTML teglarga tegmaydi). */
+export function cyrlToLat(text) {
+  return replaceOutsideTags(String(text || ''), (chunk) => {
+    let out = chunk;
+    for (const [from, to] of CYRL_TO_LAT) out = out.split(from).join(to);
+    return out;
+  });
+}
+
+/** o'zbek matnini lotindan kirilga o'giradi. */
+export function latToCyrl(text) {
+  return replaceOutsideTags(String(text || ''), (chunk) => {
+    let out = '';
+    let i = 0;
+    while (i < chunk.length) {
+      let matched = false;
+      for (const [from, to] of LAT_TO_CYRL) {
+        if (chunk.startsWith(from, i)) {
+          out += to;
+          i += from.length;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        out += chunk[i];
+        i += 1;
+      }
+    }
+    return out;
+  });
+}
+
+/** HTML teglar ichidagi matnga tegmasdan, faqat oddiy matnni almashtiradi. */
+function replaceOutsideTags(text, fn) {
+  return text.replace(/(<[^>]*>)|([^<]+)/g, (whole, tag, plain) => (tag ? tag : fn(plain)));
 }

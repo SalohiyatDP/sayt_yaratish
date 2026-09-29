@@ -1,0 +1,382 @@
+/**
+ * AI yordamchisi — ko'p tilli matnni tarjima qilish va PDF/matndan
+ * maydonlarni ajratib olish. Ikki provayderni qo'llab-quvvatlaydi:
+ *   • OpenAI  (ChatGPT)  — api.openai.com
+ *   • Gemini  (Google)   — generativelanguage.googleapis.com
+ *
+ * TAMOYILLAR:
+ *   1. AI IXTIYORIY. Kalit kiritilmasa, sayt hozirgidek to'liq ishlaydi va
+ *      paneldagi AI tugmalari ko'rinmaydi.
+ *   2. AI hech qachon avtomatik SAQLAMAYDI. U faqat maydonlarni TAKLIF qiladi;
+ *      xodim ko'rib, tasdiqlaydi. Bu — soxta/xato ma'lumot kirib qolmasligi
+ *      uchun (loyihaning asosiy qoidasi).
+ *   3. API kaliti MAXFIY: `.env` yoki server/data/ai.json da saqlanadi,
+ *      ikkalasi ham .gitignore da — repozitoriyaga tushmaydi.
+ *
+ * Tashqi paketlarga bog'liq emas — Node.js ning o'z `fetch` funksiyasidan
+ * foydalanadi.
+ */
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
+const CONFIG_FILE = path.join(DATA_DIR, 'ai.json');
+
+const REQUEST_TIMEOUT = 60_000; // AI javoblari sekinroq bo'lishi mumkin
+
+/* ─────────────────────────── Provayderlar ─────────────────────────── */
+
+export const PROVIDERS = {
+  openai: {
+    label: 'OpenAI (ChatGPT)',
+    defaultModel: 'gpt-4o-mini',
+    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+    apiBase: 'https://api.openai.com',
+    keyHint: 'sk-… ko\'rinishida. platform.openai.com → API keys',
+  },
+  gemini: {
+    label: 'Google Gemini',
+    defaultModel: 'gemini-2.0-flash',
+    models: ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'],
+    apiBase: 'https://generativelanguage.googleapis.com',
+    keyHint: 'aistudio.google.com → Get API key',
+  },
+};
+
+/* ─────────────────────────── Sozlamalar ─────────────────────────── */
+
+function readFileConfig() {
+  if (!fs.existsSync(CONFIG_FILE)) return {};
+  try {
+    const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    return data && typeof data === 'object' ? data : {};
+  } catch (error) {
+    console.error(`[ai] ai.json o'qilmadi: ${error.message}`);
+    return {};
+  }
+}
+
+/** Amaldagi sozlamalar. Kalit env > .env > ai.json tartibida o'qiladi. */
+export function getConfig() {
+  const file = readFileConfig();
+  const provider = ['openai', 'gemini'].includes(file.provider) ? file.provider : 'gemini';
+  const preset = PROVIDERS[provider];
+
+  // Kalit provayderga qarab alohida muhit o'zgaruvchisidan ham olinadi
+  const envKey = provider === 'openai'
+    ? String(process.env.OPENAI_API_KEY || '').trim()
+    : String(process.env.GEMINI_API_KEY || '').trim();
+  const apiKey = envKey || String(file.apiKey || '').trim();
+
+  const model = String(file.model || '').trim() || preset.defaultModel;
+  const apiBase = String(file.apiBase || preset.apiBase).replace(/\/$/, '');
+  const disabled = process.env.AI_DISABLED === '1' || file.disabled === true;
+
+  return {
+    provider,
+    apiKey,
+    model,
+    apiBase,
+    disabled,
+    enabled: Boolean(apiKey) && !disabled,
+    keySource: envKey ? 'env' : file.apiKey ? 'file' : null,
+  };
+}
+
+/** Sozlamalarni saqlaydi (kalit faqat egasi o'qiy oladigan faylda). */
+export async function saveConfig({ provider, apiKey, model, disabled }) {
+  await fsp.mkdir(DATA_DIR, { recursive: true });
+  const next = { ...readFileConfig() };
+
+  if (provider !== undefined && ['openai', 'gemini'].includes(provider)) next.provider = provider;
+  // Bo'sh kalit yuborilsa — saqlangani o'zgarmaydi (yulduzchali placeholder holati)
+  if (typeof apiKey === 'string' && apiKey.trim() !== '') next.apiKey = apiKey.trim();
+  if (typeof model === 'string') next.model = model.trim();
+  if (disabled !== undefined) next.disabled = Boolean(disabled);
+  next.updatedAt = new Date().toISOString();
+
+  await fsp.writeFile(CONFIG_FILE, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
+  return getConfig();
+}
+
+/** Kalitni jurnalga yozish uchun yashiradi: sk-abc…xyz */
+export function maskKey(key) {
+  const value = String(key || '');
+  if (value.length < 8) return value ? '…' : '';
+  return `${value.slice(0, 4)}…${value.slice(-3)}`;
+}
+
+/* ─────────────────────────── Provayderga so'rov ─────────────────────────── */
+
+/**
+ * AI ga so'rov yuboradi va matn javobini qaytaradi.
+ * Ikkala provayderning API farqi shu funksiya ichida yashiringan.
+ * @returns {Promise<{ ok: boolean, text?: string, error?: string, network?: boolean }>}
+ */
+async function chat({ system, user, jsonMode = false }, config = getConfig()) {
+  if (!config.apiKey) return { ok: false, error: 'kalit_yoq' };
+
+  try {
+    if (config.provider === 'openai') {
+      const response = await fetch(`${config.apiBase}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          temperature: 0.2,
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+        }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        return { ok: false, status: response.status, error: data?.error?.message || `HTTP ${response.status}` };
+      }
+      const text = data?.choices?.[0]?.message?.content;
+      if (!text) return { ok: false, error: 'bo\'sh_javob' };
+      return { ok: true, text };
+    }
+
+    // Gemini
+    const url = `${config.apiBase}/v1beta/models/${encodeURIComponent(config.model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig: {
+          temperature: 0.2,
+          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+        },
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { ok: false, status: response.status, error: data?.error?.message || `HTTP ${response.status}` };
+    }
+    const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
+    if (!text) {
+      const blocked = data?.promptFeedback?.blockReason;
+      return { ok: false, error: blocked ? `so'rov rad etildi: ${blocked}` : 'bo\'sh_javob' };
+    }
+    return { ok: true, text };
+  } catch (error) {
+    const reason = error?.name === 'TimeoutError' || error?.name === 'AbortError'
+      ? 'so\'rov vaqti tugadi'
+      : error?.cause?.code || error?.message || 'tarmoq xatoligi';
+    return { ok: false, error: String(reason), network: true };
+  }
+}
+
+/** AI javobidan JSON obyektni ajratib oladi (```json … ``` bloklarga chidamli). */
+function parseJson(text) {
+  let raw = String(text || '').trim();
+  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) raw = fence[1].trim();
+  // Birinchi { dan oxirgi } gacha
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start !== -1 && end > start) raw = raw.slice(start, end + 1);
+  return JSON.parse(raw);
+}
+
+/* ─────────────────────────── Tarjima ─────────────────────────── */
+
+const LOCALE_NAMES = {
+  'uz-cyrl': "o'zbek tili (kirill alifbosi)",
+  uz: "o'zbek tili (lotin alifbosi)",
+  ru: 'rus tili',
+  en: 'ingliz tili',
+};
+
+/**
+ * Bitta til matnini qolgan tillarga tarjima qiladi.
+ * @param {string} sourceLocale manba til kodi (uz-cyrl, uz, ru, en)
+ * @param {string} sourceText manba matn
+ * @param {string[]} targetLocales to'ldirilishi kerak bo'lgan tillar
+ * @param {object} [options] { context?: string } — maydon nomi kabi qo'shimcha
+ * @returns {Promise<{ ok, translations?: object, error?: string }>}
+ */
+export async function translate(sourceLocale, sourceText, targetLocales, options = {}) {
+  const config = getConfig();
+  if (!config.enabled) return { ok: false, error: config.disabled ? 'ochirilgan' : 'kalit_yoq' };
+
+  const text = String(sourceText || '').trim();
+  if (text === '') return { ok: false, error: 'bosh_matn' };
+
+  const targets = targetLocales.filter((code) => LOCALE_NAMES[code] && code !== sourceLocale);
+  if (targets.length === 0) return { ok: true, translations: {} };
+
+  const system = [
+    'Sen davlat muassasasi veb-sayti uchun professional tarjimonsan.',
+    'Berilgan matnni ko\'rsatilgan tillarga tarjima qil.',
+    'Qoidalar:',
+    '- Rasmiy, betaraf uslubda tarjima qil.',
+    '- HTML teglar bo\'lsa (masalan <p>, <strong>), ularni o\'zgartirmasdan saqla.',
+    '- Atoqli otlar, tashkilot nomlari va raqamlarni to\'g\'ri ko\'chir.',
+    '- o\'zbek lotin va kirill o\'rtasida faqat alifboni o\'zgartir, so\'zlarni tarjima qilma.',
+    '- Hech narsa qo\'shma yoki tushuntirma. Faqat tarjimani ber.',
+    'Javobni QAT\'IY JSON obyekt sifatida qaytar: kalit — til kodi, qiymat — tarjima.',
+    `Til kodlari: ${targets.join(', ')}.`,
+  ].join('\n');
+
+  const user = [
+    options.context ? `Maydon: ${options.context}` : '',
+    `Manba til: ${LOCALE_NAMES[sourceLocale]}`,
+    `Kerakli tillar: ${targets.map((c) => `${c} (${LOCALE_NAMES[c]})`).join(', ')}`,
+    '',
+    'Matn:',
+    text,
+  ].filter(Boolean).join('\n');
+
+  const result = await chat({ system, user, jsonMode: true }, config);
+  if (!result.ok) return result;
+
+  try {
+    const parsed = parseJson(result.text);
+    const translations = {};
+    for (const code of targets) {
+      if (typeof parsed[code] === 'string' && parsed[code].trim() !== '') translations[code] = parsed[code].trim();
+    }
+    if (Object.keys(translations).length === 0) return { ok: false, error: 'tarjima_topilmadi' };
+    return { ok: true, translations };
+  } catch (error) {
+    return { ok: false, error: 'javob_json_emas' };
+  }
+}
+
+/* ─────────────────────────── Matndan maydon ajratish ─────────────────────────── */
+
+/**
+ * Uzun matndan (masalan master-reja PDF matni) so'ralgan maydonlarni ajratadi.
+ * @param {string} sourceText tahlil qilinadigan matn
+ * @param {Array<{ key, label, type?, multiline? }>} fields kutilayotgan maydonlar
+ * @param {object} [options] { locale?: string, kind?: string }
+ * @returns {Promise<{ ok, fields?: object, notes?: string, error?: string }>}
+ */
+export async function extractFields(sourceText, fields, options = {}) {
+  const config = getConfig();
+  if (!config.enabled) return { ok: false, error: config.disabled ? 'ochirilgan' : 'kalit_yoq' };
+
+  const text = String(sourceText || '').trim();
+  if (text.length < 20) return { ok: false, error: 'matn_qisqa' };
+
+  // Juda uzun matnni cheklaymiz — token chegarasi va narx uchun
+  const clipped = text.slice(0, 24_000);
+  const locale = options.locale || 'uz-cyrl';
+
+  const fieldList = fields
+    .map((f) => `- "${f.key}": ${f.label}${f.type ? ` (${f.type})` : ''}`)
+    .join('\n');
+
+  const system = [
+    'Sen hujjatlardan ma\'lumot ajratuvchi yordamchisan.',
+    `Berilgan hujjat matnidan quyidagi maydonlarni ${LOCALE_NAMES[locale] || locale}da to\'ldir.`,
+    'Qoidalar:',
+    '- FAQAT matnda haqiqatan bor ma\'lumotni yoz. Hujjatda yo\'q narsani O\'YLAB TOPMA.',
+    '- Ma\'lumot topilmasa, o\'sha kalitni bo\'sh satr ("") qoldir.',
+    '- Sana, raqam, maydon o\'lchamini aynan hujjatdagidek yoz.',
+    '- Tavsif maydonlari uchun matndan qisqa, aniq xulosa tuz.',
+    'Kutilayotgan maydonlar:',
+    fieldList,
+    '',
+    'Javobni QAT\'IY JSON obyekt sifatida qaytar. Kalitlar — yuqoridagi maydon kalitlari.',
+    'Qo\'shimcha "_notes" kalitida qisqacha izoh berishing mumkin (nima topildi, nima topilmadi).',
+  ].join('\n');
+
+  const user = `Hujjat matni:\n\n${clipped}`;
+
+  const result = await chat({ system, user, jsonMode: true }, config);
+  if (!result.ok) return result;
+
+  try {
+    const parsed = parseJson(result.text);
+    const out = {};
+    for (const field of fields) {
+      const value = parsed[field.key];
+      if (typeof value === 'string' && value.trim() !== '') out[field.key] = value.trim();
+    }
+    return { ok: true, fields: out, notes: typeof parsed._notes === 'string' ? parsed._notes : '' };
+  } catch (error) {
+    return { ok: false, error: 'javob_json_emas' };
+  }
+}
+
+/* ─────────────────────────── Xatolikni tushuntirish ─────────────────────────── */
+
+const ERROR_GUIDE = [
+  { match: /kalit_yoq/, reason: 'AI kaliti kiritilmagan.', fix: 'Panelning «AI yordamchisi» bo\'limida API kalitini kiriting.' },
+  { match: /^ochirilgan$/, reason: 'AI yordamchisi vaqtincha o\'chirilgan.', fix: '«AI yordamchisi» bo\'limida uni yoqing.' },
+  { match: /^bosh_matn$/, reason: 'Manba matn bo\'sh.', fix: 'Avval kamida bitta tilda matn kiriting.' },
+  { match: /^matn_qisqa$/, reason: 'Hujjat matni juda qisqa yoki o\'qilmadi.', fix: 'PDF matnli (skanerlanmagan) ekaniga ishonch hosil qiling.' },
+  { match: /incorrect api key|invalid.*api key|api key not valid|unauthorized|401/i, reason: 'API kaliti qabul qilinmadi.', fix: 'Kalit to\'g\'ri va amroqda ekanini tekshiring. Kerak bo\'lsa yangisini oling.' },
+  { match: /quota|billing|insufficient|429|rate limit/i, reason: 'Hisobingizdagi limit tugagan yoki so\'rovlar cheklangan.', fix: 'Provayder hisobingizni (balans/limit) tekshiring yoki bir oz kuting.' },
+  { match: /model.*not found|does not exist|not supported|unknown model/i, reason: 'Tanlangan model mavjud emas.', fix: 'AI sozlamalarida boshqa modelni tanlang.' },
+  { match: /so'rov vaqti tugadi|timeout/i, reason: 'AI serveriga ulanish vaqti tugadi.', fix: 'Hosting tashqi tarmoqqa chiqa oladimi tekshiring (api.openai.com / generativelanguage.googleapis.com).' },
+  { match: /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|fetch failed|tarmoq xatoligi|getaddrinfo/i, reason: 'AI serveriga ulanib bo\'lmadi.', fix: 'Hosting tashqi tarmoqni to\'sib qo\'ygan bo\'lishi mumkin. Hosting xizmatidan chiqishni oching.' },
+  { match: /so'rov rad etildi|blockReason|safety/i, reason: 'AI so\'rovni xavfsizlik sababli rad etdi.', fix: 'Matnni qayta ko\'rib chiqing yoki qismlarga bo\'lib urinib ko\'ring.' },
+  { match: /javob_json_emas|tarjima_topilmadi|bo'sh_javob/i, reason: 'AI javobini o\'qib bo\'lmadi.', fix: 'Qaytadan urinib ko\'ring. Takrorlansa, boshqa modelni tanlang.' },
+];
+
+export function explainError(error) {
+  const raw = String(error ?? '').trim();
+  if (raw === '') return { raw: '', reason: '', fix: '' };
+  for (const entry of ERROR_GUIDE) {
+    if (entry.match.test(raw)) return { raw, reason: entry.reason, fix: entry.fix };
+  }
+  return { raw, reason: 'AI xatolik qaytardi.', fix: 'Xatolik matnini texnik mutaxassisga ko\'rsating.' };
+}
+
+/* ─────────────────────────── Tashxis ─────────────────────────── */
+
+/** Sozlama holati va ulanish tekshiruvi. */
+export async function diagnose({ probe = false } = {}) {
+  const config = getConfig();
+  const report = {
+    provider: config.provider,
+    providerLabel: PROVIDERS[config.provider].label,
+    model: config.model,
+    hasKey: Boolean(config.apiKey),
+    keyMasked: maskKey(config.apiKey),
+    keySource: config.keySource,
+    disabled: config.disabled,
+    enabled: config.enabled,
+    canUse: false,
+    problem: null,
+  };
+
+  if (!config.apiKey) {
+    report.problem = explainError('kalit_yoq');
+    return report;
+  }
+  if (config.disabled) {
+    report.problem = explainError('ochirilgan');
+    return report;
+  }
+
+  // Faqat so'ralganda haqiqiy so'rov yuboramiz (sinov tugmasi bosilganda)
+  if (probe) {
+    const result = await chat(
+      { system: 'Faqat "OK" deb javob ber.', user: 'Aloqa sinovi.' },
+      config,
+    );
+    if (result.ok) report.canUse = true;
+    else report.problem = explainError(result.error);
+  } else {
+    report.canUse = true; // kalit bor, o'chirilmagan — ehtimol ishlaydi
+  }
+
+  return report;
+}

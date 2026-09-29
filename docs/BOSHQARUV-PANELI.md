@@ -90,6 +90,15 @@ nashr etadi.
 Har bir saqlashdan oldin server avtomatik zaxira nusxa oladi (oxirgi 20 versiya,
 `server/data/backups/`).
 
+### Ko'p tilli maydonlar
+
+Ma'lumot to'rt tilda kiritiladi: o'zbek (kirill), o'zbek (lotin), rus, ingliz.
+Maydon tepasidagi `ЎЗ / UZ / РУ / EN` tugmalari bilan tillar orasida almashiladi.
+
+Agar **AI yordamchisi** ulangan bo'lsa (12-bo'limga qarang), maydon ostida
+**«✦ AI bilan to'ldirish»** tugmasi paydo bo'ladi: bitta tilda yozib tugmani
+bossangiz, qolgan tillar avtomatik to'ldiriladi. Natijani tekshirib, saqlaysiz.
+
 ---
 
 ## 4. Hududlar va lotlar
@@ -435,7 +444,28 @@ To'liq yo'riqnoma (bot yaratish, guruh tanlash): [`docs/TELEGRAM.md`](TELEGRAM.m
 
 ---
 
-## 13. Foydalanuvchilar
+## 13. AI yordamchisi
+
+Ixtiyoriy. Ulangan bo'lsa, ma'lumot kiritishni soddalashtiradi:
+
+- **Tarjima** — ko'p tilli maydonda bitta tilda yozib, «✦ AI bilan to'ldirish»
+  tugmasini bossangiz, qolgan tillar avtomatik to'ldiriladi. O'zbek kiril↔lotin
+  darhol (AIsiz), rus va ingliz — AI tarjimasi bilan.
+- **PDF dan to'ldirish** — master-reja PDF ini yuklasangiz, AI undan nom,
+  tavsif, tasdiqlash ma'lumotlari va maydonni ajratib, taklif qiladi.
+
+Faqat `admin` roli sozlaydi: provayder (Google Gemini yoki OpenAI), API kaliti,
+model. Kalit `server/data/ai.json` da saqlanadi, repozitoriyaga tushmaydi.
+
+> **AI hech qachon o'zi saqlamaydi** — faqat taklif qiladi. Tarjima yoki PDF dan
+> olingan har bir qiymatni tekshirib, o'zingiz saqlaysiz. Kalit kiritilmasa,
+> AI tugmalari umuman ko'rinmaydi va sayt oddiy ishlaydi.
+
+To'liq yo'riqnoma (kalit olish, sozlash, cheklovlar): [`docs/AI.md`](AI.md)
+
+---
+
+## 14. Foydalanuvchilar
 
 Faqat `admin` roli uchun.
 
@@ -466,7 +496,7 @@ node server/tools/hash-password.mjs <nom> '<yangi-parol>' admin
 
 ---
 
-## 14. Tez-tez uchraydigan savollar
+## 15. Tez-tez uchraydigan savollar
 
 **O'zgarishlar saytda ko'rinmayapti.**
 Yozuv **qoralama** holatida qolmaganini tekshiring — tahrirlash oynasining

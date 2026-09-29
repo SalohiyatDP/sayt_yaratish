@@ -1,7 +1,7 @@
 /**
  * Boshqaruv panelining asosiy skripti: kirish, bo'limlar va saqlash.
  */
-import { qs, qsa, el, api, toast, pick, slugify, clone, todayIso, formatBytes, formatDateTime, confirmAction, emptyI18n, escapeHtml } from './lib.js';
+import { qs, qsa, el, api, toast, pick, slugify, clone, todayIso, formatBytes, formatDateTime, confirmAction, emptyI18n, escapeHtml, setAiEnabled } from './lib.js';
 import {
   getPath, setPath, textField, numberField, dateField, checkboxField, selectField,
   multiSelectField, i18nField, i18nListField, coordinatesField,
@@ -22,6 +22,8 @@ const state = {
   dirty: false,
   // «Ma'lumotnomalarda tahrirlash» orqali o'tilganda qaysi ro'yxatga siljish
   taxonomyFocus: null,
+  // AI yordamchisi yoqilganmi — tarjima/PDF tugmalari shunga qarab ko'rinadi
+  aiEnabled: false,
 };
 
 /* ─────────────────────────── Kirish ─────────────────────────── */
@@ -74,8 +76,20 @@ function showApp() {
   qs('#setup-screen').hidden = true;
   qs('#app-shell').hidden = false;
   qs('#current-user').textContent = `${state.user.name || state.user.username} · ${state.user.role}`;
+  refreshAiState();
   render();
   refreshCounts();
+}
+
+/** AI yoqilganini bilib olamiz — tarjima/PDF tugmalari shunga qarab chiqadi. */
+async function refreshAiState() {
+  try {
+    const data = await api.ai();
+    state.aiEnabled = Boolean(data.report?.canUse);
+  } catch (error) {
+    state.aiEnabled = false;
+  }
+  setAiEnabled(state.aiEnabled);
 }
 
 qs('#login-form').addEventListener('submit', async (event) => {
@@ -304,6 +318,7 @@ async function render() {
       taxonomies: renderTaxonomiesView,
       inbox: renderInboxView,
       telegram: renderTelegramView,
+      ai: renderAiView,
       files: renderFilesView,
       users: renderUsersView,
       account: renderAccountView,
@@ -683,6 +698,195 @@ function taxonomyMultiSelect(record, { path, label, taxonomyPath, items }) {
   ]);
 }
 
+/**
+ * Master-reja PDF idan maydonlarni AI bilan to'ldirish bloki.
+ *
+ * Xodim PDF ni yuklaydi (yoki avval yuklangan hujjatlardan tanlaydi), AI PDF
+ * matnidan maydonlarni ajratib TAKLIF qiladi. Xodim har bir taklifni ko'rib,
+ * «Qo'llash» bilan maydonga yozadi — hech narsa avtomatik saqlanmaydi.
+ *
+ * AI yoqilmagan bo'lsa blok umuman ko'rinmaydi.
+ */
+function pdfExtractBlock(record) {
+  if (!state.aiEnabled) return null;
+
+  const host = el('div', {});
+  const resultBox = el('div', {});
+
+  // Master-reja maydonlari — AI shularni to'ldirishga harakat qiladi
+  const FIELDS = [
+    { key: 'title', label: 'Master-reja nomi', apply: (v) => setI18nDefault(record, 'title', v) },
+    { key: 'summary', label: 'Umumiy tavsif', apply: (v) => setI18nDefault(record, 'summary', v) },
+    { key: 'approvedBy', label: 'Tasdiqlagan organ', apply: (v) => setI18nDefault(record, 'approvedBy', v) },
+    { key: 'approvalDocument', label: 'Tasdiqlash hujjati', apply: (v) => { record.approvalDocument = v; } },
+    { key: 'approvalDate', label: 'Tasdiqlangan sana (YYYY-MM-DD)', type: 'sana', apply: (v) => { record.approvalDate = normalizeDate(v); } },
+    { key: 'totalAreaHa', label: 'Umumiy maydon (gektar, faqat son)', type: 'son', apply: (v) => { record.totalAreaHa = parseNumber(v); } },
+  ];
+
+  const runExtract = async (pdfSrc) => {
+    resultBox.innerHTML = '';
+    resultBox.append(el('p', { class: 'a-small a-muted', text: 'AI PDF ni o\'qib, maydonlarni tayyorlayapti…' }));
+    try {
+      const res = await api.aiExtract({ pdfSrc, fields: FIELDS.map((f) => ({ key: f.key, label: f.label, type: f.type })), locale: 'uz-cyrl' });
+      drawSuggestions(res.fields || {}, res.notes || '');
+    } catch (error) {
+      const messages = {
+        pdf_read_failed: 'PDF o\'qilmadi. Fayl buzuq bo\'lishi mumkin.',
+        pdf_no_text: 'PDF dan matn topilmadi — fayl skanerlangan (rasm) bo\'lishi mumkin. Matnli PDF kerak.',
+        no_fields: 'Maydonlar aniqlanmadi.',
+      };
+      const ex = error.data?.explained;
+      resultBox.innerHTML = '';
+      resultBox.append(el('p', { class: 'a-alert a-alert--error', text: messages[error.data?.error] || (ex ? `${ex.reason} ${ex.fix}` : `Xatolik: ${error.message}`) }));
+    }
+  };
+
+  const drawSuggestions = (fields, notes) => {
+    resultBox.innerHTML = '';
+    const found = FIELDS.filter((f) => fields[f.key]);
+    if (found.length === 0) {
+      resultBox.append(el('p', { class: 'a-alert a-alert--warning', text: 'AI PDF dan aniq maydon topa olmadi. Ma\'lumotlarni qo\'lda kiriting.' }));
+      return;
+    }
+
+    resultBox.append(
+      el('div', { class: 'a-alert a-alert--info' }, [
+        el('strong', { text: `AI ${found.length} ta maydon uchun taklif tayyorladi` }),
+        el('p', { text: 'Har birini ko\'rib chiqing. To\'g\'ri bo\'lsa «Qo\'llash» ni bosing — maydonga yoziladi. Xato bo\'lsa e\'tiborsiz qoldiring.' }),
+        notes ? el('p', { class: 'a-small', text: `AI izohi: ${notes}` }) : null,
+      ]),
+    );
+
+    for (const field of found) {
+      const applied = el('span', { class: 'a-small', style: 'color:var(--a-success)' });
+      resultBox.append(
+        el('div', { class: 'suggestion' }, [
+          el('div', { class: 'suggestion__body' }, [
+            el('span', { class: 'a-field__label', text: field.label }),
+            el('p', { class: 'suggestion__value', text: fields[field.key] }),
+          ]),
+          el('div', { class: 'suggestion__tools' }, [
+            applied,
+            el('button', {
+              type: 'button',
+              class: 'a-btn a-btn--sm a-btn--primary',
+              text: 'Qo\'llash',
+              onClick: (event) => {
+                field.apply(fields[field.key]);
+                state.dirty = true;
+                applied.textContent = '✓ qo\'llandi';
+                event.currentTarget.disabled = true;
+                // Formani qayta chizib, maydonlarda yangi qiymatni ko'rsatamiz.
+                // Lekin natijani yo'qotmaslik uchun tahrirlovchini saqlab qolamiz.
+                queueRerender();
+              },
+            }),
+          ]),
+        ]),
+      );
+    }
+
+    // «Hammasini qo'llash» — barchasini bir bosishda
+    resultBox.append(
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--sm',
+        style: 'margin-top:0.5rem',
+        text: 'Hammasini qo\'llash',
+        onClick: () => {
+          for (const field of found) field.apply(fields[field.key]);
+          state.dirty = true;
+          toast('Barcha takliflar qo\'llandi. Tekshirib, saqlang.', 'success', 6000);
+          render();
+        },
+      }),
+    );
+  };
+
+  // Yuklangan master-reja hujjatlari orasidan PDF larni topamiz
+  const pdfDocs = (record.documents || []).filter((d) => d && d.src && /\.pdf$/i.test(d.src));
+
+  const controls = el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center' });
+  if (pdfDocs.length > 0) {
+    const select = el('select', { class: 'a-input', style: 'max-width:320px' });
+    for (const doc of pdfDocs) {
+      select.append(el('option', { value: doc.src, text: pick(doc.title) || doc.src.split('/').pop() }));
+    }
+    controls.append(
+      el('label', { class: 'a-field', style: 'margin:0;flex:1;min-width:200px' }, [
+        el('span', { class: 'a-field__label', text: 'Yuklangan hujjatdan tanlang' }),
+        select,
+      ]),
+      el('button', {
+        type: 'button',
+        class: 'a-btn a-btn--sm a-btn--primary',
+        style: 'align-self:end',
+        text: '✦ PDF dan to\'ldirish',
+        onClick: () => runExtract(select.value),
+      }),
+    );
+  }
+
+  // Yangi PDF yuklash imkoni — yuklangach hujjatlarga qo'shiladi va o'qiladi
+  const uploadZone = createDropZone({
+    folder: 'masterplans',
+    accept: '.pdf',
+    multiple: false,
+    onUploaded: (result) => {
+      if (!Array.isArray(record.documents)) record.documents = [];
+      record.documents.push({ src: result.src, title: emptyI18n(), kind: 'pdf' });
+      state.dirty = true;
+      toast('PDF yuklandi, AI o\'qiyapti…', 'success');
+      runExtract(result.src);
+    },
+  });
+
+  host.append(
+    el('div', { class: 'group group--ai' }, [
+      el('h2', { class: 'group__title', text: '✦ PDF dan avtomatik to\'ldirish (AI)' }),
+      el('p', { class: 'group__note', text: 'Master-reja PDF ini yuklang yoki tanlang — AI undan nom, tavsif, tasdiqlash ma\'lumotlari va maydonni ajratib, taklif qiladi. Har bir taklifni siz tasdiqlaysiz.' }),
+      pdfDocs.length > 0 ? controls : null,
+      el('p', { class: 'a-small a-muted', style: 'margin:0.5rem 0 0.3rem', text: pdfDocs.length > 0 ? 'Yoki yangi PDF yuklang:' : 'Master-reja PDF ini yuklang:' }),
+      uploadZone,
+      resultBox,
+    ]),
+  );
+  return host;
+}
+
+/** Qayta chizishni keyingi kadrga qo'yadi — bir necha «Qo'llash» ketma-ket bosilsa. */
+let rerenderQueued = false;
+function queueRerender() {
+  if (rerenderQueued) return;
+  rerenderQueued = true;
+  setTimeout(() => { rerenderQueued = false; render(); }, 400);
+}
+
+/** i18n maydonning bo'sh tillariga qiymat qo'yadi (mavjudni bekor qilmaydi). */
+function setI18nDefault(record, path, text) {
+  const cur = record[path];
+  const obj = cur && typeof cur === 'object' ? cur : emptyI18n();
+  // AI o'zbek kirilda qaytaradi — shuni asos qilib boshqalarini bo'sh qoldiramiz
+  if (!String(obj['uz-cyrl'] || '').trim()) obj['uz-cyrl'] = text;
+  record[path] = obj;
+}
+
+/** Turli sana formatlarini YYYY-MM-DD ga keltiradi (imkon qadar). */
+function normalizeDate(value) {
+  const s = String(value || '').trim();
+  const iso = s.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+  const dmy = s.match(/(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  return s;
+}
+
+/** Matndan sonni ajratadi (masalan "120 gektar" → 120). */
+function parseNumber(value) {
+  const m = String(value || '').replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+
 function auctionGroup(record, tax) {
   if (!record.auction) record.auction = LOTS_VIEW.blank().auction;
   const warning = el('div', { class: 'a-alert a-alert--warning' }, [
@@ -761,6 +965,7 @@ const MASTERPLANS_VIEW = {
     const tax = await ensureTaxonomies();
     const lots = await loadContent('lots');
     return [
+      pdfExtractBlock(record),
       group('Asosiy ma\'lumotlar', [
         i18nField(record, {
           path: 'title',
@@ -3122,6 +3327,192 @@ async function renderTelegramView() {
         el('li', { text: 'Telegramga shaxsiy ma\'lumotlar (ism, telefon, pochta) yuboriladi. Chatga faqat vakolatli xodimlar kirishi ta\'minlanishi kerak.' }),
         el('li', { text: 'Bot tokeni oshkor bo\'lsa, @BotFather → /revoke orqali darhol bekor qilib, yangisini oling.' }),
         el('li', { text: 'Sozlamalarni buyruq satridan ham kiritish mumkin: node server/tools/telegram-setup.mjs' }),
+      ]),
+    ]),
+  );
+}
+
+/* ─────────────────────────── AI yordamchisi ─────────────────────────── */
+
+async function renderAiView() {
+  const data = await api.ai();
+  const r = data.report || {};
+  const providers = data.providers || {};
+  const isAdmin = state.user?.role === 'admin';
+
+  const statusBox = (() => {
+    if (r.canUse) {
+      return el('div', { class: 'a-alert a-alert--success' }, [
+        el('strong', { text: 'AI yordamchisi ulangan' }),
+        el('p', { text: `${r.providerLabel} · ${r.model}. Ma'lumot kiritishda tarjima va PDF dan to'ldirish tugmalari ishlaydi.` }),
+      ]);
+    }
+    if (r.disabled) {
+      return el('div', { class: 'a-alert a-alert--warning' }, [
+        el('strong', { text: 'AI yordamchisi vaqtincha o\'chirilgan' }),
+        el('p', { text: 'Yoqilmaguncha tarjima va PDF tugmalari ko\'rinmaydi. Sayt bundan mustaqil ishlaydi.' }),
+      ]);
+    }
+    return el('div', { class: 'a-alert a-alert--info' }, [
+      el('strong', { text: 'AI yordamchisi ixtiyoriy' }),
+      el('p', { text: 'Kalit kiritilmaguncha sayt hozirgidek to\'liq ishlaydi. Kalit kiritilsa, ma\'lumotni bitta tilda yozib qolganini AI tarjima qiladi va master-reja PDF idan maydonlarni to\'ldirishga yordam beradi.' }),
+      r.problem?.reason ? el('p', {}, [el('strong', { text: `${r.problem.reason} ` }), r.problem.fix]) : null,
+    ]);
+  })();
+
+  if (!isAdmin) {
+    return setMain(
+      el('div', { class: 'page-bar' }, [el('h1', { text: 'AI yordamchisi' })]),
+      statusBox,
+      el('p', { class: 'a-muted', text: 'Sozlamalarni faqat admin roliga ega xodim o\'zgartiradi.' }),
+    );
+  }
+
+  // Provayder tanlash
+  const providerSelect = el('select', { class: 'a-input' });
+  for (const [id, p] of Object.entries(providers)) {
+    providerSelect.append(el('option', { value: id, text: p.label, selected: id === r.provider }));
+  }
+
+  const modelSelect = el('select', { class: 'a-input' });
+  const fillModels = (providerId) => {
+    modelSelect.innerHTML = '';
+    for (const m of providers[providerId]?.models || []) {
+      modelSelect.append(el('option', { value: m, text: m, selected: m === r.model }));
+    }
+  };
+  fillModels(r.provider);
+  providerSelect.addEventListener('change', () => fillModels(providerSelect.value));
+
+  const keyInput = el('input', {
+    type: 'password',
+    class: 'a-input',
+    placeholder: r.hasKey ? `Saqlangan: ${r.keyMasked}` : (providers[r.provider]?.keyHint || 'API kaliti'),
+    autocomplete: 'off',
+  });
+
+  const saveButton = el('button', {
+    type: 'button',
+    class: 'a-btn a-btn--primary',
+    text: 'Saqlash',
+    onClick: async () => {
+      const payload = { provider: providerSelect.value, model: modelSelect.value };
+      if (keyInput.value.trim() !== '') payload.apiKey = keyInput.value.trim();
+      saveButton.disabled = true;
+      try {
+        await api.aiSave(payload);
+        keyInput.value = '';
+        await refreshAiState();
+        toast('Sozlamalar saqlandi', 'success');
+        render();
+      } catch (error) {
+        const messages = {
+          unknown_provider: 'Noma\'lum provayder.',
+          admin_only: 'Bu amalni faqat admin bajaradi.',
+        };
+        toast(messages[error.data?.error] || `Saqlanmadi: ${error.message}`, 'error', 7000);
+      } finally {
+        saveButton.disabled = false;
+      }
+    },
+  });
+
+  const testButton = el('button', {
+    type: 'button',
+    class: 'a-btn',
+    text: 'Ulanishni tekshirish',
+    onClick: async () => {
+      testButton.disabled = true;
+      testButton.textContent = 'Tekshirilmoqda…';
+      try {
+        await api.aiTest();
+        toast('AI ulanishi ishlayapti', 'success', 5000);
+      } catch (error) {
+        const p = error.data?.report?.problem;
+        toast(p ? `${p.reason} ${p.fix}` : `Xatolik: ${error.message}`, 'error', 12000);
+      } finally {
+        testButton.disabled = false;
+        testButton.textContent = 'Ulanishni tekshirish';
+        render();
+      }
+    },
+  });
+
+  const disableToggle = el('label', { class: 'a-check' }, [
+    el('input', {
+      type: 'checkbox',
+      checked: Boolean(r.disabled),
+      onChange: async (event) => {
+        try {
+          await api.aiSave({ disabled: event.target.checked });
+          await refreshAiState();
+          toast(event.target.checked ? 'AI o\'chirildi' : 'AI yoqildi', 'success');
+          render();
+        } catch (error) {
+          toast(`O'zgartirilmadi: ${error.message}`, 'error');
+        }
+      },
+    }),
+    el('span', {}, [
+      'AI yordamchisini vaqtincha o\'chirish',
+      el('span', { class: 'a-field__hint', text: 'Tugmalar yashiriladi, sayt oddiy ishlaydi.' }),
+    ]),
+  ]);
+
+  const details = el('div', { class: 'a-table-wrap' }, [
+    el('table', { class: 'a-table' }, [
+      el('tbody', {}, [
+        row('Provayder', r.providerLabel),
+        row('Model', r.model),
+        row('Kalit', r.hasKey ? `${r.keyMasked} (manba: ${r.keySource === 'env' ? '.env / muhit' : 'panel'})` : '— kiritilmagan'),
+        row('Holat', r.canUse ? 'ishlashga tayyor' : r.disabled ? 'o\'chirilgan' : 'sozlanmagan'),
+      ]),
+    ]),
+  ]);
+
+  setMain(
+    el('div', { class: 'page-bar' }, [
+      el('h1', { text: 'AI yordamchisi' }),
+      el('div', { class: 'page-bar__actions' }, [testButton, el('button', { type: 'button', class: 'a-btn a-btn--sm', text: 'Yangilash', onClick: render })]),
+    ]),
+    statusBox,
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Joriy holat' }),
+      details,
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Sozlamalar' }),
+      el('div', { class: 'a-alert a-alert--info' }, [
+        el('strong', { text: 'Kalit qanday olinadi' }),
+        el('ul', {}, [
+          el('li', { text: 'OpenAI (ChatGPT): platform.openai.com → API keys → Create new secret key.' }),
+          el('li', { text: 'Google Gemini: aistudio.google.com → Get API key (bepul limit bor).' }),
+          el('li', { text: 'Kalit server/data/ai.json faylida saqlanadi va repozitoriyaga tushmaydi.' }),
+        ]),
+      ]),
+      el('label', { class: 'a-field' }, [
+        el('span', { class: 'a-field__label', text: 'Provayder' }),
+        providerSelect,
+      ]),
+      el('label', { class: 'a-field' }, [
+        el('span', { class: 'a-field__label', text: 'Model' }),
+        modelSelect,
+      ]),
+      el('label', { class: 'a-field' }, [
+        el('span', { class: 'a-field__label', text: 'API kaliti' }),
+        keyInput,
+        el('span', { class: 'a-field__hint', text: r.hasKey ? 'Bo\'sh qoldirsangiz, saqlangan kalit o\'zgarmaydi.' : (providers[r.provider]?.keyHint || '') }),
+      ]),
+      el('div', { style: 'margin:0.75rem 0' }, [disableToggle]),
+      el('div', { style: 'display:flex;gap:0.5rem;flex-wrap:wrap' }, [saveButton]),
+    ]),
+    el('div', { class: 'group' }, [
+      el('h2', { class: 'group__title', text: 'Muhim eslatmalar' }),
+      el('ul', {}, [
+        el('li', { text: 'AI hech qachon o\'zi saqlamaydi — u faqat maydonni taklif bilan to\'ldiradi. Har doim ko\'rib chiqib, tasdiqlang.' }),
+        el('li', { text: 'Tarjimada yoki PDF dan olingan raqam/sanani albatta tekshiring. Rasmiy ma\'lumotda xato bo\'lmasligi kerak.' }),
+        el('li', { text: 'AI provayderiga yuborilgan matn (tashkilot nomi, tavsif, hujjat matni) uning serveriga chiqadi. Maxfiy hujjatlar uchun buni hisobga oling.' }),
+        el('li', { text: 'AI ishlashi uchun hosting api.openai.com yoki generativelanguage.googleapis.com ga chiqa olishi kerak.' }),
       ]),
     ]),
   );

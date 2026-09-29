@@ -24,7 +24,9 @@ import { fileURLToPath } from 'node:url';
 
 import { loadEnvFile } from './lib/env.mjs';
 import { parseGeoFile } from './lib/geo.mjs';
+import { extractPdfText } from './lib/pdf-text.mjs';
 import * as telegram from './notify/telegram.mjs';
+import * as ai from './ai/provider.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -1409,6 +1411,124 @@ async function handleAdminApi(req, res, url) {
     return sendJson(res, 200, { ok: true, chats: [...chats.values()] });
   }
 
+  /* ── AI yordamchisi ── */
+
+  if (route === 'ai' && req.method === 'GET') {
+    return sendJson(res, 200, {
+      ok: true,
+      report: await ai.diagnose({ probe: false }),
+      providers: Object.fromEntries(
+        Object.entries(ai.PROVIDERS).map(([id, p]) => [id, { label: p.label, models: p.models, defaultModel: p.defaultModel, keyHint: p.keyHint }]),
+      ),
+    });
+  }
+
+  if (route === 'ai/config' && req.method === 'POST') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    let payload;
+    try {
+      payload = await readJsonBody(req, 8 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+    const patch = {};
+    if (typeof payload.provider === 'string') {
+      if (!ai.PROVIDERS[payload.provider]) return sendJson(res, 422, { ok: false, error: 'unknown_provider' });
+      patch.provider = payload.provider;
+    }
+    if (typeof payload.apiKey === 'string') patch.apiKey = payload.apiKey.trim();
+    if (typeof payload.model === 'string') patch.model = sanitizeText(payload.model, 80);
+    if (typeof payload.disabled === 'boolean') patch.disabled = payload.disabled;
+
+    await ai.saveConfig(patch);
+    logLine(`AI sozlamalari yangilandi (${session.sub})`);
+    return sendJson(res, 200, { ok: true, report: await ai.diagnose({ probe: false }) });
+  }
+
+  if (route === 'ai/test' && req.method === 'POST') {
+    if (session.role !== 'admin') return sendJson(res, 403, { ok: false, error: 'admin_only' });
+    // Haqiqiy so'rov yuboriladi — ulanish va kalit tekshiriladi
+    const report = await ai.diagnose({ probe: true });
+    return sendJson(res, report.canUse ? 200 : 502, { ok: report.canUse, report });
+  }
+
+  if (route === 'ai/translate' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    if (!rateLimit(`ai:${session.sub}`, 60, 60 * 1000)) {
+      return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
+    }
+    let payload;
+    try {
+      payload = await readJsonBody(req, 64 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+    const sourceLocale = sanitizeText(payload.sourceLocale, 10);
+    const sourceText = String(payload.sourceText || '').slice(0, 8000);
+    const targetLocales = Array.isArray(payload.targetLocales)
+      ? payload.targetLocales.map((c) => sanitizeText(c, 10)).filter(Boolean).slice(0, 4)
+      : [];
+    const context = sanitizeText(payload.context, 120);
+
+    const result = await ai.translate(sourceLocale, sourceText, targetLocales, { context });
+    if (!result.ok) {
+      return sendJson(res, 502, { ok: false, error: result.error, explained: ai.explainError(result.error) });
+    }
+    logLine(`AI tarjima (${session.sub}): ${sourceLocale} → ${Object.keys(result.translations).join(',')}`);
+    return sendJson(res, 200, { ok: true, translations: result.translations });
+  }
+
+  if (route === 'ai/extract' && req.method === 'POST') {
+    if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
+    if (!rateLimit(`ai:${session.sub}`, 60, 60 * 1000)) {
+      return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
+    }
+    let payload;
+    try {
+      payload = await readJsonBody(req, 128 * 1024);
+    } catch (error) {
+      return sendJson(res, 400, { ok: false, error: 'invalid_body' });
+    }
+    // Manba: to'g'ridan-to'g'ri matn yoki yuklangan PDF fayl yo'li
+    let sourceText = String(payload.text || '');
+    if (!sourceText && payload.pdfSrc) {
+      const rel = String(payload.pdfSrc).replace(/^\/?assets\/uploads\/?/, '');
+      const target = path.resolve(UPLOAD_DIR, rel);
+      if (target !== UPLOAD_DIR && !target.startsWith(UPLOAD_DIR + path.sep)) {
+        return sendJson(res, 403, { ok: false, error: 'outside_uploads' });
+      }
+      try {
+        const buffer = await fsp.readFile(target);
+        const extracted = extractPdfText(buffer);
+        sourceText = extracted.text;
+      } catch (error) {
+        return sendJson(res, 422, { ok: false, error: 'pdf_read_failed', message: error.message });
+      }
+      if (sourceText.trim().length < 20) {
+        return sendJson(res, 422, {
+          ok: false,
+          error: 'pdf_no_text',
+          message: 'PDF dan matn ajratib bo\'lmadi. Fayl skanerlangan (rasm) bo\'lishi mumkin.',
+        });
+      }
+    }
+
+    const fields = Array.isArray(payload.fields)
+      ? payload.fields
+          .map((f) => ({ key: sanitizeText(f.key, 40), label: sanitizeText(f.label, 120), type: sanitizeText(f.type, 20) }))
+          .filter((f) => f.key && f.label)
+          .slice(0, 30)
+      : [];
+    if (fields.length === 0) return sendJson(res, 422, { ok: false, error: 'no_fields' });
+
+    const result = await ai.extractFields(sourceText, fields, { locale: sanitizeText(payload.locale, 10) || 'uz-cyrl' });
+    if (!result.ok) {
+      return sendJson(res, 502, { ok: false, error: result.error, explained: ai.explainError(result.error) });
+    }
+    logLine(`AI maydon ajratdi (${session.sub}): ${Object.keys(result.fields).length} ta`);
+    return sendJson(res, 200, { ok: true, fields: result.fields, notes: result.notes });
+  }
+
   // Fayl yuklash: POST /api/admin/upload?name=fayl.jpg&folder=photos
   if (route === 'upload' && req.method === 'POST') {
     if (session.role === 'viewer') return sendJson(res, 403, { ok: false, error: 'read_only' });
@@ -1813,6 +1933,15 @@ const onListening = () => {
   }
   if (ENV_RESULT.loaded) {
     console.log(`  .env fayli:        yuklandi (${ENV_RESULT.keys.length} ta o'zgaruvchi)`);
+  }
+
+  const aiConfig = ai.getConfig();
+  if (aiConfig.enabled) {
+    console.log(`  AI yordamchisi:    ${ai.PROVIDERS[aiConfig.provider].label} · ${aiConfig.model}`);
+  } else if (aiConfig.disabled) {
+    console.log('  AI yordamchisi:    vaqtincha o\'chirilgan');
+  } else {
+    console.log('  AI yordamchisi:    sozlanmagan (ixtiyoriy — panel «AI yordamchisi» bo\'limi)');
   }
 
   const tg = telegram.getConfig();

@@ -24,7 +24,8 @@ Sayt ikki vazifani bajaradi:
 | **Investor savati** | Lotlarni taqqoslash jadvali (faqat brauzer xotirasida saqlanadi, serverga yuborilmaydi), chop etish uchun tayyor. |
 | **Tezkor qidiruv** | `Ctrl+K` (yoki `/`) — hududlar, master-rejalar, yangiliklar va sahifalar bo'yicha. |
 | **Murojaat shakli** | Serverga ulangan bo'lsa ishlaydi va ro'yxatga olish raqamini qaytaradi; ulanmagan bo'lsa bu holat **ochiq yoziladi** va shakl faolsiz qoladi. |
-| **Boshqaruv paneli** | Himoyalangan `/admin/` — lotlar, master-rejalar, yangiliklar, sayt sozlamalari, fayl yuklash, murojaatlar va saytni qayta qurish. |
+| **Boshqaruv paneli** | Himoyalangan `/admin/` — hududlar, lotlar, master-rejalar, yangiliklar, sayt sozlamalari, fayl yuklash, murojaatlar va saytni qayta qurish. |
+| **AI yordamchisi** | Ixtiyoriy (OpenAI yoki Gemini): bitta tilda yozib qolgan tillarni avtomatik tarjima qilish va master-reja PDF idan maydonlarni to'ldirish. |
 | **Qulaylik (a11y)** | Klaviatura bilan to'liq boshqarish, ko'rinadigan fokus, WCAG 2.1 AA kontrast, `prefers-reduced-motion`, semantik belgilar, ARIA. |
 | **Tezkorlik** | Statik HTML. Tashqi shrift, tahlil skripti yoki JS framework yo'q. CSS ≈ 73 KB, JS ≈ 65 KB (barcha modullar birga). |
 | **Oflayn ishlash** | PWA manifest va service worker — ko'rilgan sahifalar uланish yo'qolganda ham ochiladi. |
@@ -367,6 +368,7 @@ to'ldiring va kontent fayllariga shu til kalitini qo'shing.
 - [`docs/KONTENT.md`](docs/KONTENT.md) — maydonlar bo'yicha to'liq ma'lumotnoma
 - [`docs/BOSHQARUV-PANELI.md`](docs/BOSHQARUV-PANELI.md) — xodimlar uchun yo'riqnoma
 - [`docs/TELEGRAM.md`](docs/TELEGRAM.md) — murojaat shaklini Telegram botga ulash
+- [`docs/AI.md`](docs/AI.md) — AI yordamchisi (tarjima va PDF dan to'ldirish)
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — hostingga joylashtirish (systemd, nginx,
   hosting paneli, zaxiralash, monitoring, tekshiruv ro'yxati)
 - [`docs/ARXITEKTURA.md`](docs/ARXITEKTURA.md) — texnik qarorlar va tuzilma
