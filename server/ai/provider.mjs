@@ -41,8 +41,10 @@ export const PROVIDERS = {
   },
   gemini: {
     label: 'Google Gemini',
-    defaultModel: 'gemini-2.5-flash',
-    fallbackModels: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-flash-latest'],
+    // `-latest` psevdonimi har doim eng yangi barqaror modelга ishora qiladi
+    // va eskirmaydi/yopilmaydi — shuning uchun odatiy sifatida shu tanlanadi.
+    defaultModel: 'gemini-flash-latest',
+    fallbackModels: ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-flash-lite-latest'],
     apiBase: 'https://generativelanguage.googleapis.com',
     keyHint: 'aistudio.google.com → Get API key',
   },
@@ -132,30 +134,54 @@ export async function listModels(config = getConfig()) {
       if (!response.ok) return fallback;
       const data = await response.json();
       // Faqat chat/matn modellari: gpt-… (audio, image, embedding, tts, whisper emas)
-      const models = (data?.data || [])
-        .map((m) => m.id)
-        .filter((id) => /^(gpt|o\d|chatgpt)/i.test(id) && !/audio|realtime|image|tts|whisper|embedding|moderation|transcribe|search|codex/i.test(id))
-        .sort()
-        .reverse();
+      const models = sortModels(
+        (data?.data || [])
+          .map((m) => m.id)
+          .filter((id) => /^(gpt|o\d|chatgpt)/i.test(id) && !/audio|realtime|image|tts|whisper|embedding|moderation|transcribe|search|codex|dall/i.test(id)),
+      );
       return models.length ? { models, source: 'api' } : fallback;
     }
 
     // Gemini
-    const url = `${config.apiBase}/v1beta/models?key=${encodeURIComponent(config.apiKey)}&pageSize=100`;
+    const url = `${config.apiBase}/v1beta/models?key=${encodeURIComponent(config.apiKey)}&pageSize=1000`;
     const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (!response.ok) return fallback;
     const data = await response.json();
-    const models = (data?.models || [])
-      // generateContent ni qo'llaydigan gemini modellari (embedding/aqua/imagen emas)
-      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name))
-      .map((m) => String(m.name).replace(/^models\//, ''))
-      .filter((id) => !/embedding|aqa|vision-latest/i.test(id))
-      .sort()
-      .reverse();
+    const models = sortModels(
+      (data?.models || [])
+        // generateContent ni qo'llaydigan gemini modellari (embedding/imagen/tts emas)
+        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name))
+        .map((m) => String(m.name).replace(/^models\//, ''))
+        .filter((id) => !/embedding|aqa|vision|image|tts|thinking|exp-|-exp/i.test(id)),
+    );
     return models.length ? { models, source: 'api' } : fallback;
   } catch (error) {
     return fallback;
   }
+}
+
+/**
+ * Model ro'yxatini foydalilik bo'yicha saralaydi:
+ *   1. `-latest` psevdonimlari (eskirmaydi, yopilmaydi) — eng yuqorida;
+ *   2. yangi avlod raqami kattaroq modellar;
+ *   3. `preview`/`lite` variantlari pastroqda.
+ */
+function sortModels(list) {
+  const version = (id) => {
+    const m = id.match(/(\d+)(?:[.-](\d+))?/);
+    return m ? Number(m[1]) * 100 + Number(m[2] || 0) : 0;
+  };
+  const score = (id) => {
+    let s = version(id);
+    if (/-latest$/.test(id)) s += 100000; // psevdonimlar doim tepada
+    // Gemini 2.x endi yangi loyihalar uchun yopilgan — pastga tushiramiz
+    if (/^gemini-2\./.test(id)) s -= 20000;
+    if (/preview|-exp|experimental/.test(id)) s -= 5000;
+    if (/lite/.test(id)) s -= 50;
+    if (/pro/.test(id)) s += 5; // pro flash dan sal yuqori (bir xil versiyada)
+    return s;
+  };
+  return [...new Set(list)].sort((a, b) => score(b) - score(a) || a.localeCompare(b));
 }
 
 /** Kalitni jurnalga yozish uchun yashiradi: sk-abc…xyz */
@@ -172,9 +198,32 @@ export function maskKey(key) {
  * Ikkala provayderning API farqi shu funksiya ichida yashiringan.
  * @returns {Promise<{ ok: boolean, text?: string, error?: string, network?: boolean }>}
  */
-async function chat({ system, user, jsonMode = false }, config = getConfig()) {
+async function chat(opts, config = getConfig()) {
   if (!config.apiKey) return { ok: false, error: 'kalit_yoq' };
 
+  const first = await chatOnce(opts, config);
+  if (first.ok) return first;
+
+  // Model yopilgan/mavjud emas bo'lsa — `-latest` psevdonimiga o'tib qayta
+  // urinamiz. Psevdonim har doim eng yangi barqaror modelga ishora qiladi va
+  // yopilmaydi, shuning uchun xodim eski model tanlagan bo'lsa ham ishlaydi.
+  const modelGone = /no longer available|not found|does not exist|not supported|unknown model|invalid model|update your code to use/i.test(first.error || '');
+  if (modelGone) {
+    const fresh = config.provider === 'gemini' ? 'gemini-flash-latest' : 'gpt-5-mini';
+    if (config.model !== fresh) {
+      const retry = await chatOnce(opts, { ...config, model: fresh });
+      if (retry.ok) {
+        // Ishlagan modelni eslab qolamiz — keyingi safar to'g'ridan-to'g'ri ishlaydi
+        saveConfig({ model: fresh }).catch(() => undefined);
+        return retry;
+      }
+    }
+  }
+  return first;
+}
+
+/** Bitta so'rov — provayder API sini chaqiradi (qayta urinishsiz). */
+async function chatOnce({ system, user, jsonMode = false }, config) {
   try {
     if (config.provider === 'openai') {
       const messages = [

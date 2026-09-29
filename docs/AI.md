@@ -42,6 +42,12 @@ Boshqaruv paneli → **«AI yordamchisi»** (faqat `admin` roli):
    modellar), shuning uchun har doim dolzarb bo'ladi. Odatiy model to'g'ri
    keladi; xohlasangiz boshqasini tanlaysiz. Kalit hali kiritilmagan bo'lsa,
    zaxira ro'yxat ko'rinadi va kalit saqlangach haqiqiy ro'yxat yuklanadi.
+
+   > **Eski model yopilib qolsa ham xato bo'lmaydi.** AI provayderlari
+   > vaqti-vaqti bilan eski modellarni yopadi (masalan Gemini 2.5). Bunday
+   > holatda tizim avtomatik `-latest` psevdonimiga (eng yangi barqaror model)
+   > o'tadi va sozlamani ham yangilaydi. Shuning uchun odatiy model
+   > `gemini-flash-latest` — u hech qachon eskirmaydi.
 3. **API kaliti** — yuqorida olingan kalitni qo'ying.
 4. **«Saqlash»**, so'ng **«Ulanishni tekshirish»** — ulanish ishlashini tasdiqlaydi.
 
