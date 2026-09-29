@@ -142,9 +142,16 @@ export async function listModels(config = getConfig()) {
       return models.length ? { models, source: 'api' } : fallback;
     }
 
-    // Gemini
-    const url = `${config.apiBase}/v1beta/models?key=${encodeURIComponent(config.apiKey)}&pageSize=1000`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    // Gemini. Kalitni URL emas, `x-goog-api-key` sarlavhasi orqali yuboramiz.
+    // Yangi "auth" kalitlar (AQ. bilan boshlanadi, 2026-yildan AI Studio faqat
+    // shularni beradi) URL dagi `?key=` ni qo'llamaydi va 401
+    // ACCESS_TOKEN_TYPE_UNSUPPORTED qaytaradi. Sarlavha usuli eski (AIza) va
+    // yangi (AQ.) kalitlarning ikkalasi uchun ham ishlaydi.
+    const url = `${config.apiBase}/v1beta/models?pageSize=1000`;
+    const response = await fetch(url, {
+      headers: { 'x-goog-api-key': config.apiKey },
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!response.ok) return fallback;
     const data = await response.json();
     const models = sortModels(
@@ -265,11 +272,16 @@ async function chatOnce({ system, user, jsonMode = false }, config) {
       return { ok: false, ...lastErr };
     }
 
-    // Gemini
-    const url = `${config.apiBase}/v1beta/models/${encodeURIComponent(config.model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
+    // Gemini. Kalit `x-goog-api-key` sarlavhasida — yangi AQ. kalitlar URL dagi
+    // `?key=` ni qo'llamaydi (401 ACCESS_TOKEN_TYPE_UNSUPPORTED). Sarlavha usuli
+    // eski (AIza) va yangi (AQ.) kalitlarning ikkalasi uchun ham ishlaydi.
+    const url = `${config.apiBase}/v1beta/models/${encodeURIComponent(config.model)}:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': config.apiKey,
+      },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: user }] }],
@@ -439,7 +451,8 @@ const ERROR_GUIDE = [
   { match: /^ochirilgan$/, reason: 'AI yordamchisi vaqtincha o\'chirilgan.', fix: '«AI yordamchisi» bo\'limida uni yoqing.' },
   { match: /^bosh_matn$/, reason: 'Manba matn bo\'sh.', fix: 'Avval kamida bitta tilda matn kiriting.' },
   { match: /^matn_qisqa$/, reason: 'Hujjat matni juda qisqa yoki o\'qilmadi.', fix: 'PDF matnli (skanerlanmagan) ekaniga ishonch hosil qiling.' },
-  { match: /incorrect api key|invalid.*api key|api key not valid|unauthorized|401/i, reason: 'API kaliti qabul qilinmadi.', fix: 'Kalit to\'g\'ri va amroqda ekanini tekshiring. Kerak bo\'lsa yangisini oling.' },
+  { match: /ACCESS_TOKEN_TYPE_UNSUPPORTED|access token type|oauth 2 access token/i, reason: 'Kalit noto\'g\'ri usulda yuborilyapti (eski dastur versiyasi).', fix: 'Yangi Gemini «AQ.» kaliti sarlavha orqali yuborilishi kerak. Kodning eng oxirgi versiyasini yuklab, Node ilovasini qayta ishga tushiring.' },
+  { match: /incorrect api key|invalid.*api key|api key not valid|api_key_invalid|unauthorized|401/i, reason: 'API kaliti qabul qilinmadi.', fix: 'Kalit to\'g\'ri va amaldagi ekanini tekshiring. Gemini uchun aistudio.google.com dan yangi kalit oling.' },
   { match: /quota|billing|insufficient|429|rate limit/i, reason: 'Hisobingizdagi limit tugagan yoki so\'rovlar cheklangan.', fix: 'Provayder hisobingizni (balans/limit) tekshiring yoki bir oz kuting.' },
   { match: /model.*not found|does not exist|not supported|unknown model|no such model|invalid model/i, reason: 'Tanlangan model mavjud emas yoki hisobingizga ochilmagan.', fix: 'AI sozlamalarida boshqa modelni tanlang. Ro\'yxat provayderdan olinadi — hisobingizga ruxsat berilgan modellar ko\'rinadi.' },
   { match: /temperature|response_format|max_tokens|max_completion_tokens|unsupported parameter|unsupported value/i, reason: 'Model ba\'zi so\'rov parametrlarini qabul qilmadi.', fix: 'Boshqa modelni tanlab ko\'ring. Bu odatda juda yangi yoki maxsus modellarda uchraydi.' },
