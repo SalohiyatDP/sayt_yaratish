@@ -155,7 +155,7 @@ export function areaPage(ctx, area) {
 
           <div class="side-card">
             <h2 class="side-card__title">${t('lot.documents')}</h2>
-            ${documentList(ctx, area.documents, { emptyText: t('lot.documents.empty') })}
+            ${documentList(ctx, area.documents, { emptyText: t('lot.documentsEmpty') })}
           </div>
 
           <div class="side-card">

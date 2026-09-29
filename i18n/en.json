@@ -248,6 +248,7 @@
   "media.emptyHint": "Actual photographs of the area will be published as they become available.",
   "media.author": "Author",
   "media.date": "Date taken",
+  "media.gallery": "Images",
   "media.gallery.prev": "Previous image",
   "media.gallery.next": "Next image",
   "media.gallery.close": "Close the gallery",

@@ -965,6 +965,7 @@ const MASTERPLANS_VIEW = {
   // Ixtiyoriy (o'chirish mumkin bo'lgan) bo'limlar. Har birida qaysi maydonlar
   // borligi ko'rsatilgan — bo'lim o'chirilganda shu maydonlar tozalanadi.
   optionalSections: [
+    { key: 'approval', title: 'Tasdiqlash', fields: ['approvedBy', 'approvalDocument', 'approvalDate'] },
     { key: 'zones', title: 'Zonalar va eksplikatsiya', fields: ['zones', 'explication'] },
     { key: 'solutions', title: 'Loyiha yechimlari', fields: ['solutions'] },
     { key: 'sheets', title: 'Chizmalar va hujjatlar', fields: ['sheets', 'documents'] },
@@ -983,7 +984,9 @@ const MASTERPLANS_VIEW = {
       // Bo'lim ma'lumotlarini tozalaymiz — sayt bu bo'limni ko'rsatmaydi
       for (const path of fields) {
         if (path === 'solutions') record.solutions = { pedestrian: emptyI18n(), transport: emptyI18n(), parking: emptyI18n(), landscaping: emptyI18n(), engineering: emptyI18n() };
+        else if (path === 'approvedBy') record.approvedBy = emptyI18n();
         else if (Array.isArray(record[path])) record[path] = [];
+        else record[path] = ''; // approvalDocument, approvalDate kabi matnli maydonlar
       }
       render();
     };
@@ -1040,7 +1043,7 @@ const MASTERPLANS_VIEW = {
         i18nField(record, { path: 'summary', label: 'Umumiy tavsif', multiline: true, rows: 5 }),
       ]),
 
-      group('Tasdiqlash', [
+      optional('approval', 'Tasdiqlash', [
         i18nField(record, { path: 'approvedBy', label: 'Tasdiqlagan organ', multiline: false }),
         el('div', { class: 'a-row' }, [
           textField(record, { path: 'approvalDocument', label: 'Tasdiqlash hujjati' }),
@@ -1246,6 +1249,57 @@ function publishBar(record, collection) {
   };
   draw();
   return host;
+}
+
+/**
+ * Xarita ko'rinishini tanlash (tayyor variantlar). Foydalanuvchi qo'lda URL
+ * yozmasdan ro'yxatdan tanlaydi — tanlanganda mapTileUrl va mapTileAttribution
+ * birga o'rnatiladi. Barcha variantlar bepul va API kalitisiz ishlaydi.
+ */
+const MAP_TILE_PRESETS = [
+  {
+    id: 'satellite',
+    label: 'Sun\'iy yo\'ldosh (sputnik)',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '© Esri, Maxar, Earthstar Geographics',
+  },
+  {
+    id: 'streets',
+    label: 'Ko\'cha xaritasi (OpenStreetMap)',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap',
+  },
+  {
+    id: 'topo',
+    label: 'Relyef xaritasi (OpenTopoMap)',
+    url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenTopoMap, © OpenStreetMap',
+  },
+];
+
+function mapTileField(site) {
+  const current = getPath(site, 'features.mapTileUrl') || '';
+  const match = MAP_TILE_PRESETS.find((p) => p.url === current);
+  const select = el('select', { class: 'a-input' });
+  for (const p of MAP_TILE_PRESETS) {
+    select.append(el('option', { value: p.id, text: p.label, selected: match?.id === p.id }));
+  }
+  // Agar joriy URL tayyor variantlardan biri bo'lmasa — "Maxsus" ko'rsatamiz
+  if (!match) select.append(el('option', { value: 'custom', text: 'Maxsus (qo\'lda kiritilgan)', selected: true }));
+
+  select.addEventListener('change', () => {
+    const preset = MAP_TILE_PRESETS.find((p) => p.id === select.value);
+    if (!preset) return; // "custom" — o'zgartirmaymiz
+    setPath(site, 'features.mapTileUrl', preset.url);
+    setPath(site, 'features.mapTileAttribution', preset.attribution);
+    render(); // qo'lda maydonlar yangi qiymat bilan yangilanadi
+  });
+
+  return el('label', { class: 'a-field' }, [
+    el('span', { class: 'a-field__label', text: 'Xarita ko\'rinishi' }),
+    select,
+    el('span', { class: 'a-field__hint', text: 'Sun\'iy yo\'ldosh — Google sputnik ko\'rinishiga o\'xshash. Tanlagach «Saqlash» bosing.' }),
+  ]);
 }
 
 /** Obyekt (masalan solutions) ichida biror i18n qiymat to'ldirilganmi? */
@@ -1560,7 +1614,8 @@ async function renderSiteView() {
       }),
       textField(site, { path: 'features.contactFormFallbackEmail', label: 'Zaxira elektron pochta', inputType: 'email' }),
       textField(site, { path: 'seo.canonicalOrigin', label: 'Saytning to\'liq manzili', placeholder: 'https://example.uz', hint: 'sitemap.xml va canonical havolalar uchun.' }),
-      textField(site, { path: 'features.mapTileUrl', label: 'Xarita plitkalari manzili' }),
+      mapTileField(site),
+      textField(site, { path: 'features.mapTileUrl', label: 'Xarita plitkalari manzili (qo\'lda)' , hint: 'Odatda yuqoridagi tayyor variantni tanlash kifoya. Bu maydonni faqat maxsus manba kerak bo\'lsa o\'zgartiring.' }),
       textField(site, { path: 'features.mapTileAttribution', label: 'Xarita manbasi (attribution)' }),
       textField(site, { path: 'media.logo', label: 'Logotip fayli', placeholder: '/assets/img/logo.svg' }),
       logoUpload(site),
