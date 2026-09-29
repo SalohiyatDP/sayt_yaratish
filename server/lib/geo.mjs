@@ -113,28 +113,33 @@ function parseKml(xml) {
     : innerText(xml, 'name');
   if (placemarkName) result.name = stripCdata(placemarkName).trim().slice(0, 200) || null;
 
-  // 1. Chegara: Polygon → outerBoundaryIs → LinearRing
-  const polygon = innerText(xml, 'Polygon');
-  if (polygon) {
+  // 1. Chegara: BARCHA Polygon → outerBoundaryIs → LinearRing.
+  // KMZ ichida bir nechta ko'pburchak bo'lishi mumkin (masalan bir hududning
+  // ikki qismi) — hammasini olamiz. Har biri alohida poligon.
+  const polygons = [];
+  for (const match of xml.matchAll(/<Polygon[\s>][\s\S]*?<\/Polygon>/gi)) {
+    const polygon = match[0];
     const outer = innerText(polygon, 'outerBoundaryIs') || polygon;
     const ring = innerText(outer, 'LinearRing') || outer;
     const coords = innerText(ring, 'coordinates');
-    if (coords) {
-      const points = parseCoordinateList(coords);
-      if (points.length >= 3) result.boundary = closeRing(points);
-    }
+    if (!coords) continue;
+    const points = parseCoordinateList(coords);
+    if (points.length >= 3) polygons.push(closeRing(points));
   }
+  if (polygons.length > 0) result.boundary = polygons;
 
-  // 2. Chegara bo'lmasa — LineString ham chegara sifatida ishlatiladi
+  // 2. Chegara bo'lmasa — barcha LineString ham chegara sifatida ishlatiladi
   if (!result.boundary) {
-    const line = innerText(xml, 'LineString');
-    const coords = line ? innerText(line, 'coordinates') : null;
-    if (coords) {
+    const lines = [];
+    for (const match of xml.matchAll(/<LineString[\s>][\s\S]*?<\/LineString>/gi)) {
+      const coords = innerText(match[0], 'coordinates');
+      if (!coords) continue;
       const points = parseCoordinateList(coords);
-      if (points.length >= 3) {
-        result.boundary = closeRing(points);
-        result.notes.push('Chegara LineString (chiziq) elementidan olindi.');
-      }
+      if (points.length >= 3) lines.push(closeRing(points));
+    }
+    if (lines.length > 0) {
+      result.boundary = lines;
+      result.notes.push('Chegara LineString (chiziq) elementidan olindi.');
     }
   }
 
@@ -146,15 +151,14 @@ function parseKml(xml) {
     if (points.length > 0) result.coordinates = { lat: points[0][0], lng: points[0][1] };
   }
 
-  // 4. Nuqta ko'rsatilmagan bo'lsa, chegaraning markazini hisoblaymiz
+  // 4. Nuqta ko'rsatilmagan bo'lsa, barcha chegaralarning markazini hisoblaymiz
   if (!result.coordinates && result.boundary) {
-    result.coordinates = centroid(result.boundary);
+    result.coordinates = centroid(result.boundary.flat());
     result.notes.push('Markaziy nuqta chegara bo\'yicha hisoblandi.');
   }
 
-  const placemarks = (xml.match(/<Placemark[\s>]/gi) || []).length;
-  if (placemarks > 1) {
-    result.notes.push(`Faylda ${placemarks} ta obyekt bor — birinchisi olindi.`);
+  if (result.boundary && result.boundary.length > 1) {
+    result.notes.push(`Faylda ${result.boundary.length} ta ko'pburchak topildi — hammasi olindi.`);
   }
 
   return result;
@@ -194,43 +198,55 @@ function parseGeoJson(text) {
       ? [data]
       : [{ geometry: data, properties: {} }];
 
-  if (features.length > 1) result.notes.push(`Faylda ${features.length} ta obyekt bor — birinchisi olindi.`);
-  const feature = features[0];
-  if (!feature?.geometry) throw new Error('GeoJSON ichida geometriya topilmadi.');
+  const withGeometry = features.filter((f) => f?.geometry);
+  if (withGeometry.length === 0) throw new Error('GeoJSON ichida geometriya topilmadi.');
 
-  const name = feature.properties?.name || feature.properties?.Name;
+  const name = withGeometry[0].properties?.name || withGeometry[0].properties?.Name;
   if (typeof name === 'string') result.name = name.trim().slice(0, 200) || null;
 
-  const { type, coordinates } = feature.geometry;
   // GeoJSON tartibi ham [lon, lat]
   const toPoints = (list) =>
-    list
+    (list || [])
       .map(([lon, lat]) => (Number.isFinite(lat) && Number.isFinite(lon) ? [round(lat), round(lon)] : null))
       .filter(Boolean)
       .slice(0, MAX_POINTS);
 
-  if (type === 'Point') {
-    const [lon, lat] = coordinates;
-    if (Number.isFinite(lat) && Number.isFinite(lon)) result.coordinates = { lat: round(lat), lng: round(lon) };
-  } else if (type === 'Polygon') {
-    const points = toPoints(coordinates[0] || []);
-    if (points.length >= 3) result.boundary = closeRing(points);
-  } else if (type === 'MultiPolygon') {
-    const points = toPoints(coordinates[0]?.[0] || []);
-    if (points.length >= 3) result.boundary = closeRing(points);
-    result.notes.push('MultiPolygon: birinchi ko\'pburchak olindi.');
-  } else if (type === 'LineString') {
-    const points = toPoints(coordinates);
-    if (points.length >= 3) {
-      result.boundary = closeRing(points);
-      result.notes.push('Chegara LineString (chiziq) elementidan olindi.');
+  // Barcha obyektlardan ko'pburchaklarni yig'amiz (bir nechtasi bo'lishi mumkin)
+  const polygons = [];
+  let lineStringUsed = false;
+  for (const feature of withGeometry) {
+    const { type, coordinates } = feature.geometry;
+    if (type === 'Point') {
+      if (!result.coordinates) {
+        const [lon, lat] = coordinates;
+        if (Number.isFinite(lat) && Number.isFinite(lon)) result.coordinates = { lat: round(lat), lng: round(lon) };
+      }
+    } else if (type === 'Polygon') {
+      const points = toPoints(coordinates[0]); // tashqi ring
+      if (points.length >= 3) polygons.push(closeRing(points));
+    } else if (type === 'MultiPolygon') {
+      for (const poly of coordinates || []) {
+        const points = toPoints(poly?.[0]); // har ko'pburchakning tashqi ringi
+        if (points.length >= 3) polygons.push(closeRing(points));
+      }
+    } else if (type === 'LineString') {
+      const points = toPoints(coordinates);
+      if (points.length >= 3) { polygons.push(closeRing(points)); lineStringUsed = true; }
     }
-  } else {
-    throw new Error(`GeoJSON turi qo'llanmaydi: ${type}`);
+    // boshqa turlar (masalan MultiLineString) e'tiborsiz — xato tashlamaymiz
+  }
+
+  if (polygons.length > 0) result.boundary = polygons;
+  if (lineStringUsed) result.notes.push('Chegara LineString (chiziq) elementidan olindi.');
+  if (result.boundary && result.boundary.length > 1) {
+    result.notes.push(`Faylda ${result.boundary.length} ta ko'pburchak topildi — hammasi olindi.`);
+  }
+  if (!result.boundary && !result.coordinates) {
+    throw new Error('GeoJSON ichidan chegara yoki nuqta topilmadi.');
   }
 
   if (!result.coordinates && result.boundary) {
-    result.coordinates = centroid(result.boundary);
+    result.coordinates = centroid(result.boundary.flat());
     result.notes.push('Markaziy nuqta chegara bo\'yicha hisoblandi.');
   }
   return result;

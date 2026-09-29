@@ -3,6 +3,7 @@
  */
 import { qsa, config } from './core/config.js';
 import { createMap } from './map.js';
+import { toPolygonList } from './core/geo.js';
 
 const readJson = (value, fallback) => {
   if (!value) return fallback;
@@ -31,14 +32,15 @@ function initAreaMaps() {
     const areaBoundary = readJson(host.dataset.boundary, null);
     const lots = readJson(host.dataset.lots, []);
 
-    // Chegaralar: avval hudud (yo'g'on kontur), so'ng har bir lot
+    // Chegaralar: avval hudud (yo'g'on kontur), so'ng har bir lot.
+    // Har bir chegara bir nechta ko'pburchakдан iborat bo'lishi mumkin (KMZ).
     const boundaries = [];
-    if (Array.isArray(areaBoundary) && areaBoundary.length >= 3) {
-      boundaries.push({ points: areaBoundary, kind: 'area' });
+    for (const poly of toPolygonList(areaBoundary)) {
+      boundaries.push({ points: poly, kind: 'area' });
     }
     for (const lot of lots) {
-      if (Array.isArray(lot.boundary) && lot.boundary.length >= 3) {
-        boundaries.push({ points: lot.boundary, kind: 'lot', id: lot.id });
+      for (const poly of toPolygonList(lot.boundary)) {
+        boundaries.push({ points: poly, kind: 'lot', id: lot.id });
       }
     }
     if (boundaries.length > 0) map.setBoundaries(boundaries);
@@ -55,10 +57,10 @@ function initAreaMaps() {
       })),
     );
 
-    // Ko'rinishni butun hududga moslash
+    // Ko'rinishni butun hududga moslash (barcha poligon nuqtalari + lot markerlari)
     const fitPoints = [];
-    if (Array.isArray(areaBoundary)) {
-      for (const [pLat, pLng] of areaBoundary) fitPoints.push({ lat: pLat, lng: pLng });
+    for (const poly of toPolygonList(areaBoundary)) {
+      for (const [pLat, pLng] of poly) fitPoints.push({ lat: pLat, lng: pLng });
     }
     for (const lot of lots) fitPoints.push({ lat: lot.lat, lng: lot.lng });
     if (fitPoints.length > 1) map.fitBounds(fitPoints, 40);

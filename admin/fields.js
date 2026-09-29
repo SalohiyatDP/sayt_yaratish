@@ -23,6 +23,20 @@ export function setPath(object, path, value) {
   node[keys[keys.length - 1]] = value;
 }
 
+/**
+ * Chegara (boundary) statistikasi. Chegara bitta poligon [[lat,lng],...] yoki
+ * ko'p poligon [[[lat,lng],...],...] bo'lishi mumkin (KMZ da bir nechta
+ * ko'pburchak). { polygons, points, valid } qaytaradi.
+ */
+export function boundaryStats(boundary) {
+  if (!Array.isArray(boundary) || boundary.length === 0) return { polygons: 0, points: 0, valid: false };
+  const isMulti = Array.isArray(boundary[0]) && Array.isArray(boundary[0][0]);
+  const rings = isMulti ? boundary : [boundary];
+  const valid = rings.filter((r) => Array.isArray(r) && r.length >= 3);
+  const points = valid.reduce((sum, r) => sum + r.length, 0);
+  return { polygons: valid.length, points, valid: valid.length > 0 };
+}
+
 /* ── Oddiy maydonlar ────────────────────────────────────────────────────── */
 
 function wrap(label, control, hint) {
@@ -759,7 +773,8 @@ export function geoFileField(record, options) {
   const drawCurrent = () => {
     const point = getPath(record, coordinatesPath);
     const boundary = boundaryPath ? getPath(record, boundaryPath) : null;
-    const hasBoundary = Array.isArray(boundary) && boundary.length >= 3;
+    const stats = boundaryStats(boundary);
+    const hasBoundary = stats.valid;
     current.innerHTML = '';
 
     if (!point && !hasBoundary) {
@@ -779,7 +794,10 @@ export function geoFileField(record, options) {
               ])
             : el('p', { class: 'a-small a-muted', text: 'Markaziy nuqta yo\'q.' }),
           hasBoundary
-            ? el('p', { class: 'a-small' }, [el('strong', { text: 'Chegara: ' }), `${boundary.length} nuqta`])
+            ? el('p', { class: 'a-small' }, [
+                el('strong', { text: 'Chegara: ' }),
+                stats.polygons > 1 ? `${stats.polygons} ta poligon, ${stats.points} nuqta` : `${stats.points} nuqta`,
+              ])
             : el('p', { class: 'a-small a-muted', text: 'Chegara konturi yo\'q.' }),
         ]),
         el('div', { style: 'display:flex;gap:0.35rem;flex-wrap:wrap' }, [
@@ -823,7 +841,8 @@ export function geoFileField(record, options) {
       }
       if (result.boundary && boundaryPath) {
         setPath(record, boundaryPath, result.boundary);
-        applied.push(`chegara: ${result.boundary.length} nuqta`);
+        const s = boundaryStats(result.boundary);
+        applied.push(s.polygons > 1 ? `chegara: ${s.polygons} ta poligon (${s.points} nuqta)` : `chegara: ${s.points} nuqta`);
       }
       if (applied.length === 0) {
         setStatus('error', 'Faylda nuqta ham, chegara ham topilmadi.');

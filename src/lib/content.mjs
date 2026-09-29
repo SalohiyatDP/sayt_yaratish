@@ -240,8 +240,9 @@ function normalizeCoordinates(value) {
   return { lat, lng };
 }
 
-function normalizeBoundary(value) {
-  if (!Array.isArray(value) || value.length < 3) return null;
+/** Bitta ko'pburchak nuqtalarini [[lat,lng],...] ga normallashtiradi. */
+function normalizeRing(value) {
+  if (!Array.isArray(value)) return null;
   const points = value
     .map((point) => {
       if (Array.isArray(point) && point.length >= 2) {
@@ -258,6 +259,22 @@ function normalizeBoundary(value) {
     })
     .filter(Boolean);
   return points.length >= 3 ? points : null;
+}
+
+/**
+ * Chegarani poligonlar ro'yxatiga normallashtiradi: [[[lat,lng],...], ...].
+ * Eski (bitta poligon) format [[lat,lng],...] ham qo'llab-quvvatlanadi va
+ * avtomatik bitta elementli ro'yxatga o'raladi (orqaga moslik).
+ * Yaroqli poligon bo'lmasa null qaytaradi.
+ */
+function normalizeBoundary(value) {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  // Ko'p-poligon: birinchi element — nuqtalar massivi (ya'ni ichma-ich massiv)
+  const isMulti = Array.isArray(value[0]) && Array.isArray(value[0][0]);
+  const rings = (isMulti ? value : [value])
+    .map((ring) => normalizeRing(ring))
+    .filter(Boolean);
+  return rings.length > 0 ? rings : null;
 }
 
 function pickAnyText(value) {

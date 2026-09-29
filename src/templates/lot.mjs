@@ -2,7 +2,7 @@
 import { html, raw, when, formatNumber, formatDate, isoDate } from '../lib/util.mjs';
 import { icon, areaTypeIcon } from '../lib/icons.mjs';
 import {
-  sectionHead, statusBadge, demoBadge, defList, gallery, mediaPlaceholder,
+  sectionHead, statusBadge, demoBadge, defList, gallery,
   bulletList, documentList, callout, lotPipeline, chips, prose, shareRow, emptyState,
   masterplanStatusBadge, breadcrumbs,
 } from '../lib/ui.mjs';
@@ -128,12 +128,15 @@ export function lotPage(ctx, lot) {
           </section>
 
           ${mapBlock(ctx, lot)}
-          ${auctionBlock(ctx, lot, auction)}
+          ${when(hasAuctionInfo(auction), auctionBlock(ctx, lot, auction))}
 
-          <section class="lot__card" aria-labelledby="lot-docs">
-            <h2 class="block-title" id="lot-docs">${t('lot.documents')}</h2>
-            ${documentList(ctx, lot.documents)}
-          </section>
+          ${when(
+            lot.documents.length > 0,
+            html`<section class="lot__card" aria-labelledby="lot-docs">
+              <h2 class="block-title" id="lot-docs">${t('lot.documents')}</h2>
+              ${documentList(ctx, lot.documents)}
+            </section>`,
+          )}
         </aside>
       </div>
 
@@ -196,18 +199,14 @@ function areaValue(ctx, lot) {
 
 function photosBlock(ctx, lot) {
   const { t } = ctx;
+  // Fotosurat yo'q bo'lsa (masalan admin panelдан «Tasvirlar» bo'limi o'chirilgan
+  // yoki hali yuklanmagan) — butun bo'lim ko'rsatilmaydi.
+  if (lot.photos.length === 0) return raw('');
   return html`
     <section class="lot__block" aria-labelledby="lot-photos">
       <h2 class="block-title" id="lot-photos">${t('lot.currentPhotos')}</h2>
-      ${lot.photos.length > 0
-        ? html`
-            <p class="block-hint">${icon('info', { size: 15 })}${t('lot.currentPhotosHint')}</p>
-            ${gallery(ctx, lot.photos, { id: `lot-${lot.id}-photos` })}
-          `
-        : html`<div class="placeholder-row">
-            ${mediaPlaceholder(ctx, { iconName: areaTypeIcon(lot.areaType), text: t('media.empty') })}
-            <p class="muted">${t('media.emptyHint')}</p>
-          </div>`}
+      <p class="block-hint">${icon('info', { size: 15 })}${t('lot.currentPhotosHint')}</p>
+      ${gallery(ctx, lot.photos, { id: `lot-${lot.id}-photos` })}
     </section>
   `;
 }
@@ -336,6 +335,20 @@ function mapBlock(ctx, lot) {
         : html`<p class="muted">${t('map.noCoordinates')}</p>`}
     </section>
   `;
+}
+
+/**
+ * Auksion bo'limida ko'rsatishga arziydigan ma'lumot bormi?
+ * Bo'sh (e'lon qilinmagan va hech qanday sana/narx/havola yo'q) bo'lsa, bo'lim
+ * umuman chiqmaydi — masalan admin panelдан bu bo'lim o'chirilgan bo'lsa.
+ */
+function hasAuctionInfo(auction) {
+  if (!auction) return false;
+  if (auction.status && auction.status !== 'not-announced') return true;
+  return Boolean(
+    auction.announcementDate || auction.startDate || auction.startPrice != null ||
+    auction.rightType || auction.lotUrl || (auction.verified),
+  );
 }
 
 function auctionBlock(ctx, lot, auction) {

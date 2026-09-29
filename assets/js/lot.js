@@ -3,6 +3,7 @@
  */
 import { qsa, config } from './core/config.js';
 import { createMap } from './map.js';
+import { toPolygonList } from './core/geo.js';
 
 function initSingleMaps() {
   for (const host of qsa('[data-map][data-map-source="single"]')) {
@@ -22,10 +23,11 @@ function initSingleMaps() {
 
     if (host.dataset.boundary) {
       try {
-        const points = JSON.parse(host.dataset.boundary);
-        if (Array.isArray(points) && points.length >= 3) {
-          map.setBoundaries([{ points }]);
-          map.fitBounds(points.map(([pLat, pLng]) => ({ lat: pLat, lng: pLng })), 40);
+        const polygons = toPolygonList(JSON.parse(host.dataset.boundary));
+        if (polygons.length > 0) {
+          map.setBoundaries(polygons.map((points) => ({ points })));
+          const all = polygons.flat().map(([pLat, pLng]) => ({ lat: pLat, lng: pLng }));
+          map.fitBounds(all, 40);
         }
       } catch (error) {
         console.warn('Chegara konturi o\'qilmadi', error);

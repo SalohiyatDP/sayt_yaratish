@@ -454,6 +454,14 @@ const LOTS_VIEW = {
   title: 'Lotlar',
   singular: 'lot',
   idPrefix: 'lot',
+  // Ixtiyoriy (o'chiriladigan) bo'limlar — kerak bo'lmasa panel soddaroq
+  optionalSections: [
+    { key: 'media', title: 'Tasvirlar', fields: ['media'] },
+    { key: 'planned', title: 'Lotda rejalashtirilgan obyektlar', fields: ['plannedObjects', 'services'] },
+    { key: 'requirements', title: 'Talablar va cheklovlar', fields: ['requirements', 'restrictions'] },
+    { key: 'documents', title: 'Hujjatlar', fields: ['documents'] },
+    { key: 'auction', title: 'Auksion', fields: ['auction'] },
+  ],
   titleOf: (item) => pick(item.name) || item.id,
   metaOf: (item, tax, file, extra) => [
     // Lot qaysi hududda — ro'yxatda darhol ko'rinishi kerak
@@ -503,10 +511,12 @@ const LOTS_VIEW = {
     const areas = await loadContent('areas');
     const areaItems = areas.items || [];
     const parent = areaItems.find((area) => area.id === record.areaId) || null;
+    const { optional, restoreBar } = makeOptionalSections(record, LOTS_VIEW.optionalSections);
 
     return [
       // Lot hudud ichida joylashadi — birinchi navbatda hudud tanlanadi
       areaPicker(record, areaItems, tax),
+      restoreBar,
 
       group('Asosiy ma\'lumotlar', [
         i18nField(record, {
@@ -549,23 +559,23 @@ const LOTS_VIEW = {
         i18nField(record, { path: 'description', label: 'To\'liq tavsif', multiline: true, rows: 8, hint: 'Oddiy matn yoki cheklangan HTML: <p> <strong> <em> <ul> <li> <a href>' }),
       ]),
 
-      group('Tasvirlar', [mediaListField(record, { path: 'media', label: 'Fotosuratlar va vizualizatsiyalar', folder: 'lots' })]),
+      optional('media', 'Tasvirlar', [mediaListField(record, { path: 'media', label: 'Fotosuratlar va vizualizatsiyalar', folder: 'lots' })]),
 
-      group('Lotda rejalashtirilgan obyektlar', [
+      optional('planned', 'Lotda rejalashtirilgan obyektlar', [
         i18nListField(record, { path: 'plannedObjects', label: 'Rejalashtirilgan turizm obyektlari' }),
         i18nListField(record, { path: 'services', label: 'Xizmat turlari' }),
       ]),
 
-      group('Talablar va cheklovlar', [
+      optional('requirements', 'Talablar va cheklovlar', [
         i18nListField(record, { path: 'requirements', label: 'Hujjatlardagi talablar' }),
         i18nListField(record, { path: 'restrictions', label: 'Cheklovlar' }),
       ]),
 
-      group('Hujjatlar', [
+      optional('documents', 'Hujjatlar', [
         documentListField(record, { path: 'documents', label: 'Yuklab olinadigan hujjatlar', folder: 'lots' }),
       ]),
 
-      auctionGroup(record, tax),
+      optional('auction', 'Auksion', () => auctionFields(record, tax)),
 
       group('Nashr', [
         dateField(record, { path: 'updatedAt', label: 'Ma\'lumot yangilangan sana' }),
@@ -888,7 +898,7 @@ function parseNumber(value) {
   return m ? Number(m[0]) : null;
 }
 
-function auctionGroup(record, tax) {
+function auctionFields(record, tax) {
   if (!record.auction) record.auction = LOTS_VIEW.blank().auction;
   const warning = el('div', { class: 'a-alert a-alert--warning' }, [
     el('strong', { text: 'Aukcion ma\'lumotlari' }),
@@ -896,7 +906,7 @@ function auctionGroup(record, tax) {
       text: '«Ma\'lumotlar rasmiy tasdiqlangan» katagi belgilanmaguncha sana, boshlang\'ich narx va huquq turi saytda KO\'RSATILMAYDI. Havolaga faqat aynan shu lotning E-auksion sahifasi yozilishi kerak — platformaning umumiy manzili qabul qilinmaydi.',
     }),
   ]);
-  return group('Aukcion', [
+  return [
     warning,
     el('div', { class: 'a-row' }, [
       dateField(record, { path: 'auction.announcementDate', label: 'E\'lon sanasi' }),
@@ -926,7 +936,7 @@ function auctionGroup(record, tax) {
       label: 'Aukcion ma\'lumotlari rasmiy tasdiqlangan',
       hint: 'Faqat rasmiy e\'lon bilan solishtirib tekshirilgandan keyin belgilang.',
     }),
-  ]);
+  ];
 }
 
 const MASTERPLANS_VIEW = {
@@ -974,50 +984,7 @@ const MASTERPLANS_VIEW = {
   form: async (record) => {
     const tax = await ensureTaxonomies();
     const lots = await loadContent('lots');
-
-    // Yashiringan bo'limlar ro'yxati (record da saqlanadi — keyingi tahrirда ham
-    // eslanadi). Bo'limни ko'rsatishдан oldin shu ro'yxatni tekshiramiz.
-    if (!Array.isArray(record._hiddenSections)) record._hiddenSections = [];
-    const isHidden = (key) => record._hiddenSections.includes(key);
-    const removeSection = (key, fields) => {
-      if (!record._hiddenSections.includes(key)) record._hiddenSections.push(key);
-      // Bo'lim ma'lumotlarini tozalaymiz — sayt bu bo'limni ko'rsatmaydi
-      for (const path of fields) {
-        if (path === 'solutions') record.solutions = { pedestrian: emptyI18n(), transport: emptyI18n(), parking: emptyI18n(), landscaping: emptyI18n(), engineering: emptyI18n() };
-        else if (path === 'approvedBy') record.approvedBy = emptyI18n();
-        else if (Array.isArray(record[path])) record[path] = [];
-        else record[path] = ''; // approvalDocument, approvalDate kabi matnli maydonlar
-      }
-      render();
-    };
-    const restoreSection = (key) => {
-      record._hiddenSections = record._hiddenSections.filter((k) => k !== key);
-      render();
-    };
-
-    // Yashiringan bo'limlarni qaytadan qo'shish paneli
-    const hidden = MASTERPLANS_VIEW.optionalSections.filter((s) => isHidden(s.key));
-    const restoreBar = hidden.length > 0
-      ? el('div', { class: 'a-alert a-alert--info' }, [
-          el('strong', { text: 'O\'chirilgan bo\'limlar' }),
-          el('p', { class: 'a-small', text: 'Kerak bo\'lsa qaytadan qo\'shishingiz mumkin:' }),
-          el('div', { class: 'section-restore' }, hidden.map((s) =>
-            el('button', {
-              type: 'button',
-              class: 'a-btn a-btn--sm',
-              text: `+ ${s.title}`,
-              onClick: () => restoreSection(s.key),
-            }),
-          )),
-        ])
-      : null;
-
-    // Ixtiyoriy bo'limni yasab beruvchi yordamchi (yashiringan bo'lsa null)
-    const optional = (key, title, children) => {
-      if (isHidden(key)) return null;
-      const cfg = MASTERPLANS_VIEW.optionalSections.find((s) => s.key === key);
-      return group(title, children, { removable: true, onRemove: () => removeSection(key, cfg.fields) });
-    };
+    const { optional, restoreBar } = makeOptionalSections(record, MASTERPLANS_VIEW.optionalSections);
 
     return [
       pdfExtractBlock(record),
@@ -1302,12 +1269,72 @@ function mapTileField(site) {
   ]);
 }
 
-/** Obyekt (masalan solutions) ichida biror i18n qiymat to'ldirilganmi? */
-function hasAnyI18n(obj) {
-  if (!obj || typeof obj !== 'object') return false;
-  return Object.values(obj).some((v) => v && typeof v === 'object'
-    ? Object.values(v).some((s) => typeof s === 'string' && s.trim() !== '')
-    : typeof v === 'string' && v.trim() !== '');
+/**
+ * Forma uchun ixtiyoriy (o'chiriladigan) bo'limlar mexanizmini yasaydi.
+ * Master-reja va lot formalarida bir xil ishlatiladi.
+ *
+ * @param {object} record tahrirlanayotgan yozuv (holat _hiddenSections da saqlanadi)
+ * @param {Array<{key,title,fields}>} sections ixtiyoriy bo'limlar ro'yxati
+ * @returns {{ optional, restoreBar }} — optional(key,title,children) bo'lim
+ *   yasaydi (yashiringan bo'lsa null); restoreBar — o'chirilganlarni qaytarish paneli.
+ */
+function makeOptionalSections(record, sections) {
+  if (!Array.isArray(record._hiddenSections)) record._hiddenSections = [];
+  const isHidden = (key) => record._hiddenSections.includes(key);
+
+  const clearFields = (fields) => {
+    for (const path of fields) {
+      if (path === 'solutions') {
+        record.solutions = { pedestrian: emptyI18n(), transport: emptyI18n(), parking: emptyI18n(), landscaping: emptyI18n(), engineering: emptyI18n() };
+      } else if (path === 'auction') {
+        // Auksion — obyekt; o'chirilganda "e'lon qilinmagan" holatga qaytaramiz
+        record.auction = { status: 'not-announced', announcementDate: '', startDate: '', startPrice: null, currency: 'UZS', rightType: null, rightTypeText: emptyI18n(), lotUrl: null, verified: false };
+      } else if (isI18nField(record[path])) {
+        setPath(record, path, emptyI18n());
+      } else if (Array.isArray(getPath(record, path))) {
+        setPath(record, path, []);
+      } else {
+        setPath(record, path, '');
+      }
+    }
+  };
+
+  const removeSection = (key, fields) => {
+    if (!record._hiddenSections.includes(key)) record._hiddenSections.push(key);
+    clearFields(fields);
+    render();
+  };
+  const restoreSection = (key) => {
+    record._hiddenSections = record._hiddenSections.filter((k) => k !== key);
+    render();
+  };
+
+  const hidden = sections.filter((s) => isHidden(s.key));
+  const restoreBar = hidden.length > 0
+    ? el('div', { class: 'a-alert a-alert--info' }, [
+        el('strong', { text: 'O\'chirilgan bo\'limlar' }),
+        el('p', { class: 'a-small', text: 'Kerak bo\'lsa qaytadan qo\'shishingiz mumkin:' }),
+        el('div', { class: 'section-restore' }, hidden.map((s) =>
+          el('button', { type: 'button', class: 'a-btn a-btn--sm', text: `+ ${s.title}`, onClick: () => restoreSection(s.key) }),
+        )),
+      ])
+    : null;
+
+  // children — massiv yoki funksiya (thunk). Thunk faqat bo'lim ko'rinsa
+  // chaqiriladi — yashiringan bo'limlar uchun ortiqcha ish/mutatsiya bo'lmaydi.
+  const optional = (key, title, children) => {
+    if (isHidden(key)) return null;
+    const cfg = sections.find((s) => s.key === key);
+    const nodes = typeof children === 'function' ? children() : children;
+    return group(title, nodes, { removable: true, onRemove: () => removeSection(key, cfg.fields) });
+  };
+
+  return { optional, restoreBar };
+}
+
+/** Qiymat i18n maydonmi (obyekt, faqat til kalitlari)? */
+function isI18nField(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**
